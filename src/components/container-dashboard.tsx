@@ -161,17 +161,17 @@ export function ContainerDashboard({
 									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-colors duration-300 ${hasUpdateAvailable ? 'border-l-amber-500' : ''}`}
 								>
 									<CardHeader className='pb-2'>
-										<div className='flex justify-between items-start'>
-											<CardTitle className='text-lg font-medium text-white max-w-[260px]'>
+										<div className='flex justify-between items-start gap-4'>
+											<CardTitle className='text-lg font-medium text-white [overflow-wrap:anywhere] break-normal'>
 												{containerName}
 											</CardTitle>
 											<Badge
 												variant='outline'
-												className={
+												className={`shrink-0 ${
 													isRunning
 														? 'bg-transparent text-green-500 border-green-500 font-mono rounded-[3.5px] cursor-default'
 														: 'bg-transparent text-red-500 border-red-500 font-mono rounded-[3.5px] cursor-default'
-												}
+												}`}
 											>
 												{container.State}
 											</Badge>
