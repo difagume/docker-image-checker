@@ -7,6 +7,7 @@ import {
 	ExternalLink,
 	Eye,
 	EyeOff,
+	Fingerprint,
 	Package,
 	Server
 } from 'lucide-react'
@@ -211,30 +212,20 @@ export function ContainerDashboard({
 
 						const hasUpdateAvailable = updateStatus === 'available'
 
-						// Render status node dynamically in the client component
-						let updateStatusNode = (
-							<span className='text-neutral-500'>Unknown</span>
-						)
+						const displayLatestVersion =
+							latestVersion !== 'latest' && latestVersion !== 'Unknown'
+								? latestVersion
+								: 'latest'
+
+						let updateStatusInfo = null
 
 						if (updateStatus === 'updated') {
-							updateStatusNode = (
-								<div className='flex flex-col items-end'>
-									<span className='text-green-500 font-medium'>
-										Actualizado
-									</span>
-									<span className='text-xs text-neutral-600'>
-										{displayCurentVersion}
-									</span>
-								</div>
+							updateStatusInfo = (
+								<span className='text-green-500 font-medium'>Actualizado</span>
 							)
 						} else if (updateStatus === 'available') {
-							const displayLatestVersion =
-								latestVersion !== 'latest' && latestVersion !== 'Unknown'
-									? latestVersion
-									: 'latest'
-
-							updateStatusNode = (
-								<div className='flex flex-col items-end'>
+							updateStatusInfo = (
+								<div className='flex flex-col items-end gap-1'>
 									{dockerHubUrl ? (
 										<a
 											href={dockerHubUrl}
@@ -244,47 +235,41 @@ export function ContainerDashboard({
 											title='Ver en Docker Hub'
 										>
 											Actualización disponible
-											<ExternalLink className='h-4 w-4' />
+											<ExternalLink className='h-3 w-3' />
 										</a>
 									) : (
 										<span className='text-amber-500 font-bold'>
 											Actualización disponible
 										</span>
 									)}
-									<div className='flex flex-col text-right'>
-										<span className='text-xs text-neutral-400'>
-											Disponible: {displayLatestVersion}
-										</span>
-										{lastUpdated && (
-											<div className='pt-2 border-t border-white/5 flex items-center justify-center gap-2'>
-												<Clock className='h-3 w-3 text-neutral-500' />
-												<TooltipProvider>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<span className='text-[10px] text-neutral-500 cursor-help border-b border-dotted border-neutral-700 pb-0.5 mt-1'>
-																Publicada:{' '}
-																{formatRelativeTime(new Date(lastUpdated))}
-															</span>
-														</TooltipTrigger>
-														<TooltipContent
-															side='left'
-															className='bg-neutral-800 border-neutral-700 text-neutral-200'
-														>
-															<p>
-																{new Date(lastUpdated).toLocaleString('es-ES', {
-																	day: '2-digit',
-																	month: '2-digit',
-																	year: 'numeric',
-																	hour: '2-digit',
-																	minute: '2-digit'
-																})}
-															</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</div>
-										)}
-									</div>
+									{lastUpdated && (
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div className='flex items-center gap-1 text-neutral-600 hover:text-neutral-500 transition-colors cursor-help'>
+														<Clock className='h-2.5 w-2.5' />
+														<span className='text-[10px]'>
+															{formatRelativeTime(new Date(lastUpdated))}
+														</span>
+													</div>
+												</TooltipTrigger>
+												<TooltipContent
+													side='left'
+													className='bg-neutral-800 border-neutral-700 text-neutral-200'
+												>
+													<p>
+														{new Date(lastUpdated).toLocaleString('es-ES', {
+															day: '2-digit',
+															month: '2-digit',
+															year: 'numeric',
+															hour: '2-digit',
+															minute: '2-digit'
+														})}
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									)}
 								</div>
 							)
 						}
@@ -344,55 +329,77 @@ export function ContainerDashboard({
 											<span className='text-neutral-500'>
 												:{container.Image.split(':')[1] || 'latest'}
 											</span>
-											{currentVersion && currentVersion !== 'Unknown' && (
+											{/* {currentVersion && currentVersion !== 'Unknown' && (
 												<span className='ml-2 text-xs text-neutral-500 font-mono'>
 													({currentVersion})
 												</span>
-											)}
+											)} */}
 										</CardDescription>
 									</CardHeader>
 									<CardContent>
 										<div className='space-y-2 text-sm text-neutral-300'>
-											<div className='flex justify-between'>
-												<span className='text-neutral-500'>ID:</span>
-												<span className='font-mono'>
+											<div className='flex justify-between items-center'>
+												<div className='flex items-center gap-1.5 text-neutral-500'>
+													<Fingerprint className='h-3 w-3' />
+													<span className='font-medium text-xs'>
+														ID de Contenedor
+													</span>
+												</div>
+												<span className='font-mono text-xs text-neutral-400'>
 													{container.Id.substring(0, 12)}
 												</span>
 											</div>
-											<div className='flex justify-between'>
+											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-neutral-500'>
 													<Server className='h-3 w-3' />
-													<span>Ports:</span>
+													<span className='font-medium text-xs'>Ports</span>
 												</div>
-												<span className='font-mono truncate max-w-[150px]'>
+												<span className='font-mono text-xs text-neutral-400 truncate max-w-[150px]'>
 													{ports || '---'}
 												</span>
 											</div>
-											<div className='flex justify-between'>
+											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-neutral-500'>
 													<Activity className='h-3 w-3' />
-													<span className='text-neutral-500'>Status:</span>
+													<span className='font-medium text-xs'>Status</span>
 												</div>
-												<span>{container.Status}</span>
+												<span className='text-xs text-neutral-300'>
+													{container.Status}
+												</span>
 											</div>
-											<div className='flex justify-between items-start pt-2 border-t border-neutral-800 mt-2'>
-												<div className='flex flex-col'>
-													<div className='flex items-center gap-2 mb-1'>
-														<Package className='h-4 w-4 text-neutral-500' />
-														<span className='text-neutral-500 pt-0.5'>
-															Imagen:
-														</span>
-													</div>
-													{currentVersion && currentVersion !== 'Unknown' && (
-														<span className='text-[10px] text-neutral-400 font-mono'>
-															{currentVersion}
-														</span>
-													)}
-													{/* <div className='text-[10px] text-neutral-500 font-mono'>
-														ID: {container.ImageID.substring(7, 19)}...
-													</div> */}
+											<div className='pt-2 border-t border-neutral-800 mt-2 space-y-3'>
+												<div className='flex items-center gap-2 mb-1'>
+													<Package className='h-4 w-4 text-neutral-500' />
+													<span className='text-white font-bold text-sm'>
+														Imagen:
+													</span>
 												</div>
-												{updateStatusNode}
+
+												<div className='space-y-1 pl-6'>
+													<div className='flex items-center justify-between'>
+														<span className='text-neutral-500 font-medium text-xs'>
+															Versión Actual
+														</span>
+														<div className='bg-neutral-800/80 px-2.5 py-1 rounded-[3.5px] text-neutral-400 font-mono text-xs border border-neutral-700/50'>
+															{displayCurentVersion}
+														</div>
+													</div>
+
+													{hasUpdateAvailable && (
+														<div className='flex items-center justify-between'>
+															<span className='text-neutral-500 font-medium text-xs'>
+																Nueva Versión
+															</span>
+															<div className='bg-neutral-800/80 px-2.5 py-1 rounded-[3.5px] text-amber-500 font-mono text-xs border border-neutral-700/50'>
+																{displayLatestVersion}
+															</div>
+														</div>
+													)}
+												</div>
+
+												<div className='flex justify-end pt-1'>
+													{updateStatusInfo}
+												</div>
 											</div>
 
 											<details className='mt-2 border-t border-neutral-800 pt-2'>
