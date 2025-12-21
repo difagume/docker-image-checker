@@ -116,25 +116,35 @@ export function ContainerDashboard({
 	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
 	const [showHiddenMode, setShowHiddenMode] = useState(false)
 
-	// Load hidden containers from localStorage
+	// Load hidden containers and filters from localStorage
 	useEffect(() => {
-		const saved = localStorage.getItem('hiddenContainerIds')
-		if (saved) {
+		const savedHidden = localStorage.getItem('hiddenContainerIds')
+		if (savedHidden) {
 			try {
-				setHiddenContainerIds(JSON.parse(saved))
+				setHiddenContainerIds(JSON.parse(savedHidden))
 			} catch (e) {
 				console.error('Error loading hidden containers:', e)
 			}
 		}
+
+		const savedFilters = localStorage.getItem('activeFilters')
+		if (savedFilters) {
+			try {
+				setActiveFilters(JSON.parse(savedFilters))
+			} catch (e) {
+				console.error('Error loading active filters:', e)
+			}
+		}
 	}, [])
 
-	// Save hidden containers to localStorage
+	// Save data to localStorage
 	useEffect(() => {
-		localStorage.setItem(
-			'hiddenContainerIds',
-			JSON.stringify(hiddenContainerIds)
-		)
+		localStorage.setItem('hiddenContainerIds', JSON.stringify(hiddenContainerIds))
 	}, [hiddenContainerIds])
+
+	useEffect(() => {
+		localStorage.setItem('activeFilters', JSON.stringify(activeFilters))
+	}, [activeFilters])
 
 	const toggleHideContainer = (id: string) => {
 		setHiddenContainerIds((prev) =>
