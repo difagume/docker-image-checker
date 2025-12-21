@@ -1,17 +1,23 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
+import { Activity, Clock, ExternalLink, Package, Server } from 'lucide-react'
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ExternalLink } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { StatsSummary, type FilterStatus } from './stats-summary'
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle
+} from '@/components/ui/card'
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
+import { type FilterStatus, StatsSummary } from './stats-summary'
 
 interface ContainerData {
 	container: {
@@ -51,7 +57,7 @@ const cardVariants = {
 
 function formatRelativeTime(date: Date) {
 	const now = new Date()
-	
+
 	let years = now.getFullYear() - date.getFullYear()
 	let months = now.getMonth() - date.getMonth()
 	let days = now.getDate() - date.getDate()
@@ -81,10 +87,11 @@ function formatRelativeTime(date: Date) {
 
 	const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 	if (diffInSeconds < 60) return 'hace un momento'
-	
+
 	const minutes = Math.floor(diffInSeconds / 60)
-	if (minutes < 60) return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
-	
+	if (minutes < 60)
+		return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
+
 	const hours = Math.floor(minutes / 60)
 	return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`
 }
@@ -121,10 +128,7 @@ export function ContainerDashboard({
 				onToggleFilter={toggleFilter}
 			/>
 
-			<motion.div 
-				layout
-				className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'
-			>
+			<motion.div layout className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
 				<AnimatePresence mode='popLayout'>
 					{filteredContainers.map((item) => {
 						const {
@@ -143,12 +147,16 @@ export function ContainerDashboard({
 						const hasUpdateAvailable = updateStatus === 'available'
 
 						// Render status node dynamically in the client component
-						let updateStatusNode = <span className='text-neutral-500'>Unknown</span>
+						let updateStatusNode = (
+							<span className='text-neutral-500'>Unknown</span>
+						)
 
 						if (updateStatus === 'updated') {
 							updateStatusNode = (
 								<div className='flex flex-col items-end'>
-									<span className='text-green-500 font-medium'>Actualizado</span>
+									<span className='text-green-500 font-medium'>
+										Actualizado
+									</span>
 									<span className='text-xs text-neutral-600'>
 										{displayCurentVersion}
 									</span>
@@ -186,24 +194,33 @@ export function ContainerDashboard({
 											Disponible: {displayLatestVersion}
 										</span>
 										{lastUpdated && (
-											<TooltipProvider>
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<span className='text-[10px] text-neutral-500 cursor-help border-b border-dotted border-neutral-700 pb-0.5 mt-1'>
-															Actualizado: {formatRelativeTime(new Date(lastUpdated))}
-														</span>
-													</TooltipTrigger>
-													<TooltipContent side='left' className='bg-neutral-800 border-neutral-700 text-neutral-200'>
-														<p>{new Date(lastUpdated).toLocaleString('es-ES', {
-															day: '2-digit',
-															month: '2-digit',
-															year: 'numeric',
-															hour: '2-digit',
-															minute: '2-digit'
-														})}</p>
-													</TooltipContent>
-												</Tooltip>
-											</TooltipProvider>
+											<div className='pt-2 border-t border-white/5 flex items-center justify-center gap-2'>
+												<Clock className='h-3 w-3 text-neutral-500' />
+												<TooltipProvider>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<span className='text-[10px] text-neutral-500 cursor-help border-b border-dotted border-neutral-700 pb-0.5 mt-1'>
+																Publicada:{' '}
+																{formatRelativeTime(new Date(lastUpdated))}
+															</span>
+														</TooltipTrigger>
+														<TooltipContent
+															side='left'
+															className='bg-neutral-800 border-neutral-700 text-neutral-200'
+														>
+															<p>
+																{new Date(lastUpdated).toLocaleString('es-ES', {
+																	day: '2-digit',
+																	month: '2-digit',
+																	year: 'numeric',
+																	hour: '2-digit',
+																	minute: '2-digit'
+																})}
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 										)}
 									</div>
 								</div>
@@ -215,10 +232,10 @@ export function ContainerDashboard({
 								key={container.Id}
 								layout
 								variants={cardVariants}
-								initial="initial"
-								animate="animate"
-								exit="exit"
-								transition={{ duration: 0.25, ease: "easeOut" }}
+								initial='initial'
+								animate='animate'
+								exit='exit'
+								transition={{ duration: 0.25, ease: 'easeOut' }}
 							>
 								<Card
 									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-colors duration-300 ${hasUpdateAvailable ? 'border-l-amber-500' : ''}`}
@@ -239,17 +256,17 @@ export function ContainerDashboard({
 												{container.State}
 											</Badge>
 										</div>
-										<CardDescription className='text-neutral-400 truncate'>
-											{container.Image}
+										<CardDescription className='text-neutral-200 truncate'>
+											{container.Image.split(':')[0]}
+											<span className='text-neutral-500'>
+												:{container.Image.split(':')[1] || 'latest'}
+											</span>
 											{currentVersion && currentVersion !== 'Unknown' && (
 												<span className='ml-2 text-xs text-neutral-500 font-mono'>
 													({currentVersion})
 												</span>
 											)}
 										</CardDescription>
-										<div className='text-xs text-neutral-500 font-mono mt-1'>
-											ID: {container.ImageID.substring(7, 19)}...
-										</div>
 									</CardHeader>
 									<CardContent>
 										<div className='space-y-2 text-sm text-neutral-300'>
@@ -260,23 +277,37 @@ export function ContainerDashboard({
 												</span>
 											</div>
 											<div className='flex justify-between'>
-												<span className='text-neutral-500'>Ports:</span>
+												<div className='flex items-center gap-1.5 text-neutral-500'>
+													<Server className='h-3 w-3' />
+													<span>Ports:</span>
+												</div>
 												<span className='font-mono truncate max-w-[150px]'>
-													{ports || 'N/A'}
+													{ports || '---'}
 												</span>
 											</div>
 											<div className='flex justify-between'>
-												<span className='text-neutral-500'>Status:</span>
+												<div className='flex items-center gap-1.5 text-neutral-500'>
+													<Activity className='h-3 w-3' />
+													<span className='text-neutral-500'>Status:</span>
+												</div>
 												<span>{container.Status}</span>
 											</div>
 											<div className='flex justify-between items-start pt-2 border-t border-neutral-800 mt-2'>
 												<div className='flex flex-col'>
-													<span className='text-neutral-500 pt-0.5'>Imagen:</span>
+													<div className='flex items-center gap-2 mb-1'>
+														<Package className='h-4 w-4 text-neutral-500' />
+														<span className='text-neutral-500 pt-0.5'>
+															Imagen:
+														</span>
+													</div>
 													{currentVersion && currentVersion !== 'Unknown' && (
 														<span className='text-[10px] text-neutral-400 font-mono'>
 															{currentVersion}
 														</span>
 													)}
+													{/* <div className='text-[10px] text-neutral-500 font-mono'>
+														ID: {container.ImageID.substring(7, 19)}...
+													</div> */}
 												</div>
 												{updateStatusNode}
 											</div>
@@ -300,13 +331,13 @@ export function ContainerDashboard({
 
 			<AnimatePresence>
 				{filteredContainers.length === 0 && (
-					<motion.div 
+					<motion.div
 						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: 10 }}
 						className='text-center py-20 text-neutral-500'
 					>
-						{activeFilters.length === 0 
+						{activeFilters.length === 0
 							? 'Selecciona una categoría arriba para filtrar los contenedores.'
 							: 'No se encontraron contenedores para los filtros seleccionados.'}
 					</motion.div>
