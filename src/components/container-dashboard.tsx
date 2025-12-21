@@ -128,15 +128,18 @@ export function ContainerDashboard({
 			if (savedFilters) {
 				setActiveFilters(JSON.parse(savedFilters))
 			}
-		} catch (e) {
-			console.warn('LocalStorage is not available or restricted:', e)
+		} catch (_error) {
+			console.warn('LocalStorage is not available or restricted:', _error)
 		}
 	}, [])
 
 	// Save data to localStorage
 	useEffect(() => {
 		try {
-			localStorage.setItem('hiddenContainerIds', JSON.stringify(hiddenContainerIds))
+			localStorage.setItem(
+				'hiddenContainerIds',
+				JSON.stringify(hiddenContainerIds)
+			)
 		} catch (e) {
 			// Silent fail if localStorage is not available
 		}
@@ -225,9 +228,6 @@ export function ContainerDashboard({
 								</div>
 							)
 						} else if (updateStatus === 'available') {
-							const remoteDate = lastUpdated
-								? new Date(lastUpdated).toLocaleDateString('es-ES')
-								: 'N/A'
 							const displayLatestVersion =
 								latestVersion !== 'latest' && latestVersion !== 'Unknown'
 									? latestVersion
@@ -298,9 +298,10 @@ export function ContainerDashboard({
 								animate='animate'
 								exit='exit'
 								transition={{ duration: 0.25, ease: 'easeOut' }}
+								className='min-w-0'
 							>
 								<Card
-									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-all duration-300 ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
+									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
 								>
 									<CardHeader className='pb-2'>
 										<div className='flex justify-between items-start gap-4'>
@@ -398,7 +399,7 @@ export function ContainerDashboard({
 												<summary className='cursor-pointer text-xs text-neutral-500 hover:text-neutral-300'>
 													Depurar JSON
 												</summary>
-												<pre className='text-[10px] bg-black p-2 rounded overflow-auto mt-1 max-h-40 font-mono text-neutral-400'>
+												<pre className='text-[10px] bg-black p-2 rounded overflow-x-auto mt-1 max-h-40 font-mono text-neutral-400 w-full'>
 													{JSON.stringify(container, null, 2)}
 												</pre>
 											</details>
