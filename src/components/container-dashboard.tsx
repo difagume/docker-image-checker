@@ -118,32 +118,36 @@ export function ContainerDashboard({
 
 	// Load hidden containers and filters from localStorage
 	useEffect(() => {
-		const savedHidden = localStorage.getItem('hiddenContainerIds')
-		if (savedHidden) {
-			try {
+		try {
+			const savedHidden = localStorage.getItem('hiddenContainerIds')
+			if (savedHidden) {
 				setHiddenContainerIds(JSON.parse(savedHidden))
-			} catch (e) {
-				console.error('Error loading hidden containers:', e)
 			}
-		}
 
-		const savedFilters = localStorage.getItem('activeFilters')
-		if (savedFilters) {
-			try {
+			const savedFilters = localStorage.getItem('activeFilters')
+			if (savedFilters) {
 				setActiveFilters(JSON.parse(savedFilters))
-			} catch (e) {
-				console.error('Error loading active filters:', e)
 			}
+		} catch (e) {
+			console.warn('LocalStorage is not available or restricted:', e)
 		}
 	}, [])
 
 	// Save data to localStorage
 	useEffect(() => {
-		localStorage.setItem('hiddenContainerIds', JSON.stringify(hiddenContainerIds))
+		try {
+			localStorage.setItem('hiddenContainerIds', JSON.stringify(hiddenContainerIds))
+		} catch (e) {
+			// Silent fail if localStorage is not available
+		}
 	}, [hiddenContainerIds])
 
 	useEffect(() => {
-		localStorage.setItem('activeFilters', JSON.stringify(activeFilters))
+		try {
+			localStorage.setItem('activeFilters', JSON.stringify(activeFilters))
+		} catch (e) {
+			// Silent fail if localStorage is not available
+		}
 	}, [activeFilters])
 
 	const toggleHideContainer = (id: string) => {
