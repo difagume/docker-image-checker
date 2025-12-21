@@ -10,6 +10,8 @@ interface StatsSummaryProps {
 	unknownCount: number
 	activeFilters: FilterStatus[]
 	onToggleFilter: (status: FilterStatus) => void
+	showHiddenMode: boolean
+	onToggleShowHidden: () => void
 }
 
 export function StatsSummary({
@@ -17,9 +19,12 @@ export function StatsSummary({
 	availableCount,
 	unknownCount,
 	activeFilters,
-	onToggleFilter
+	onToggleFilter,
+	showHiddenMode,
+	onToggleShowHidden
 }: StatsSummaryProps) {
-	const isFilterActive = (status: FilterStatus) => activeFilters.includes(status)
+	const isFilterActive = (status: FilterStatus) =>
+		activeFilters.includes(status)
 
 	return (
 		<div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-8'>
@@ -42,11 +47,19 @@ export function StatsSummary({
 						className={`font-semibold text-sm ${isFilterActive('updated') ? 'text-white' : 'text-neutral-400'}`}
 					>
 						{updatedCount}{' '}
-						{updatedCount === 1 ? 'Imagen actualizada' : 'Imágenes actualizadas'}
+						{updatedCount === 1
+							? 'Imagen actualizada'
+							: 'Imágenes actualizadas'}
 					</span>
 				</div>
-				<div className={`transition-all duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-neutral-600 group-hover:text-neutral-400'}`}>
-					{isFilterActive('updated') ? <Eye className='h-4 w-4' /> : <EyeOff className='h-4 w-4' />}
+				<div
+					className={`transition-all duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-neutral-600 group-hover:text-neutral-400'}`}
+				>
+					{isFilterActive('updated') ? (
+						<Eye className='h-4 w-4' />
+					) : (
+						<EyeOff className='h-4 w-4' />
+					)}
 				</div>
 			</button>
 
@@ -77,8 +90,14 @@ export function StatsSummary({
 							: 'Actualizaciones disponibles'}
 					</span>
 				</div>
-				<div className={`relative z-10 transition-all duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-neutral-600 group-hover:text-neutral-400'}`}>
-					{isFilterActive('available') ? <Eye className='h-4 w-4' /> : <EyeOff className='h-4 w-4' />}
+				<div
+					className={`relative z-10 transition-all duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-neutral-600 group-hover:text-neutral-400'}`}
+				>
+					{isFilterActive('available') ? (
+						<Eye className='h-4 w-4' />
+					) : (
+						<EyeOff className='h-4 w-4' />
+					)}
 				</div>
 			</button>
 
@@ -101,13 +120,45 @@ export function StatsSummary({
 						className={`font-semibold text-sm ${isFilterActive('unknown') ? 'text-neutral-200' : 'text-neutral-500'}`}
 					>
 						{unknownCount}{' '}
-						{unknownCount === 1 ? 'Imagen desconocida' : 'Imágenes desconocidas'}
+						{unknownCount === 1
+							? 'Imagen desconocida'
+							: 'Imágenes desconocidas'}
 					</span>
 				</div>
-				<div className={`transition-all duration-300 ${isFilterActive('unknown') ? 'text-neutral-400' : 'text-neutral-600 group-hover:text-neutral-400'}`}>
-					{isFilterActive('unknown') ? <Eye className='h-4 w-4' /> : <EyeOff className='h-4 w-4' />}
+				<div
+					className={`transition-all duration-300 ${isFilterActive('unknown') ? 'text-neutral-400' : 'text-neutral-600 group-hover:text-neutral-400'}`}
+				>
+					{isFilterActive('unknown') ? (
+						<Eye className='h-4 w-4' />
+					) : (
+						<EyeOff className='h-4 w-4' />
+					)}
 				</div>
 			</button>
+
+			<div className='md:col-span-3 flex justify-end -mt-2'>
+				<button
+					type='button'
+					onClick={onToggleShowHidden}
+					className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+						showHiddenMode
+							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+							: 'text-neutral-500 hover:text-neutral-400 border border-transparent'
+					}`}
+					title={
+						showHiddenMode
+							? 'Ocultar contenedores marcados'
+							: 'Ver contenedores ocultos'
+					}
+				>
+					{showHiddenMode ? (
+						<Eye className='h-3.5 w-3.5' />
+					) : (
+						<EyeOff className='h-3.5 w-3.5' />
+					)}
+					{showHiddenMode ? 'Viendo ocultos' : 'Gestión de ocultos'}
+				</button>
+			</div>
 		</div>
 	)
 }

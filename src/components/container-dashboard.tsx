@@ -1,8 +1,16 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { Activity, Clock, ExternalLink, Package, Server } from 'lucide-react'
-import { useState } from 'react'
+import {
+	Activity,
+	Clock,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	Package,
+	Server
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import {
 	Card,
@@ -105,6 +113,34 @@ export function ContainerDashboard({
 		'available',
 		'unknown'
 	])
+	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
+	const [showHiddenMode, setShowHiddenMode] = useState(false)
+
+	// Load hidden containers from localStorage
+	useEffect(() => {
+		const saved = localStorage.getItem('hiddenContainerIds')
+		if (saved) {
+			try {
+				setHiddenContainerIds(JSON.parse(saved))
+			} catch (e) {
+				console.error('Error loading hidden containers:', e)
+			}
+		}
+	}, [])
+
+	// Save hidden containers to localStorage
+	useEffect(() => {
+		localStorage.setItem(
+			'hiddenContainerIds',
+			JSON.stringify(hiddenContainerIds)
+		)
+	}, [hiddenContainerIds])
+
+	const toggleHideContainer = (id: string) => {
+		setHiddenContainerIds((prev) =>
+			prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+		)
+	}
 
 	const toggleFilter = (status: FilterStatus) => {
 		setActiveFilters((prev) =>
@@ -114,9 +150,19 @@ export function ContainerDashboard({
 		)
 	}
 
-	const filteredContainers = processedContainers.filter((item) =>
-		activeFilters.includes(item.updateStatus)
-	)
+	const filteredContainers = processedContainers.filter((item) => {
+		const isStatusMatch = activeFilters.includes(item.updateStatus)
+		const isHidden = hiddenContainerIds.includes(item.container.Id)
+
+		if (showHiddenMode) {
+			// In management mode, we show everything that matches the status filter
+			// or we could show only hidden ones. Let's show everything but highlighted.
+			return isStatusMatch
+		}
+
+		// In normal mode, exclude hidden containers
+		return isStatusMatch && !isHidden
+	})
 
 	return (
 		<>
@@ -126,6 +172,8 @@ export function ContainerDashboard({
 				unknownCount={stats.unknown}
 				activeFilters={activeFilters}
 				onToggleFilter={toggleFilter}
+				showHiddenMode={showHiddenMode}
+				onToggleShowHidden={() => setShowHiddenMode(!showHiddenMode)}
 			/>
 
 			<motion.div layout className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
@@ -238,12 +286,32 @@ export function ContainerDashboard({
 								transition={{ duration: 0.25, ease: 'easeOut' }}
 							>
 								<Card
-									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-colors duration-300 ${hasUpdateAvailable ? 'border-l-amber-500' : ''}`}
+									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-all duration-300 ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
 								>
 									<CardHeader className='pb-2'>
 										<div className='flex justify-between items-start gap-4'>
-											<CardTitle className='text-lg font-medium text-white [overflow-wrap:anywhere] break-normal'>
-												{containerName}
+											<CardTitle className='text-lg font-medium text-white [overflow-wrap:anywhere] break-normal flex items-start gap-2'>
+												<span className='flex-1'>{containerName}</span>
+												<button
+													type='button'
+													onClick={() => toggleHideContainer(container.Id)}
+													className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 mt-1 shrink-0 ${
+														hiddenContainerIds.includes(container.Id)
+															? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+															: 'text-neutral-600 hover:text-neutral-400'
+													}`}
+													title={
+														hiddenContainerIds.includes(container.Id)
+															? 'Mostrar contenedor'
+															: 'Ocultar contenedor'
+													}
+												>
+													{hiddenContainerIds.includes(container.Id) ? (
+														<Eye className='h-3.5 w-3.5' />
+													) : (
+														<EyeOff className='h-3.5 w-3.5' />
+													)}
+												</button>
 											</CardTitle>
 											<Badge
 												variant='outline'
