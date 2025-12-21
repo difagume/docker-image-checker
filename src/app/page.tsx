@@ -28,10 +28,10 @@ export default async function Dashboard() {
 				<div className='flex justify-between items-center'>
 					<div>
 						<h1 className='text-4xl font-bold tracking-tight text-white mb-2'>
-							Panel de Docker
+							Panel de Contenedores Docker
 						</h1>
 						<p className='text-neutral-400'>
-							Administra y monitorea tus contenedores locales.
+							Monitorea tus contenedores y el estado de sus imágenes.
 						</p>
 					</div>
 					<form action={refresh}>
@@ -201,8 +201,8 @@ export default async function Dashboard() {
 													variant='outline'
 													className={
 														isRunning
-															? 'bg-green-600 text-white cursor-default'
-															: 'bg-red-600 text-white cursor-default'
+															? 'bg-transparent text-green-500 border-green-500 font-mono rounded-[3.5px] cursor-default'
+															: 'bg-transparent text-red-500 border-red-500 font-mono rounded-[3.5px] cursor-default'
 													}
 												>
 													{container.State}
