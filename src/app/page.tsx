@@ -1,4 +1,4 @@
-import { RefreshCcw } from 'lucide-react'
+import { ExternalLink, RefreshCcw } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
 import { Badge } from '@/components/ui/badge'
@@ -125,10 +125,11 @@ export default async function Dashboard() {
 														href={dockerHubUrl}
 														target='_blank'
 														rel='noopener noreferrer'
-														className='text-amber-500 font-bold hover:underline hover:text-amber-400'
+														className='text-amber-500 font-bold hover:underline hover:text-amber-400 flex items-center gap-1'
 														title='Ver en Docker Hub'
 													>
 														Actualización disponible
+														<ExternalLink className='h-4 w-4' />
 													</a>
 												) : (
 													<span className='text-amber-500 font-bold'>
