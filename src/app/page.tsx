@@ -50,55 +50,13 @@ export default async function Dashboard() {
 					: imageTag
 
 			let updateStatus: 'updated' | 'available' | 'unknown' = 'unknown'
-			let updateStatusNode = <span className='text-neutral-500'>Unknown</span>
+			let isUpToDate = false
 
 			if (latestDigest) {
-				const isUpToDate = localDigests.some((digest) =>
+				isUpToDate = localDigests.some((digest) =>
 					digest.includes(latestDigest)
 				)
-
-				if (isUpToDate) {
-					updateStatus = 'updated'
-					updateStatusNode = (
-						<div className='flex flex-col items-end'>
-							<span className='text-green-500 font-medium'>Actualizado</span>
-							<span className='text-xs text-neutral-600'>
-								{displayCurentVersion}
-							</span>
-						</div>
-					)
-				} else {
-					updateStatus = 'available'
-					const remoteDate = lastUpdated
-						? new Date(lastUpdated).toLocaleDateString('es-ES')
-						: 'N/A'
-					const displayLatestVersion =
-						latestVersion !== 'latest' && latestVersion !== 'Unknown'
-							? latestVersion
-							: 'latest'
-
-					updateStatusNode = (
-						<div className='flex flex-col items-end'>
-							{dockerHubUrl ? (
-								<div className='flex items-center gap-1 text-amber-500 font-bold'>
-									Actualización disponible
-								</div>
-							) : (
-								<span className='text-amber-500 font-bold'>
-									Actualización disponible
-								</span>
-							)}
-							<div className='flex flex-col text-right'>
-								<span className='text-xs text-neutral-400'>
-									Disponible: {displayLatestVersion}
-								</span>
-								<span className='text-[10px] text-neutral-500'>
-									Actualizado: {remoteDate}
-								</span>
-							</div>
-						</div>
-					)
-				}
+				updateStatus = isUpToDate ? 'updated' : 'available'
 			}
 
 			const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'
@@ -108,10 +66,13 @@ export default async function Dashboard() {
 				isRunning,
 				ports,
 				updateStatus,
-				updateStatusNode,
 				containerName,
 				currentVersion,
-				displayCurentVersion
+				displayCurentVersion,
+				latestVersion,
+				lastUpdated,
+				dockerHubUrl,
+				isUpToDate
 			}
 		})
 	)

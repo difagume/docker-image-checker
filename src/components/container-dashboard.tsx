@@ -6,8 +6,29 @@ import { Badge } from '@/components/ui/badge'
 import { ExternalLink } from 'lucide-react'
 import { StatsSummary, type FilterStatus } from './stats-summary'
 
+interface ContainerData {
+	container: {
+		Id: string
+		State: string
+		Image: string
+		ImageID: string
+		Status: string
+		Names: string[]
+	}
+	isRunning: boolean
+	ports: string
+	updateStatus: FilterStatus
+	containerName: string
+	currentVersion: string
+	displayCurentVersion: string
+	latestVersion?: string
+	lastUpdated?: string
+	dockerHubUrl?: string
+	isUpToDate: boolean
+}
+
 interface ContainerDashboardProps {
-	processedContainers: any[]
+	processedContainers: ContainerData[]
 	stats: {
 		updated: number
 		available: number
@@ -54,13 +75,66 @@ export function ContainerDashboard({
 						isRunning,
 						ports,
 						updateStatus,
-						updateStatusNode,
 						containerName,
 						currentVersion,
-						displayCurentVersion
+						displayCurentVersion,
+						latestVersion,
+						lastUpdated,
+						dockerHubUrl
 					} = item
 
 					const hasUpdateAvailable = updateStatus === 'available'
+
+					// Render status node dynamically in the client component
+					let updateStatusNode = <span className='text-neutral-500'>Unknown</span>
+
+					if (updateStatus === 'updated') {
+						updateStatusNode = (
+							<div className='flex flex-col items-end'>
+								<span className='text-green-500 font-medium'>Actualizado</span>
+								<span className='text-xs text-neutral-600'>
+									{displayCurentVersion}
+								</span>
+							</div>
+						)
+					} else if (updateStatus === 'available') {
+						const remoteDate = lastUpdated
+							? new Date(lastUpdated).toLocaleDateString('es-ES')
+							: 'N/A'
+						const displayLatestVersion =
+							latestVersion !== 'latest' && latestVersion !== 'Unknown'
+								? latestVersion
+								: 'latest'
+
+						updateStatusNode = (
+							<div className='flex flex-col items-end'>
+								{dockerHubUrl ? (
+									<a
+										href={dockerHubUrl}
+										target='_blank'
+										rel='noopener noreferrer'
+										className='text-amber-500 font-bold hover:underline hover:text-amber-400 flex items-center gap-1'
+										title='Ver en Docker Hub'
+									>
+										Actualización disponible
+										<ExternalLink className='h-4 w-4' />
+									</a>
+								) : (
+									<span className='text-amber-500 font-bold'>
+										Actualización disponible
+									</span>
+								)}
+								<div className='flex flex-col text-right'>
+									<span className='text-xs text-neutral-400'>
+										Disponible: {displayLatestVersion}
+									</span>
+									<span className='text-[10px] text-neutral-500'>
+										Actualizado: {remoteDate}
+									</span>
+								</div>
+							</div>
+						)
+					}
 
 					return (
 						<Card
