@@ -20,7 +20,7 @@ interface ContainerData {
 	ports: string
 	updateStatus: FilterStatus
 	containerName: string
-	currentVersion: string
+	currentVersion?: string
 	displayCurentVersion: string
 	latestVersion?: string
 	lastUpdated?: string
