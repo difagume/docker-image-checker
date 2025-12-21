@@ -6,6 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { StatsSummary, type FilterStatus } from './stats-summary'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger
+} from '@/components/ui/tooltip'
 
 interface ContainerData {
 	container: {
@@ -41,6 +47,46 @@ const cardVariants = {
 	initial: { opacity: 0, scale: 0.96, y: 10 },
 	animate: { opacity: 1, scale: 1, y: 0 },
 	exit: { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }
+}
+
+function formatRelativeTime(date: Date) {
+	const now = new Date()
+	
+	let years = now.getFullYear() - date.getFullYear()
+	let months = now.getMonth() - date.getMonth()
+	let days = now.getDate() - date.getDate()
+
+	if (days < 0) {
+		months -= 1
+		const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate()
+		days += prevMonth
+	}
+	if (months < 0) {
+		years -= 1
+		months += 12
+	}
+
+	const parts: string[] = []
+	if (years > 0) parts.push(`${years} ${years === 1 ? 'año' : 'años'}`)
+	if (months > 0) parts.push(`${months} ${months === 1 ? 'mes' : 'meses'}`)
+	if (days > 0) parts.push(`${days} ${days === 1 ? 'día' : 'días'}`)
+
+	if (parts.length > 0) {
+		if (parts.length > 1) {
+			const lastPart = parts.pop()
+			return `hace ${parts.join(', ')} y ${lastPart}`
+		}
+		return `hace ${parts[0]}`
+	}
+
+	const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+	if (diffInSeconds < 60) return 'hace un momento'
+	
+	const minutes = Math.floor(diffInSeconds / 60)
+	if (minutes < 60) return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
+	
+	const hours = Math.floor(minutes / 60)
+	return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`
 }
 
 export function ContainerDashboard({
@@ -139,9 +185,26 @@ export function ContainerDashboard({
 										<span className='text-xs text-neutral-400'>
 											Disponible: {displayLatestVersion}
 										</span>
-										<span className='text-[10px] text-neutral-500'>
-											Actualizado: {remoteDate}
-										</span>
+										{lastUpdated && (
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<span className='text-[10px] text-neutral-500 cursor-help border-b border-dotted border-neutral-700 pb-0.5 mt-1'>
+															Actualizado: {formatRelativeTime(new Date(lastUpdated))}
+														</span>
+													</TooltipTrigger>
+													<TooltipContent side='left' className='bg-neutral-800 border-neutral-700 text-neutral-200'>
+														<p>{new Date(lastUpdated).toLocaleString('es-ES', {
+															day: '2-digit',
+															month: '2-digit',
+															year: 'numeric',
+															hour: '2-digit',
+															minute: '2-digit'
+														})}</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										)}
 									</div>
 								</div>
 							)
