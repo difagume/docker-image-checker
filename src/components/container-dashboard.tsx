@@ -367,15 +367,23 @@ export function ContainerDashboard({
 													{container.Status}
 												</span>
 											</div>
-											<div className='pt-2 border-t border-neutral-800 mt-2 space-y-3'>
-												<div className='flex items-center gap-2 mb-1'>
+											<div className='pt-2 border-t border-neutral-800 mt-2 space-y-2'>
+												<div className='flex items-center gap-2'>
 													<Package className='h-4 w-4 text-neutral-500' />
 													<span className='text-white font-bold text-sm'>
 														Imagen:
 													</span>
 												</div>
 
-												<div className='space-y-1 pl-6'>
+												<div className='space-y-1 pl-6 pt-1'>
+													<div className='flex items-center justify-between'>
+														<span className='text-neutral-500 font-medium text-xs'>
+															ID de Imagen
+														</span>
+														<span className='font-mono text-xs text-neutral-400'>
+															{container.ImageID.substring(7, 19)}
+														</span>
+													</div>
 													<div className='flex items-center justify-between'>
 														<span className='text-neutral-500 font-medium text-xs'>
 															Versión Actual
