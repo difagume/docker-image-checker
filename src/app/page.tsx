@@ -187,12 +187,14 @@ export default async function Dashboard() {
 									)
 								) */
 
-								return (
-									<Card
-										key={container.Id}
-										className='bg-neutral-900 border-neutral-800 text-neutral-50'
-									>
-										<CardHeader className='pb-2'>
+								const hasUpdateAvailable = logUpdateStatus.includes('Actualización disponible')
+
+									return (
+										<Card
+											key={container.Id}
+											className={`bg-neutral-900 border-neutral-800 text-neutral-50 ${hasUpdateAvailable ? 'border-l-amber-500' : ''}`}
+										>
+											<CardHeader className='pb-2'>
 											<div className='flex justify-between items-start'>
 												<CardTitle className='text-lg font-medium text-white max-w-[260px]'>
 													{containerName}
