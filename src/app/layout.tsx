@@ -9,8 +9,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-	title: 'image-checker dashboard',
-	description: 'image-checker dashboard'
+	title: 'Docker Image Checker',
+	description: 'Docker Image Checker dashboard'
 }
 
 export default function RootLayout({
