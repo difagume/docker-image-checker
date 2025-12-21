@@ -1,0 +1,14 @@
+# image: tecnativa/docker-socket-proxy
+services:
+  image-checker:
+    image: difagume/image-checker:1.0.1
+    container_name: image-checker
+    user: "1001:988" # UID 1001 (nextjs) y GID 988 (grupo docker en tu host)
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Guayquil

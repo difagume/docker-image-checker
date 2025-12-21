@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Docker Image Checker
 
-## Getting Started
+Un panel moderno para monitorear y actualizar contenedores Docker con soporte para versiones semánticas.
 
-First, run the development server:
+## 🚀 Construcción y Publicación (Multi-Arquitectura)
 
+Para generar la imagen compatible con **amd64** (Intel/AMD) y **arm64** (Apple Silicon/Raspberry) y subirla a Docker Hub:
+
+### 1. Preparación (Solo una vez)
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker login
+docker buildx create --name image-checker --use
+docker buildx inspect --bootstrap
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Construir y Publicar
+Reemplaza `TU_USUARIO` con tu cuenta de Docker Hub:
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t TU_USUARIO/image-checker:latest \
+  -t TU_USUARIO/image-checker:1.0.0 \
+  --push .
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Despliegue en Producción
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Crea un archivo `compose.prod.yaml` basado en la plantilla del proyecto:
 
-## Learn More
+```yaml
+services:
+  image-checker:
+    image: TU_USUARIO/image-checker:1.0.0
+    container_name: image-checker
+    user: "1001:988" # Ajusta el GID (988) según el dueño de /var/run/docker.sock en tu host
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Guayaquil
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Iniciar el contenedor:
+```bash
+docker compose -f compose.prod.yaml up -d
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Opción B: Despliegue Seguro (Con Proxy)
+Esta opción es más segura ya que no expone el socket de Docker directamente a la aplicación, sino a través de un proxy que solo permite lecturas.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### Iniciar con Proxy:
+```bash
+docker compose -f compose.proxy.yaml up -d
+```
 
-## Deploy on Vercel
+## 📝 Notas de Permisos
+Si usas la **Opción A (Directa)** y recibes un error `EACCES`:
+1. Revisa los IDs de tu sistema con el comando `id`.
+2. Verifica el dueño del socket con `ls -ln /var/run/docker.sock`.
+3. Ajusta la línea `user: "UID:GID"` en tu archivo `compose.prod.yaml`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Si usas la **Opción B (Proxy)**, no necesitas preocuparte por los permisos de usuario, ya que el proxy maneja la conexión.

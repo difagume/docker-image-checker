@@ -1,5 +1,5 @@
 {
-  "name": "dashboard-docker",
+  "name": "docker-image-checker",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,16 +8,27 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "16.0.10",
-    "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tabler/icons-react": "^3.36.0",
+    "@types/dockerode": "^3.3.47",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dockerode": "^4.0.9",
+    "lucide-react": "^0.562.0",
+    "next": "16.1.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
+    "@biomejs/biome": "2.3.10",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.1.18",
+    "tw-animate-css": "^1.4.0",
     "typescript": "^5"
   }
 }
