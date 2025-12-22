@@ -15,6 +15,7 @@
 	"container": {
 		"updated": "Actualizado",
 		"updateAvailable": "Actualización disponible",
+		"unknown": "Imagen desconocida",
 		"showContainer": "Mostrar contenedor",
 		"hideContainer": "Ocultar contenedor",
 		"containerId": "ID de Contenedor",

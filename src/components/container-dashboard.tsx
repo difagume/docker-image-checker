@@ -302,6 +302,12 @@ export function ContainerDashboard({
 									)}
 								</Alert>
 							)
+						} else if (updateStatus === 'unknown') {
+							updateStatusInfo = (
+								<span className='text-neutral-500 font-medium'>
+									{dict.container.unknown}
+								</span>
+							)
 						}
 
 						return (
