@@ -42,7 +42,7 @@ interface ContainerData {
 	}
 	isRunning: boolean
 	ports: string
-	updateStatus: FilterStatus
+	updateStatus: FilterStatus | 'local'
 	containerName: string
 	currentVersion?: string
 	displayCurentVersion: string
@@ -159,7 +159,7 @@ export function ContainerDashboard({
 				'hiddenContainerIds',
 				JSON.stringify(hiddenContainerIds)
 			)
-		} catch (e) {
+		} catch {
 			// Silent fail if localStorage is not available
 		}
 	}, [hiddenContainerIds])
@@ -167,7 +167,7 @@ export function ContainerDashboard({
 	useEffect(() => {
 		try {
 			localStorage.setItem('activeFilters', JSON.stringify(activeFilters))
-		} catch (e) {
+		} catch {
 			// Silent fail if localStorage is not available
 		}
 	}, [activeFilters])
@@ -187,7 +187,10 @@ export function ContainerDashboard({
 	}
 
 	const filteredContainers = processedContainers.filter((item) => {
-		const isStatusMatch = activeFilters.includes(item.updateStatus)
+		// Treat 'local' as 'unknown' for filtering purposes
+		const statusForFilter =
+			item.updateStatus === 'local' ? 'unknown' : item.updateStatus
+		const isStatusMatch = activeFilters.includes(statusForFilter)
 		const isHidden = hiddenContainerIds.includes(item.container.Id)
 
 		if (showHiddenMode) {
@@ -301,6 +304,12 @@ export function ContainerDashboard({
 										</TooltipProvider>
 									)}
 								</Alert>
+							)
+						} else if (updateStatus === 'local') {
+							updateStatusInfo = (
+								<span className='text-blue-500 font-medium'>
+									{dict.container.local}
+								</span>
 							)
 						} else if (updateStatus === 'unknown') {
 							updateStatusInfo = (

@@ -33,11 +33,13 @@ export async function checkImageUpdate(
 	currentVersion?: string
 	latestVersion?: string
 	dockerHubUrl?: string
+	isLocal?: boolean
 }> {
 	try {
 		const parts = imageName.split(':')
 		let repo = parts[0]
 		const tag = parts[1] || 'latest'
+		const originalRepo = repo
 
 		if (!repo.includes('/')) {
 			repo = `library/${repo}`
@@ -48,7 +50,11 @@ export async function checkImageUpdate(
 		const tagsResponse = await fetch(tagsUrl, { next: { revalidate: 3600 } })
 
 		if (!tagsResponse.ok) {
-			if (tagsResponse.status === 404) return { hasUpdate: false }
+			if (tagsResponse.status === 404) {
+				// Detect if it's likely a local image (no slash in original name suggests docker-compose naming)
+				const isLocal = !originalRepo.includes('/')
+				return { hasUpdate: false, isLocal }
+			}
 			throw new Error(`Docker Hub API error: ${tagsResponse.statusText}`)
 		}
 
@@ -146,11 +152,12 @@ export async function checkImageUpdate(
 			lastUpdated,
 			currentVersion,
 			latestVersion,
-			dockerHubUrl
+			dockerHubUrl,
+			isLocal: false
 		}
 	} catch (error) {
 		console.error('Failed to check image update:', error)
-		return { hasUpdate: false }
+		return { hasUpdate: false, isLocal: false }
 	}
 }
 

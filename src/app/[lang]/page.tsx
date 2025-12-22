@@ -46,7 +46,8 @@ export default async function Dashboard({
 				lastUpdated,
 				currentVersion,
 				latestVersion,
-				dockerHubUrl
+				dockerHubUrl,
+				isLocal
 			} = await checkImageUpdate(container.Image, localDigest)
 
 			// Fallback: If we couldn't resolve a semantic version, use the tag from the image string if available
@@ -56,10 +57,12 @@ export default async function Dashboard({
 					? currentVersion
 					: imageTag
 
-			let updateStatus: 'updated' | 'available' | 'unknown' = 'unknown'
+			let updateStatus: 'updated' | 'available' | 'unknown' | 'local' = 'unknown'
 			let isUpToDate = false
 
-			if (latestDigest) {
+			if (isLocal) {
+				updateStatus = 'local'
+			} else if (latestDigest) {
 				isUpToDate = localDigests.some((digest) =>
 					digest.includes(latestDigest)
 				)
@@ -89,8 +92,9 @@ export default async function Dashboard({
 			.length,
 		available: processedContainers.filter((c) => c.updateStatus === 'available')
 			.length,
-		unknown: processedContainers.filter((c) => c.updateStatus === 'unknown')
-			.length
+		unknown: processedContainers.filter(
+			(c) => c.updateStatus === 'unknown' || c.updateStatus === 'local'
+		).length
 	}
 
 	return (

@@ -3,7 +3,7 @@
 import { ArrowUp, Check, Eye, EyeOff, HelpCircle } from 'lucide-react'
 import type { Dictionary } from '@/lib/i18n'
 
-export type FilterStatus = 'updated' | 'available' | 'unknown'
+export type FilterStatus = 'updated' | 'available' | 'unknown' | 'local'
 
 interface StatsSummaryProps {
 	updatedCount: number
