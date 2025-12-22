@@ -307,7 +307,7 @@ export function ContainerDashboard({
 							)
 						} else if (updateStatus === 'local') {
 							updateStatusInfo = (
-								<span className='text-blue-500 font-medium'>
+								<span className='text-blue-500/70 font-medium'>
 									{dict.container.local}
 								</span>
 							)
