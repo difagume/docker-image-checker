@@ -412,7 +412,7 @@ export function ContainerDashboard({
 														{dict.common.status}
 													</span>
 												</div>
-												<span className='text-xs text-neutral-300'>
+												<span className='text-xs text-neutral-400'>
 													{container.Status}
 												</span>
 											</div>
