@@ -321,8 +321,8 @@ export function ContainerDashboard({
 												variant='outline'
 												className={`shrink-0 ${
 													isRunning
-														? 'bg-transparent text-green-500 border-green-500 font-mono rounded-[3.5px] cursor-default'
-														: 'bg-transparent text-red-500 border-red-500 font-mono rounded-[3.5px] cursor-default'
+														? 'bg-transparent text-green-500 border-green-500 rounded-[3.5px] cursor-default'
+														: 'bg-transparent text-red-500 border-red-500 rounded-[3.5px] cursor-default'
 												}`}
 											>
 												{container.State}
@@ -334,7 +334,7 @@ export function ContainerDashboard({
 												:{container.Image.split(':')[1] || 'latest'}
 											</span>
 											{/* {currentVersion && currentVersion !== 'Unknown' && (
-												<span className='ml-2 text-xs text-neutral-500 font-mono'>
+												<span className='ml-2 text-xs text-neutral-500'>
 													({currentVersion})
 												</span>
 											)} */}
@@ -349,7 +349,7 @@ export function ContainerDashboard({
 														ID de Contenedor
 													</span>
 												</div>
-												<span className='font-mono text-xs text-neutral-400'>
+												<span className='text-xs text-neutral-400'>
 													{container.Id.substring(0, 12)}
 												</span>
 											</div>
@@ -358,7 +358,7 @@ export function ContainerDashboard({
 													<Server className='h-3 w-3' />
 													<span className='font-medium text-xs'>Ports</span>
 												</div>
-												<span className='font-mono text-xs text-neutral-400 truncate max-w-[150px]'>
+												<span className='text-xs text-neutral-400 truncate max-w-[150px]'>
 													{ports || '---'}
 												</span>
 											</div>
@@ -379,7 +379,7 @@ export function ContainerDashboard({
 															Imagen:
 														</span>
 													</div>
-													<span className='font-mono text-xs text-neutral-400'>
+													<span className='text-xs text-neutral-400'>
 														{container.ImageID.substring(7, 19)}
 													</span>
 												</div>
@@ -392,7 +392,7 @@ export function ContainerDashboard({
 														<Badge
 															variant='outline'
 															className={
-																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 font-mono rounded-[3.5px] cursor-default'
+																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default'
 															}
 														>
 															{displayCurentVersion}
@@ -408,7 +408,7 @@ export function ContainerDashboard({
 															<Badge
 																variant='outline'
 																className={
-																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 font-mono rounded-[3.5px] cursor-default'
+																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 rounded-[3.5px] cursor-default'
 																}
 															>
 																{displayLatestVersion}
@@ -426,7 +426,7 @@ export function ContainerDashboard({
 												<summary className='cursor-pointer text-xs text-neutral-500 hover:text-neutral-300'>
 													Depurar JSON
 												</summary>
-												<pre className='text-[10px] bg-black p-2 rounded overflow-x-auto mt-1 max-h-40 font-mono text-neutral-400 w-full'>
+												<pre className='text-[10px] bg-black p-2 rounded overflow-x-auto mt-1 max-h-40 text-neutral-400 w-full'>
 													{JSON.stringify(container, null, 2)}
 												</pre>
 											</details>
