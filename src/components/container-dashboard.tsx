@@ -227,7 +227,7 @@ export function ContainerDashboard({
 							)
 						} else if (updateStatus === 'available') {
 							updateStatusInfo = (
-								<Alert className='bg-amber-500/10 border-amber-500/50 text-amber-200 p-3'>
+								<Alert className='bg-amber-500/10 rounded-[3.5px] border-amber-500/50 text-amber-200 p-3'>
 									<ArrowUpCircle className='h-4 w-4 !text-amber-400' />
 									{dockerHubUrl ? (
 										<a
@@ -290,7 +290,7 @@ export function ContainerDashboard({
 								className='min-w-0'
 							>
 								<Card
-									className={`bg-neutral-900 border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
+									className={`bg-neutral-900 rounded-[3.5px] border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
 								>
 									<CardHeader className='pb-2'>
 										<div className='flex justify-between items-start gap-4'>

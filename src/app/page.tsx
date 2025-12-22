@@ -1,8 +1,8 @@
 import { RefreshCcw } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
-import { Button } from '@/components/ui/button'
 import { ContainerDashboard } from '@/components/container-dashboard'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,7 +102,7 @@ export default async function Dashboard() {
 						<Button
 							variant='secondary'
 							size='icon'
-							className='bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700'
+							className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700'
 						>
 							<RefreshCcw className='h-4 w-4' />
 						</Button>
