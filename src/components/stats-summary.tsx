@@ -82,7 +82,7 @@ export function StatsSummary({
 						<ArrowUp className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
-						className={`font-semibold text-sm ${isFilterActive('available') ? 'text-amber-100' : 'text-neutral-400'}`}
+						className={`font-semibold text-sm ${isFilterActive('available') ? 'text-amber-400' : 'text-neutral-400'}`}
 					>
 						{availableCount}{' '}
 						{availableCount === 1

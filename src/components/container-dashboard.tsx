@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
 	Activity,
+	ArrowUpCircle,
 	Clock,
 	ExternalLink,
 	Eye,
@@ -12,6 +13,7 @@ import {
 	Server
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
 	Card,
@@ -225,33 +227,35 @@ export function ContainerDashboard({
 							)
 						} else if (updateStatus === 'available') {
 							updateStatusInfo = (
-								<div className='flex flex-col items-end gap-1'>
+								<Alert className='bg-amber-500/10 border-amber-500/50 text-amber-200 p-3'>
+									<ArrowUpCircle className='h-4 w-4 !text-amber-400' />
 									{dockerHubUrl ? (
 										<a
 											href={dockerHubUrl}
 											target='_blank'
 											rel='noopener noreferrer'
-											className='text-amber-500 font-bold hover:underline hover:text-amber-400 flex items-center gap-1'
-											title='Ver en Docker Hub'
+											className='hover:underline'
 										>
-											Actualización disponible
-											<ExternalLink className='h-3 w-3' />
+											<AlertTitle className='text-amber-400 font-bold text-sm mb-0 flex items-center gap-1.5'>
+												Actualización disponible
+												<ExternalLink className='h-3.5 w-3.5' />
+											</AlertTitle>
 										</a>
 									) : (
-										<span className='text-amber-500 font-bold'>
+										<AlertTitle className='text-amber-400 font-bold text-sm mb-0'>
 											Actualización disponible
-										</span>
+										</AlertTitle>
 									)}
 									{lastUpdated && (
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
-													<div className='flex items-center gap-1 text-neutral-600 hover:text-neutral-500 transition-colors cursor-help'>
-														<Clock className='h-2.5 w-2.5' />
-														<span className='text-[10px]'>
+													<AlertDescription className='flex items-center gap-1 text-amber-300/80 hover:text-amber-300 transition-colors cursor-help'>
+														<Clock className='h-3 w-3' />
+														<span className='text-xs'>
 															{formatRelativeTime(new Date(lastUpdated))}
 														</span>
-													</div>
+													</AlertDescription>
 												</TooltipTrigger>
 												<TooltipContent
 													side='left'
@@ -270,7 +274,7 @@ export function ContainerDashboard({
 											</Tooltip>
 										</TooltipProvider>
 									)}
-								</div>
+								</Alert>
 							)
 						}
 
