@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import { getDictionary, type Locale } from '@/lib/i18n'
+import type { ReactNode } from 'react'
 import { LangAttribute } from '@/components/lang-attribute'
+import { getDictionary, type Locale } from '@/lib/i18n'
 
 export const viewport: Viewport = {
 	themeColor: '#09090b'
@@ -9,9 +10,10 @@ export const viewport: Viewport = {
 export async function generateMetadata({
 	params
 }: {
-	params: Promise<{ lang: Locale }>
+	params: Promise<{ lang: string }>
 }): Promise<Metadata> {
-	const { lang } = await params
+	const awaitedParams = await params
+	const lang = awaitedParams.lang as Locale
 	const dict = getDictionary(lang)
 
 	return {
@@ -35,10 +37,11 @@ export default async function LangLayout({
 	children,
 	params
 }: Readonly<{
-	children: React.ReactNode
-	params: Promise<{ lang: Locale }>
+	children: ReactNode
+	params: Promise<{ lang: string }>
 }>) {
-	const { lang } = await params
+	const awaitedParams = await params
+	const lang = awaitedParams.lang as Locale
 
 	return (
 		<>
@@ -47,4 +50,3 @@ export default async function LangLayout({
 		</>
 	)
 }
-
