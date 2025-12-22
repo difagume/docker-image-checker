@@ -203,7 +203,7 @@ export function ContainerDashboard({
 							ports,
 							updateStatus,
 							containerName,
-							currentVersion,
+							// currentVersion,
 							displayCurentVersion,
 							latestVersion,
 							lastUpdated,
@@ -384,13 +384,19 @@ export function ContainerDashboard({
 															{container.ImageID.substring(7, 19)}
 														</span>
 													</div>
+
 													<div className='flex items-center justify-between'>
 														<span className='text-neutral-500 font-medium text-xs'>
 															Versión Actual
 														</span>
-														<div className='bg-neutral-800/80 px-2.5 py-1 rounded-[3.5px] text-neutral-400 font-mono text-xs border border-neutral-700/50'>
+														<Badge
+															variant='outline'
+															className={
+																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 font-mono rounded-[3.5px] cursor-default'
+															}
+														>
 															{displayCurentVersion}
-														</div>
+														</Badge>
 													</div>
 
 													{hasUpdateAvailable && (
@@ -398,9 +404,15 @@ export function ContainerDashboard({
 															<span className='text-neutral-500 font-medium text-xs'>
 																Nueva Versión
 															</span>
-															<div className='bg-neutral-800/80 px-2.5 py-1 rounded-[3.5px] text-amber-500 font-mono text-xs border border-neutral-700/50'>
-																{displayLatestVersion}
-															</div>
+
+															<Badge
+																variant='outline'
+																className={
+																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 font-mono rounded-[3.5px] cursor-default'
+																}
+															>
+																{displayCurentVersion}
+															</Badge>
 														</div>
 													)}
 												</div>
