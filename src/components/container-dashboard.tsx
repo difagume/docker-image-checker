@@ -407,7 +407,7 @@ export function ContainerDashboard({
 																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 font-mono rounded-[3.5px] cursor-default'
 																}
 															>
-																{displayCurentVersion}
+																{displayLatestVersion}
 															</Badge>
 														</div>
 													)}
