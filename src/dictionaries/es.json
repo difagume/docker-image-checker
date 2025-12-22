@@ -1,0 +1,63 @@
+{
+	"common": {
+		"ports": "Puertos",
+		"status": "Estado",
+		"latest": "latest",
+		"unknown": "Desconocido"
+	},
+	"dashboard": {
+		"title": "Panel de Contenedores Docker",
+		"description": "Monitorea tus contenedores y el estado de sus imágenes.",
+		"noContainers": "No se encontraron contenedores. Asegúrate de que Docker esté ejecutándose y el socket sea accesible.",
+		"selectCategory": "Selecciona una categoría arriba para filtrar los contenedores.",
+		"noContainersFiltered": "No se encontraron contenedores para los filtros seleccionados."
+	},
+	"container": {
+		"updated": "Actualizado",
+		"updateAvailable": "Actualización disponible",
+		"showContainer": "Mostrar contenedor",
+		"hideContainer": "Ocultar contenedor",
+		"containerId": "ID de Contenedor",
+		"image": "Imagen",
+		"currentVersion": "Versión Actual",
+		"newVersion": "Nueva Versión",
+		"debugJson": "Depurar JSON",
+		"states": {
+			"running": "En ejecución",
+			"stopped": "Detenido",
+			"exited": "Finalizado",
+			"paused": "Pausado",
+			"restarting": "Reiniciando",
+			"removing": "Eliminando",
+			"created": "Creado",
+			"dead": "Muerto"
+		}
+	},
+	"stats": {
+		"updatedImage": "Imagen actualizada",
+		"updatedImages": "Imágenes actualizadas",
+		"updateAvailable": "Actualización disponible",
+		"updatesAvailable": "Actualizaciones disponibles",
+		"unknownImage": "Imagen desconocida",
+		"unknownImages": "Imágenes desconocidas",
+		"hideMarkedContainers": "Ocultar contenedores marcados",
+		"viewHiddenContainers": "Ver contenedores ocultos",
+		"viewingHidden": "Viendo ocultos",
+		"hiddenManagement": "Gestión de ocultos"
+	},
+	"time": {
+		"ago": "hace",
+		"momentAgo": "hace un momento",
+		"year": "año",
+		"years": "años",
+		"month": "mes",
+		"months": "meses",
+		"day": "día",
+		"days": "días",
+		"minute": "minuto",
+		"minutes": "minutos",
+		"hour": "hora",
+		"hours": "horas"
+	}
+}
+

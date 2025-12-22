@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowUp, Check, Eye, EyeOff, HelpCircle } from 'lucide-react'
+import type { Dictionary } from '@/lib/i18n'
 
 export type FilterStatus = 'updated' | 'available' | 'unknown'
 
@@ -12,6 +13,7 @@ interface StatsSummaryProps {
 	onToggleFilter: (status: FilterStatus) => void
 	showHiddenMode: boolean
 	onToggleShowHidden: () => void
+	dict: Dictionary
 }
 
 export function StatsSummary({
@@ -21,7 +23,8 @@ export function StatsSummary({
 	activeFilters,
 	onToggleFilter,
 	showHiddenMode,
-	onToggleShowHidden
+	onToggleShowHidden,
+	dict
 }: StatsSummaryProps) {
 	const isFilterActive = (status: FilterStatus) =>
 		activeFilters.includes(status)
@@ -48,8 +51,8 @@ export function StatsSummary({
 					>
 						{updatedCount}{' '}
 						{updatedCount === 1
-							? 'Imagen actualizada'
-							: 'Imágenes actualizadas'}
+							? dict.stats.updatedImage
+							: dict.stats.updatedImages}
 					</span>
 				</div>
 				<div
@@ -86,8 +89,8 @@ export function StatsSummary({
 					>
 						{availableCount}{' '}
 						{availableCount === 1
-							? 'Actualización disponible'
-							: 'Actualizaciones disponibles'}
+							? dict.stats.updateAvailable
+							: dict.stats.updatesAvailable}
 					</span>
 				</div>
 				<div
@@ -121,8 +124,8 @@ export function StatsSummary({
 					>
 						{unknownCount}{' '}
 						{unknownCount === 1
-							? 'Imagen desconocida'
-							: 'Imágenes desconocidas'}
+							? dict.stats.unknownImage
+							: dict.stats.unknownImages}
 					</span>
 				</div>
 				<div
@@ -147,8 +150,8 @@ export function StatsSummary({
 					}`}
 					title={
 						showHiddenMode
-							? 'Ocultar contenedores marcados'
-							: 'Ver contenedores ocultos'
+							? dict.stats.hideMarkedContainers
+							: dict.stats.viewHiddenContainers
 					}
 				>
 					{showHiddenMode ? (
@@ -156,7 +159,7 @@ export function StatsSummary({
 					) : (
 						<EyeOff className='h-3.5 w-3.5' />
 					)}
-					{showHiddenMode ? 'Viendo ocultos' : 'Gestión de ocultos'}
+					{showHiddenMode ? dict.stats.viewingHidden : dict.stats.hiddenManagement}
 				</button>
 			</div>
 		</div>

@@ -1,0 +1,63 @@
+{
+	"common": {
+		"ports": "Ports",
+		"status": "Status",
+		"latest": "latest",
+		"unknown": "Unknown"
+	},
+	"dashboard": {
+		"title": "Docker Containers Panel",
+		"description": "Monitor your containers and their image status.",
+		"noContainers": "No containers found. Make sure Docker is running and the socket is accessible.",
+		"selectCategory": "Select a category above to filter containers.",
+		"noContainersFiltered": "No containers found for the selected filters."
+	},
+	"container": {
+		"updated": "Updated",
+		"updateAvailable": "Update available",
+		"showContainer": "Show container",
+		"hideContainer": "Hide container",
+		"containerId": "Container ID",
+		"image": "Image",
+		"currentVersion": "Current Version",
+		"newVersion": "New Version",
+		"debugJson": "Debug JSON",
+		"states": {
+			"running": "Running",
+			"stopped": "Stopped",
+			"exited": "Exited",
+			"paused": "Paused",
+			"restarting": "Restarting",
+			"removing": "Removing",
+			"created": "Created",
+			"dead": "Dead"
+		}
+	},
+	"stats": {
+		"updatedImage": "Updated image",
+		"updatedImages": "Updated images",
+		"updateAvailable": "Update available",
+		"updatesAvailable": "Updates available",
+		"unknownImage": "Unknown image",
+		"unknownImages": "Unknown images",
+		"hideMarkedContainers": "Hide marked containers",
+		"viewHiddenContainers": "View hidden containers",
+		"viewingHidden": "Viewing hidden",
+		"hiddenManagement": "Hidden management"
+	},
+	"time": {
+		"ago": "ago",
+		"momentAgo": "a moment ago",
+		"year": "year",
+		"years": "years",
+		"month": "month",
+		"months": "months",
+		"day": "day",
+		"days": "days",
+		"minute": "minute",
+		"minutes": "minutes",
+		"hour": "hour",
+		"hours": "hours"
+	}
+}
+

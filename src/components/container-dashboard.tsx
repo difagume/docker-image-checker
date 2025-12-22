@@ -29,6 +29,7 @@ import {
 	TooltipTrigger
 } from '@/components/ui/tooltip'
 import { type FilterStatus, StatsSummary } from './stats-summary'
+import type { Dictionary, Locale } from '@/lib/i18n'
 
 interface ContainerData {
 	container: {
@@ -58,6 +59,8 @@ interface ContainerDashboardProps {
 		available: number
 		unknown: number
 	}
+	dict: Dictionary
+	lang: Locale
 }
 
 const cardVariants = {
@@ -66,7 +69,7 @@ const cardVariants = {
 	exit: { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }
 }
 
-function formatRelativeTime(date: Date) {
+function formatRelativeTime(date: Date, dict: Dictionary, lang: Locale) {
 	const now = new Date()
 
 	let years = now.getFullYear() - date.getFullYear()
@@ -84,32 +87,45 @@ function formatRelativeTime(date: Date) {
 	}
 
 	const parts: string[] = []
-	if (years > 0) parts.push(`${years} ${years === 1 ? 'año' : 'años'}`)
-	if (months > 0) parts.push(`${months} ${months === 1 ? 'mes' : 'meses'}`)
-	if (days > 0) parts.push(`${days} ${days === 1 ? 'día' : 'días'}`)
+	if (years > 0)
+		parts.push(`${years} ${years === 1 ? dict.time.year : dict.time.years}`)
+	if (months > 0)
+		parts.push(
+			`${months} ${months === 1 ? dict.time.month : dict.time.months}`
+		)
+	if (days > 0)
+		parts.push(`${days} ${days === 1 ? dict.time.day : dict.time.days}`)
 
 	if (parts.length > 0) {
 		if (parts.length > 1) {
 			const lastPart = parts.pop()
-			return `hace ${parts.join(', ')} y ${lastPart}`
+			if (lang === 'es') {
+				return `${dict.time.ago} ${parts.join(', ')} y ${lastPart}`
+			}
+			return `${parts.join(', ')} and ${lastPart} ${dict.time.ago}`
 		}
-		return `hace ${parts[0]}`
+		if (lang === 'es') {
+			return `${dict.time.ago} ${parts[0]}`
+		}
+		return `${parts[0]} ${dict.time.ago}`
 	}
 
 	const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-	if (diffInSeconds < 60) return 'hace un momento'
+	if (diffInSeconds < 60) return dict.time.momentAgo
 
 	const minutes = Math.floor(diffInSeconds / 60)
 	if (minutes < 60)
-		return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
+		return `${dict.time.ago} ${minutes} ${minutes === 1 ? dict.time.minute : dict.time.minutes}`
 
 	const hours = Math.floor(minutes / 60)
-	return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`
+	return `${dict.time.ago} ${hours} ${hours === 1 ? dict.time.hour : dict.time.hours}`
 }
 
 export function ContainerDashboard({
 	processedContainers,
-	stats
+	stats,
+	dict,
+	lang
 }: ContainerDashboardProps) {
 	const [activeFilters, setActiveFilters] = useState<FilterStatus[]>([
 		'updated',
@@ -194,6 +210,7 @@ export function ContainerDashboard({
 				onToggleFilter={toggleFilter}
 				showHiddenMode={showHiddenMode}
 				onToggleShowHidden={() => setShowHiddenMode(!showHiddenMode)}
+				dict={dict}
 			/>
 
 			<motion.div layout className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
@@ -223,7 +240,9 @@ export function ContainerDashboard({
 
 						if (updateStatus === 'updated') {
 							updateStatusInfo = (
-								<span className='text-green-500 font-medium'>Actualizado</span>
+								<span className='text-green-500 font-medium'>
+									{dict.container.updated}
+								</span>
 							)
 						} else if (updateStatus === 'available') {
 							updateStatusInfo = (
@@ -237,13 +256,13 @@ export function ContainerDashboard({
 											className='hover:underline'
 										>
 											<AlertTitle className='text-amber-400 font-bold text-sm mb-0 flex items-center gap-1.5'>
-												Actualización disponible
+												{dict.container.updateAvailable}
 												<ExternalLink className='h-3.5 w-3.5' />
 											</AlertTitle>
 										</a>
 									) : (
 										<AlertTitle className='text-amber-400 font-bold text-sm mb-0'>
-											Actualización disponible
+											{dict.container.updateAvailable}
 										</AlertTitle>
 									)}
 									{lastUpdated && (
@@ -253,7 +272,11 @@ export function ContainerDashboard({
 													<AlertDescription className='flex items-center gap-1 text-amber-300/80 hover:text-amber-300 transition-colors cursor-help'>
 														<Clock className='h-3 w-3' />
 														<span className='text-xs'>
-															{formatRelativeTime(new Date(lastUpdated))}
+															{formatRelativeTime(
+																new Date(lastUpdated),
+																dict,
+																lang
+															)}
 														</span>
 													</AlertDescription>
 												</TooltipTrigger>
@@ -262,13 +285,16 @@ export function ContainerDashboard({
 													className='bg-neutral-800 border-neutral-700 text-neutral-200'
 												>
 													<p>
-														{new Date(lastUpdated).toLocaleString('es-ES', {
-															day: '2-digit',
-															month: '2-digit',
-															year: 'numeric',
-															hour: '2-digit',
-															minute: '2-digit'
-														})}
+														{new Date(lastUpdated).toLocaleString(
+															lang === 'es' ? 'es-ES' : 'en-US',
+															{
+																day: '2-digit',
+																month: '2-digit',
+																year: 'numeric',
+																hour: '2-digit',
+																minute: '2-digit'
+															}
+														)}
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -306,8 +332,8 @@ export function ContainerDashboard({
 													}`}
 													title={
 														hiddenContainerIds.includes(container.Id)
-															? 'Mostrar contenedor'
-															: 'Ocultar contenedor'
+															? dict.container.showContainer
+															: dict.container.hideContainer
 													}
 												>
 													{hiddenContainerIds.includes(container.Id) ? (
@@ -325,7 +351,7 @@ export function ContainerDashboard({
 														: 'bg-transparent text-red-500 border-red-500 rounded-[3.5px] cursor-default'
 												}`}
 											>
-												{container.State}
+												{dict.container.states[container.State.toLowerCase() as keyof typeof dict.container.states] || container.State}
 											</Badge>
 										</div>
 										<CardDescription className='text-neutral-200 truncate'>
@@ -346,7 +372,7 @@ export function ContainerDashboard({
 												<div className='flex items-center gap-1.5 text-neutral-500'>
 													<Fingerprint className='h-3 w-3' />
 													<span className='font-medium text-xs'>
-														ID de Contenedor
+														{dict.container.containerId}
 													</span>
 												</div>
 												<span className='text-xs text-neutral-400'>
@@ -356,7 +382,9 @@ export function ContainerDashboard({
 											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-neutral-500'>
 													<Server className='h-3 w-3' />
-													<span className='font-medium text-xs'>Ports</span>
+													<span className='font-medium text-xs'>
+														{dict.common.ports}
+													</span>
 												</div>
 												<span className='text-xs text-neutral-400 truncate max-w-[150px]'>
 													{ports || '---'}
@@ -365,7 +393,9 @@ export function ContainerDashboard({
 											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-neutral-500'>
 													<Activity className='h-3 w-3' />
-													<span className='font-medium text-xs'>Status</span>
+													<span className='font-medium text-xs'>
+														{dict.common.status}
+													</span>
 												</div>
 												<span className='text-xs text-neutral-300'>
 													{container.Status}
@@ -376,7 +406,7 @@ export function ContainerDashboard({
 													<div className='flex items-center gap-2'>
 														<Package className='h-4 w-4 text-neutral-500' />
 														<span className='text-white font-bold text-sm'>
-															Imagen:
+															{dict.container.image}:
 														</span>
 													</div>
 													<span className='text-xs text-neutral-400'>
@@ -387,7 +417,7 @@ export function ContainerDashboard({
 												<div className='space-y-1 pl-6 pt-1'>
 													<div className='flex items-center justify-between'>
 														<span className='text-neutral-500 font-medium text-xs'>
-															Versión Actual
+															{dict.container.currentVersion}
 														</span>
 														<Badge
 															variant='outline'
@@ -402,7 +432,7 @@ export function ContainerDashboard({
 													{hasUpdateAvailable && (
 														<div className='flex items-center justify-between'>
 															<span className='text-neutral-500 font-medium text-xs'>
-																Nueva Versión
+																{dict.container.newVersion}
 															</span>
 
 															<Badge
@@ -424,7 +454,7 @@ export function ContainerDashboard({
 
 											<details className='mt-2 border-t border-neutral-800 pt-2'>
 												<summary className='cursor-pointer text-xs text-neutral-500 hover:text-neutral-300'>
-													Depurar JSON
+													{dict.container.debugJson}
 												</summary>
 												<pre className='text-[10px] bg-black p-2 rounded overflow-x-auto mt-1 max-h-40 text-neutral-400 w-full'>
 													{JSON.stringify(container, null, 2)}
@@ -439,7 +469,7 @@ export function ContainerDashboard({
 				</AnimatePresence>
 			</motion.div>
 
-			<AnimatePresence>
+			{/* <AnimatePresence>
 				{filteredContainers.length === 0 && (
 					<motion.div
 						initial={{ opacity: 0, y: 10 }}
@@ -448,11 +478,11 @@ export function ContainerDashboard({
 						className='text-center py-20 text-neutral-500'
 					>
 						{activeFilters.length === 0
-							? 'Selecciona una categoría arriba para filtrar los contenedores.'
-							: 'No se encontraron contenedores para los filtros seleccionados.'}
+							? dict.dashboard.selectCategory
+							: dict.dashboard.noContainersFiltered}
 					</motion.div>
 				)}
-			</AnimatePresence>
+			</AnimatePresence> */}
 		</>
 	)
 }
