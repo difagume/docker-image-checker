@@ -2,6 +2,86 @@
 
 Un panel moderno para monitorear y actualizar contenedores Docker con soporte para versiones semánticas.
 
+## 🔐 Autenticación
+
+El panel incluye soporte para autenticación con sesión usando htpasswd. La autenticación se configura mediante la variable de entorno `HTPASSWD`.
+
+### Configuración de Autenticación
+
+1. Genera una entrada htpasswd usando una herramienta como [htpasswd generator](https://www.htaccesstools.com/htpasswd-generator/) o la API incluida en esta aplicación
+2. Establece la variable de entorno `HTPASSWD` con el contenido generado
+3. Si no se establece la variable, el acceso será automático (sin autenticación)
+
+> [!IMPORTANT]
+> Si estás usando la variable de entorno `HTPASSWD` en un archivo `.env`, recuerda que el carácter `$` debe ser escapado con `\` (doble barra invertida) para evitar que el shell interprete variables. Por ejemplo: `HTPASSWD="usuario:\$2y\$10\$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2"`
+
+Ejemplo de contenido para la variable `HTPASSWD`:
+```
+usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+```
+
+### API para Generar Hashes htpasswd
+
+La aplicación incluye una API para generar hashes htpasswd directamente. La API soporta los siguientes formatos: APR1 (MD5), Bcrypt y SHA1.
+
+#### Endpoint
+
+- `POST /api/htpasswd-hash` - Genera un hash htpasswd
+- `GET /api/htpasswd-hash` - Muestra la documentación de la API
+
+#### Ejemplo de uso con curl:
+
+```bash
+# Generar hash en formato APR1 (por defecto)
+curl -X POST http://localhost:3000/api/htpasswd-hash \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "mipassword", "format": "apr1"}'
+
+# Generar hash en formato Bcrypt
+curl -X POST http://localhost:3000/api/htpasswd-hash \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "mipassword", "format": "bcrypt"}'
+
+# Generar hash en formato SHA1
+curl -X POST http://localhost:3000/api/htpasswd-hash \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "mipassword", "format": "sha1"}'
+```
+
+#### Parámetros
+
+- `username` (requerido): Nombre de usuario
+- `password` (requerido): Contraseña
+- `format` (opcional): Formato de hash (apr1/md5, bcrypt, sha/sha1) - por defecto apr1
+- `salt` (opcional): Salt personalizado para APR1 (generado automáticamente si no se proporciona)
+- `rounds` (opcional): Número de rondas para Bcrypt - por defecto 10
+
+### Características de la autenticación
+
+- **Página de login**: La aplicación ahora incluye una página de login en `/login`
+- **Sesiones basadas en cookies**: Se utilizan cookies HTTP-only para manejar las sesiones de forma segura
+- **Cierre de sesión**: Disponible a través del botón "Logout" en la esquina superior derecha
+- **Redirección automática**: Usuarios no autenticados son redirigidos a la página de login
+
+### Ejemplo de uso con Docker Compose
+
+```yaml
+services:
+  image-checker:
+    image: TU_USUARIO/image-checker:latest
+    container_name: image-checker
+    user: "1001:988"
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Guayaquil
+      - HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+```
+
 ## 🚀 Construcción y Publicación (Multi-Arquitectura)
 
 Para generar la imagen compatible con **amd64** (Intel/AMD) y **arm64** (Apple Silicon/Raspberry) y subirla a Docker Hub:
