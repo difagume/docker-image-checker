@@ -12,15 +12,17 @@ This is a Next.js dashboard application for monitoring Docker containers and che
 - **UI Components**: Custom UI components using Radix UI and Tailwind CSS
 - **Backend**: Server Actions for Docker operations
 - **Docker Integration**: Dockerode library for Docker daemon communication
+- **Authentication**: Session-based authentication using htpasswd with HTTP-only cookies
 - **State Management**: React Server Components with server-side data fetching
 - **Styling**: Tailwind CSS with custom configuration
 
 ### Key Components
 
-1. **Main Dashboard** (`src/app/page.tsx`):
+1. **Main Dashboard** (`src/app/[lang]/page.tsx`):
    - Displays list of Docker containers with status information
    - Shows update status for each container's image
    - Provides refresh functionality
+   - Shows authentication logout button when auth is enabled
 
 2. **Docker Actions** (`src/actions/docker.ts`):
    - `getContainers()`: Lists all Docker containers
@@ -31,6 +33,23 @@ This is a Next.js dashboard application for monitoring Docker containers and che
 3. **Docker Library** (`src/lib/docker.ts`):
    - Singleton Dockerode instance with platform-specific socket configuration
    - Handles both Windows (named pipe) and Unix (socket) Docker connections
+   - Supports DOCKER_HOST environment variable for TCP connections
+
+4. **Authentication System** (`src/actions/auth.ts`, `src/lib/htpasswd.ts`):
+   - Session-based authentication using htpasswd format
+   - HTTP-only cookies for secure session management
+   - Supports MD5 (APR1), Bcrypt, and SHA1 hash formats
+   - Optional authentication (disabled if AUTH_HTPASSWD is not set)
+
+5. **Authentication API** (`src/app/api/htpasswd-hash/route.ts`):
+   - Provides API endpoint to generate htpasswd hashes
+   - Supports APR1 (MD5), Bcrypt, and SHA1 formats
+   - POST endpoint to generate hashes, GET for documentation
+
+6. **Secure Proxy** (`src/proxy.ts`):
+   - Middleware to protect routes when authentication is enabled
+   - Redirects unauthenticated users to login page
+   - Handles authentication state
 
 ## Development Commands
 
@@ -63,6 +82,20 @@ pnpm exec biome lint .
 pnpm exec biome check --apply .
 ```
 
+## Environment Variables
+
+- `AUTH_HTPASSWD`: Optional htpasswd string for authentication (if not set, authentication is disabled)
+- `DOCKER_HOST`: Optional Docker daemon host (uses socket by default)
+- `NODE_ENV`: Environment mode (development/production)
+
+## Authentication Setup
+
+The application supports optional authentication using htpasswd format:
+
+1. Generate htpasswd entry using the API (`/api/htpasswd-hash`) or external tools
+2. Set the `AUTH_HTPASSWD` environment variable with the htpasswd entry
+3. When enabled, users will be redirected to `/login` page for authentication
+
 ## Testing
 
 This project currently does not have a test suite configured. When adding tests, they would likely use Jest or Vitest for unit tests and Playwright or Cypress for end-to-end tests.
@@ -72,11 +105,13 @@ This project currently does not have a test suite configured. When adding tests,
 1. **Docker Connection Handling**:
    - Uses singleton pattern to prevent multiple connections in development mode
    - Platform-specific Docker socket configuration (Windows named pipe vs Unix socket)
+   - Supports DOCKER_HOST environment variable for remote Docker daemons
 
 2. **Image Update Checking**:
    - Queries Docker Hub API to compare local image digests with remote versions
    - Parses semantic versioning information from Docker tags
    - Prioritizes stable versions over release candidates or beta versions
+   - Handles local/private images that don't exist on Docker Hub
 
 3. **Server-Side Data Fetching**:
    - Uses React Server Components for data fetching
@@ -88,3 +123,10 @@ This project currently does not have a test suite configured. When adding tests,
    - Status badges for container states (running, stopped, etc.)
    - Direct links to Docker Hub for images with available updates
    - Debug information via collapsible JSON views
+   - Statistics summary showing update status counts
+
+5. **Security Features**:
+   - HTTP-only cookies for session management
+   - Authentication middleware to protect routes
+   - Secure cookie settings (secure flag in production)
+   - Support for Docker socket proxy for enhanced security
