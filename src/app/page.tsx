@@ -107,13 +107,19 @@ export default async function Dashboard() {
 						</h1>
 						<p className='text-neutral-400'>{dict.dashboard.description}</p>
 					</div>
-					<div className='flex items-center gap-4'>
+					<div className='flex items-center gap-2 md:gap-3'>
 						<div className='flex justify-end'>
 							{authEnabled && (
 								<form action={logout}>
 									<Button
 										variant='outline'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2 sm:hidden'
+									>
+										<LogOut className='h-4 w-4' />
+									</Button>
+									<Button
+										variant='outline'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2 hidden sm:flex'
 									>
 										<LogOut className='h-4 w-4' />
 										{dict.login.logout}
