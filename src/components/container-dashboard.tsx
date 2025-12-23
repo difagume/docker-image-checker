@@ -28,8 +28,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
+import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import { type FilterStatus, StatsSummary } from './stats-summary'
-import type { Dictionary, Locale } from '@/lib/i18n'
 
 interface ContainerData {
 	container: {
@@ -60,7 +60,7 @@ interface ContainerDashboardProps {
 		unknown: number
 	}
 	dict: Dictionary
-	lang: Locale
+	locale: Locale
 }
 
 const cardVariants = {
@@ -69,7 +69,7 @@ const cardVariants = {
 	exit: { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }
 }
 
-function formatRelativeTime(date: Date, dict: Dictionary, lang: Locale) {
+function formatRelativeTime(date: Date, dict: Dictionary, locale: Locale) {
 	const now = new Date()
 
 	let years = now.getFullYear() - date.getFullYear()
@@ -90,21 +90,19 @@ function formatRelativeTime(date: Date, dict: Dictionary, lang: Locale) {
 	if (years > 0)
 		parts.push(`${years} ${years === 1 ? dict.time.year : dict.time.years}`)
 	if (months > 0)
-		parts.push(
-			`${months} ${months === 1 ? dict.time.month : dict.time.months}`
-		)
+		parts.push(`${months} ${months === 1 ? dict.time.month : dict.time.months}`)
 	if (days > 0)
 		parts.push(`${days} ${days === 1 ? dict.time.day : dict.time.days}`)
 
 	if (parts.length > 0) {
 		if (parts.length > 1) {
 			const lastPart = parts.pop()
-			if (lang === 'es') {
+			if (locale === 'es') {
 				return `${dict.time.ago} ${parts.join(', ')} y ${lastPart}`
 			}
 			return `${parts.join(', ')} and ${lastPart} ${dict.time.ago}`
 		}
-		if (lang === 'es') {
+		if (locale === 'es') {
 			return `${dict.time.ago} ${parts[0]}`
 		}
 		return `${parts[0]} ${dict.time.ago}`
@@ -125,7 +123,7 @@ export function ContainerDashboard({
 	processedContainers,
 	stats,
 	dict,
-	lang
+	locale
 }: ContainerDashboardProps) {
 	const [activeFilters, setActiveFilters] = useState<FilterStatus[]>([
 		'updated',
@@ -213,7 +211,7 @@ export function ContainerDashboard({
 				onToggleFilter={toggleFilter}
 				showHiddenMode={showHiddenMode}
 				onToggleShowHidden={() => setShowHiddenMode(!showHiddenMode)}
-				dict={dict}
+				dict={dict.stats}
 			/>
 
 			<motion.div layout className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
@@ -278,7 +276,7 @@ export function ContainerDashboard({
 															{formatRelativeTime(
 																new Date(lastUpdated),
 																dict,
-																lang
+																locale
 															)}
 														</span>
 													</AlertDescription>
@@ -289,7 +287,7 @@ export function ContainerDashboard({
 												>
 													<p>
 														{new Date(lastUpdated).toLocaleString(
-															lang === 'es' ? 'es-ES' : 'en-US',
+															locale === 'es' ? 'es-ES' : 'en-US',
 															{
 																day: '2-digit',
 																month: '2-digit',
@@ -366,7 +364,9 @@ export function ContainerDashboard({
 														: 'bg-transparent text-red-500 border-red-500 rounded-[3.5px] cursor-default'
 												}`}
 											>
-												{dict.container.states[container.State.toLowerCase() as keyof typeof dict.container.states] || container.State}
+												{dict.container.states[
+													container.State.toLowerCase() as keyof typeof dict.container.states
+												] || container.State}
 											</Badge>
 										</div>
 										<CardDescription className='text-neutral-200 truncate'>

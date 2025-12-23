@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowUp, Check, Eye, EyeOff, HelpCircle } from 'lucide-react'
-import type { Dictionary } from '@/lib/i18n'
+import type { Dictionary } from '@/lib/i18n/dictionaries'
 
 export type FilterStatus = 'updated' | 'available' | 'unknown' | 'local'
 
@@ -13,7 +13,7 @@ interface StatsSummaryProps {
 	onToggleFilter: (status: FilterStatus) => void
 	showHiddenMode: boolean
 	onToggleShowHidden: () => void
-	dict: Dictionary
+	dict: Dictionary['stats']
 }
 
 export function StatsSummary({
@@ -50,9 +50,7 @@ export function StatsSummary({
 						className={`font-semibold text-sm ${isFilterActive('updated') ? 'text-white' : 'text-neutral-400'}`}
 					>
 						{updatedCount}{' '}
-						{updatedCount === 1
-							? dict.stats.updatedImage
-							: dict.stats.updatedImages}
+						{updatedCount === 1 ? dict.updatedImage : dict.updatedImages}
 					</span>
 				</div>
 				<div
@@ -89,8 +87,8 @@ export function StatsSummary({
 					>
 						{availableCount}{' '}
 						{availableCount === 1
-							? dict.stats.updateAvailable
-							: dict.stats.updatesAvailable}
+							? dict.updateAvailable
+							: dict.updatesAvailable}
 					</span>
 				</div>
 				<div
@@ -123,9 +121,7 @@ export function StatsSummary({
 						className={`font-semibold text-sm ${isFilterActive('unknown') ? 'text-neutral-200' : 'text-neutral-500'}`}
 					>
 						{unknownCount}{' '}
-						{unknownCount === 1
-							? dict.stats.unknownImage
-							: dict.stats.unknownImages}
+						{unknownCount === 1 ? dict.unknownImage : dict.unknownImages}
 					</span>
 				</div>
 				<div
@@ -150,8 +146,8 @@ export function StatsSummary({
 					}`}
 					title={
 						showHiddenMode
-							? dict.stats.hideMarkedContainers
-							: dict.stats.viewHiddenContainers
+							? dict.hideMarkedContainers
+							: dict.viewHiddenContainers
 					}
 				>
 					{showHiddenMode ? (
@@ -159,7 +155,7 @@ export function StatsSummary({
 					) : (
 						<EyeOff className='h-3.5 w-3.5' />
 					)}
-					{showHiddenMode ? dict.stats.viewingHidden : dict.stats.hiddenManagement}
+					{showHiddenMode ? dict.viewingHidden : dict.hiddenManagement}
 				</button>
 			</div>
 		</div>

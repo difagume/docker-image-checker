@@ -1,39 +1,32 @@
-import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { defaultLocale, locales } from '@/lib/i18n'
+import { NextResponse } from 'next/server'
 
 export function proxy(request: NextRequest) {
-	const pathname = request.nextUrl.pathname
+	const authEnabled = process.env.AUTH_HTPASSWD
 
-	// Check if there is any supported locale in the pathname
-	const pathnameHasLocale = locales.some(
-		(locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-	)
-
-	if (pathnameHasLocale) {
+	// Si la autenticación no está habilitada, permitir todo
+	if (!authEnabled) {
 		return NextResponse.next()
 	}
 
-	// Get locale from Accept-Language header or use default
-	const acceptLanguage = request.headers.get('accept-language')
-	let locale = defaultLocale
+	const session = request.cookies.get('auth-session')
+	const { pathname } = request.nextUrl
 
-	if (acceptLanguage) {
-		// Simple detection: check if Spanish is preferred
-		if (acceptLanguage.toLowerCase().includes('es')) {
-			locale = 'es'
-		}
+	// Si no hay sesión y no está en /login, redirigir a login
+	if (!session && pathname !== '/login') {
+		return NextResponse.redirect(new URL('/login', request.url))
 	}
 
-	// Redirect to locale-prefixed path
-	const newUrl = new URL(`/${locale}${pathname}`, request.url)
-	return NextResponse.redirect(newUrl)
+	// Si hay sesión y está en /login, redirigir a home
+	if (session && pathname === '/login') {
+		return NextResponse.redirect(new URL('/', request.url))
+	}
+
+	return NextResponse.next()
 }
 
 export const config = {
 	matcher: [
-		// Skip all internal paths (_next)
-		'/((?!_next|api|favicon.ico|.*\\..*|android-chrome|apple-touch-icon|site.webmanifest).*)'
+		'/((?!api|_next/static|_next/image|favicon.ico|site\\.webmanifest|.*\\.png|.*\\.svg).*)'
 	]
 }
-

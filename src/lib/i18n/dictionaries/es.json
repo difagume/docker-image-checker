@@ -60,6 +60,18 @@
 		"minutes": "minutos",
 		"hour": "hora",
 		"hours": "horas"
+	},
+	"login": {
+		"title": "Iniciar sesión",
+		"description": "Ingresa tus credenciales para acceder al panel",
+		"username": "Usuario",
+		"password": "Contraseña",
+		"usernamePlaceholder": "Ingresa tu nombre de usuario",
+		"passwordPlaceholder": "Ingresa tu contraseña",
+		"signIn": "Iniciar sesión",
+		"signingIn": "Iniciando sesión...",
+		"invalidCredentials": "Usuario o contraseña incorrectos",
+		"errorOccurred": "Ocurrió un error. Por favor intenta de nuevo.",
+		"logout": "Cerrar sesión"
 	}
 }
-
