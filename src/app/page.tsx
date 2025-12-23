@@ -1,4 +1,4 @@
-import { RefreshCcw } from 'lucide-react'
+import { LogOut, RefreshCcw } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 import { logout } from '@/actions/auth'
 import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
@@ -113,8 +113,9 @@ export default async function Dashboard() {
 								<form action={logout}>
 									<Button
 										variant='outline'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2'
 									>
+										<LogOut className='h-4 w-4' />
 										{dict.login.logout}
 									</Button>
 								</form>
