@@ -1,26 +1,3 @@
-/* 'use server'
-
-import { redirect } from 'next/navigation'
-import { isAuthenticated, requiresAuth } from '@/lib/auth'
-
-export async function checkAuth(): Promise<boolean> {
-	// If no authentication is required, return true
-	if (!requiresAuth()) {
-		return true
-	}
-
-	// Check if user is authenticated based on session
-	return await isAuthenticated()
-}
-
-export async function requireAuth(): Promise<void> {
-	// If authentication is required and user is not authenticated, redirect to login
-	if (requiresAuth() && !(await isAuthenticated())) {
-		redirect('/login')
-	}
-}
- */
-
 'use server'
 
 import { cookies } from 'next/headers'
