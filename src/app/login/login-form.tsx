@@ -74,6 +74,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								{dict.username}
 							</Label>
 							<Input
+								autoFocus
 								id='username'
 								type='text'
 								value={username}
