@@ -100,43 +100,48 @@ export default async function Dashboard() {
 	return (
 		<div className='min-h-screen bg-neutral-950 text-neutral-50 p-8'>
 			<div className='max-w-7xl mx-auto space-y-8'>
-				<div className='flex justify-between items-center'>
-					<div>
-						<h1 className='text-4xl font-bold tracking-tight text-white mb-2'>
+				<div className='flex flex-col gap-2'>
+					{/* Fila superior: título + acciones */}
+					<div className='flex items-start justify-between'>
+						<h1 className='text-4xl font-bold tracking-tight text-white'>
 							{dict.dashboard.title}
 						</h1>
-						<p className='text-neutral-400'>{dict.dashboard.description}</p>
-					</div>
-					<div className='flex items-center gap-2 md:gap-3'>
-						<div className='flex justify-end'>
+
+						{/* Acciones */}
+						<div className='flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-3'>
 							{authEnabled && (
 								<form action={logout}>
 									<Button
 										variant='outline'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2 sm:hidden'
+										size='icon'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2 md:hidden'
 									>
 										<LogOut className='h-4 w-4' />
 									</Button>
 									<Button
 										variant='outline'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2 hidden sm:flex'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 items-center gap-2 hidden md:flex'
 									>
 										<LogOut className='h-4 w-4' />
 										{dict.login.logout}
 									</Button>
 								</form>
 							)}
+
+							<form action={refresh}>
+								<Button
+									variant='outline'
+									size='icon'
+									className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700'
+								>
+									<RefreshCcw className='h-4 w-4' />
+								</Button>
+							</form>
 						</div>
-						<form action={refresh}>
-							<Button
-								variant='outline'
-								size='icon'
-								className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700'
-							>
-								<RefreshCcw className='h-4 w-4' />
-							</Button>
-						</form>
 					</div>
+
+					{/* Fila inferior: descripción */}
+					<p className='text-neutral-400'>{dict.dashboard.description}</p>
 				</div>
 
 				<ContainerDashboard
