@@ -19,6 +19,7 @@
 		"clsx": "^2.1.1",
 		"dockerode": "^4.0.9",
 		"framer-motion": "^12.23.26",
+		"iron-session": "^8.0.4",
 		"lucide-react": "^0.562.0",
 		"next": "16.1.0",
 		"react": "19.2.3",

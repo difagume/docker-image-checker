@@ -1,7 +1,8 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 	const authEnabled = process.env.AUTH_HTPASSWD
 
 	// Si la autenticación no está habilitada, permitir todo
@@ -9,16 +10,16 @@ export function proxy(request: NextRequest) {
 		return NextResponse.next()
 	}
 
-	const session = request.cookies.get('auth-session')
+	const session = await getSession()
 	const { pathname } = request.nextUrl
 
 	// Si no hay sesión y no está en /login, redirigir a login
-	if (!session && pathname !== '/login') {
+	if (!session.isLoggedIn && pathname !== '/login') {
 		return NextResponse.redirect(new URL('/login', request.url))
 	}
 
 	// Si hay sesión y está en /login, redirigir a home
-	if (session && pathname === '/login') {
+	if (session.isLoggedIn && pathname === '/login') {
 		return NextResponse.redirect(new URL('/', request.url))
 	}
 

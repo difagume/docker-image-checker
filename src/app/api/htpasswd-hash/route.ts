@@ -105,6 +105,7 @@ async function generateBcrypt(
 		const bcrypt = await import('bcryptjs')
 		return await bcrypt.hash(password, rounds)
 	} catch (error) {
+		console.error('Error importing bcryptjs:', error)
 		throw new Error('Error al generar hash bcrypt: bcryptjs no disponible')
 	}
 }

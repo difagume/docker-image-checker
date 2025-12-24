@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { checkAuth } from '@/actions/auth'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getLocale } from '@/lib/i18n/get-locale'
 import LoginForm from './login-form'
@@ -11,10 +11,9 @@ export default async function LoginPage() {
 	}
 
 	// Si ya hay sesión, redirigir a home
-	const cookieStore = await cookies()
-	const session = cookieStore.get('auth-session')
+	const auth = await checkAuth()
 
-	if (session) {
+	if (auth.authenticated) {
 		redirect('/')
 	}
 
