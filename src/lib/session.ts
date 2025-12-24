@@ -11,14 +11,10 @@ export interface SessionData {
 export const sessionOptions: SessionOptions = {
 	password:
 		process.env.AUTH_SESSION_PASSWORD ||
-		'default_password_change_me_in_production',
+		'412DpguWscJjdZ0tEyRddn2vhM2svZnribzYJF0ydPQ=',
 	cookieName: 'dic-session',
 	cookieOptions: {
-		//httpOnly: true,
 		secure: process.env.NODE_ENV === 'production'
-		//sameSite: 'lax' as const,
-		//maxAge: 60 * 60 * 24 * 7, // 7 días
-		//path: '/'
 	}
 }
 
