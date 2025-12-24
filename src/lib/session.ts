@@ -24,8 +24,6 @@ declare module 'iron-session' {
 
 export async function getSession() {
 	const cookieStore = await cookies()
-	console.log('--->', process.env.NODE_ENV)
-
 	const session = await getIronSession<SessionData>(cookieStore, sessionOptions)
 	return session
 }
