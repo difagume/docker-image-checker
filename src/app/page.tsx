@@ -1,6 +1,7 @@
 import { LogOut, RefreshCcw } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
-import { logout } from '@/actions/auth'
+import { redirect } from 'next/navigation'
+import { checkAuth, logout } from '@/actions/auth'
 import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,11 @@ import { getLocale } from '@/lib/i18n/get-locale'
 export const dynamic = 'force-dynamic'
 
 export default async function Dashboard() {
+	if (process.env.AUTH_HTPASSWD) {
+		const auth = await checkAuth()
+		if (!auth.authenticated) redirect('/login')
+	}
+
 	const locale = await getLocale()
 	const dict = await getDictionary(locale)
 	const containers = await getContainers()
