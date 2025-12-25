@@ -4,6 +4,8 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getLocale } from '@/lib/i18n/get-locale'
 import LoginForm from './login-form'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LoginPage() {
 	// Si no hay AUTH_HTPASSWD configurado, redirigir a home
 	if (!process.env.AUTH_HTPASSWD) {
