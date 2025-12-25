@@ -12,6 +12,13 @@
 		"selectCategory": "Select a category above to filter containers.",
 		"noContainersFiltered": "No containers found for the selected filters."
 	},
+	"filter": {
+		"placeholder": "Filter containers by name, image or version...",
+		"placeholderMobile": "Filter containers...",
+		"showing": "Showing {count} of {total}",
+		"noResults": "No containers match your filter",
+		"clearFilter": "Clear filter"
+	},
 	"container": {
 		"updated": "Updated",
 		"updateAvailable": "Update available",

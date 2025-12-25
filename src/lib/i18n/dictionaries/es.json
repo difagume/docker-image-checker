@@ -12,6 +12,13 @@
 		"selectCategory": "Selecciona una categoría arriba para filtrar los contenedores.",
 		"noContainersFiltered": "No se encontraron contenedores para los filtros seleccionados."
 	},
+	"filter": {
+		"placeholder": "Filtrar contenedores por nombre, imagen o versión...",
+		"placeholderMobile": "Filtrar contenedores...",
+		"showing": "Mostrando {count} de {total}",
+		"noResults": "No hay contenedores que coincidan",
+		"clearFilter": "Limpiar filtro"
+	},
 	"container": {
 		"updated": "Actualizado",
 		"updateAvailable": "Actualización disponible",

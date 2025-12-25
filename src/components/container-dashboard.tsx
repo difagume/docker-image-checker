@@ -10,18 +10,15 @@ import {
 	EyeOff,
 	Fingerprint,
 	Package,
-	Server
+	Search,
+	Server,
+	X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
 	Tooltip,
 	TooltipContent,
@@ -132,6 +129,34 @@ export function ContainerDashboard({
 	])
 	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
 	const [showHiddenMode, setShowHiddenMode] = useState(false)
+	const [searchQuery, setSearchQuery] = useState('')
+	const [debouncedQuery, setDebouncedQuery] = useState('')
+	const [placeholder, setPlaceholder] = useState(dict.filter.placeholder)
+
+	// Debounce search query
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedQuery(searchQuery)
+		}, 400)
+		return () => clearTimeout(handler)
+	}, [searchQuery])
+
+	// Handle responsive placeholder
+	useEffect(() => {
+		const handleResize = () => {
+			if (window.innerWidth < 768) {
+				setPlaceholder(dict.filter.placeholderMobile)
+			} else {
+				setPlaceholder(dict.filter.placeholder)
+			}
+		}
+
+		// Initial check
+		handleResize()
+
+		window.addEventListener('resize', handleResize)
+		return () => window.removeEventListener('resize', handleResize)
+	}, [dict])
 
 	// Load hidden containers and filters from localStorage
 	useEffect(() => {
@@ -191,14 +216,30 @@ export function ContainerDashboard({
 		const isStatusMatch = activeFilters.includes(statusForFilter)
 		const isHidden = hiddenContainerIds.includes(item.container.Id)
 
+		// Text Search Filtering
+		let isTextMatch = true
+		if (debouncedQuery) {
+			const q = debouncedQuery.toLowerCase()
+			const nameMatch = item.containerName.toLowerCase().includes(q)
+			const imageMatch = item.container.Image.toLowerCase().includes(q)
+			// Check versions/tags
+			const currentVerMatch = item.displayCurentVersion
+				?.toLowerCase()
+				.includes(q)
+			const latestVerMatch =
+				item.latestVersion?.toLowerCase().includes(q) || false
+
+			isTextMatch = nameMatch || imageMatch || currentVerMatch || latestVerMatch
+		}
+
 		if (showHiddenMode) {
 			// In management mode, we show everything that matches the status filter
 			// or we could show only hidden ones. Let's show everything but highlighted.
-			return isStatusMatch
+			return isStatusMatch && isTextMatch
 		}
 
 		// In normal mode, exclude hidden containers
-		return isStatusMatch && !isHidden
+		return isStatusMatch && !isHidden && isTextMatch
 	})
 
 	return (
@@ -213,6 +254,52 @@ export function ContainerDashboard({
 				onToggleShowHidden={() => setShowHiddenMode(!showHiddenMode)}
 				dict={dict.stats}
 			/>
+
+			{/* Contextual Filter Bar */}
+			<div className='flex flex-col md:flex-row gap-4 items-center justify-between mb-8 md:mb-6'>
+				<div className='relative w-full shadow-sm'>
+					<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none' />
+					<Input
+						placeholder={placeholder}
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						className={`pl-10 bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-700 h-11 md:h-10 transition-all hover:border-neutral-700 rounded-[3.5px] ${
+							debouncedQuery ? 'pr-10 md:pr-48' : 'pr-10'
+						}`}
+					/>
+					{debouncedQuery && (
+						<span className='absolute right-9 top-1/2 -translate-y-1/2 text-xs text-neutral-500 font-medium hidden md:block pointer-events-none'>
+							{dict.filter.showing
+								.replace('{count}', filteredContainers.length.toString())
+								.replace('{total}', processedContainers.length.toString())}
+						</span>
+					)}
+					{searchQuery && (
+						<button
+							type='button'
+							onClick={() => {
+								setSearchQuery('')
+								setDebouncedQuery('')
+							}}
+							className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-neutral-500 hover:text-neutral-300 transition-colors rounded-full hover:bg-neutral-800/50'
+							aria-label={dict.filter?.clearFilter || 'Clear'}
+						>
+							<X className='h-4 w-4' />
+						</button>
+					)}
+				</div>
+
+				{/* Counter - Mobile only */}
+				{debouncedQuery && (
+					<div className='w-full md:hidden text-center'>
+						<span className='text-sm text-neutral-500 font-medium'>
+							{dict.filter.showing
+								.replace('{count}', filteredContainers.length.toString())
+								.replace('{total}', processedContainers.length.toString())}
+						</span>
+					</div>
+				)}
+			</div>
 
 			<motion.div layout className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
 				<AnimatePresence mode='popLayout'>
@@ -331,10 +418,12 @@ export function ContainerDashboard({
 								<Card
 									className={`bg-neutral-900 rounded-[3.5px] border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
 								>
-									<CardHeader className='pb-2'>
+									<CardHeader>
 										<div className='flex justify-between items-start gap-4'>
 											<CardTitle className='text-lg font-medium text-white [overflow-wrap:anywhere] break-normal flex items-start gap-2'>
-												<span className='flex-1'>{containerName}</span>
+												<span className='flex-1 line-clamp-3'>
+													{containerName}
+												</span>
 												<button
 													type='button'
 													onClick={() => toggleHideContainer(container.Id)}
@@ -369,17 +458,6 @@ export function ContainerDashboard({
 												] || container.State}
 											</Badge>
 										</div>
-										<CardDescription className='text-neutral-200 truncate'>
-											{container.Image.split(':')[0]}
-											<span className='text-neutral-500'>
-												:{container.Image.split(':')[1] || 'latest'}
-											</span>
-											{/* {currentVersion && currentVersion !== 'Unknown' && (
-												<span className='ml-2 text-xs text-neutral-500'>
-													({currentVersion})
-												</span>
-											)} */}
-										</CardDescription>
 									</CardHeader>
 									<CardContent>
 										<div className='space-y-2 text-sm text-neutral-300'>
@@ -430,6 +508,15 @@ export function ContainerDashboard({
 												</div>
 
 												<div className='space-y-1 pl-6 pt-1'>
+													<div
+														className='text-neutral-300 pb-1'
+														title={container.Image}
+													>
+														{container.Image.split(':')[0]}
+														{/* <span className='text-neutral-500'>
+															:{container.Image.split(':')[1] || 'latest'}
+														</span> */}
+													</div>
 													<div className='flex items-center justify-between'>
 														<span className='text-neutral-500 font-medium text-xs'>
 															{dict.container.currentVersion}
@@ -437,10 +524,13 @@ export function ContainerDashboard({
 														<Badge
 															variant='outline'
 															className={
-																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default'
+																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
 															}
+															title={displayCurentVersion}
 														>
-															{displayCurentVersion}
+															<span className='truncate'>
+																{displayCurentVersion}
+															</span>
 														</Badge>
 													</div>
 
@@ -453,10 +543,13 @@ export function ContainerDashboard({
 															<Badge
 																variant='outline'
 																className={
-																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 rounded-[3.5px] cursor-default'
+																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
 																}
+																title={displayLatestVersion}
 															>
-																{displayLatestVersion}
+																<span className='truncate'>
+																	{displayLatestVersion}
+																</span>
 															</Badge>
 														</div>
 													)}
@@ -467,14 +560,14 @@ export function ContainerDashboard({
 												</div>
 											</div>
 
-											<details className='mt-2 border-t border-neutral-800 pt-2'>
+											{/* <details className='mt-2 border-t border-neutral-800 pt-2'>
 												<summary className='cursor-pointer text-xs text-neutral-500 hover:text-neutral-300'>
 													{dict.container.debugJson}
 												</summary>
 												<pre className='text-[10px] bg-black p-2 rounded overflow-x-auto mt-1 max-h-40 text-neutral-400 w-full'>
 													{JSON.stringify(container, null, 2)}
 												</pre>
-											</details>
+											</details> */}
 										</div>
 									</CardContent>
 								</Card>
@@ -484,7 +577,7 @@ export function ContainerDashboard({
 				</AnimatePresence>
 			</motion.div>
 
-			{/* <AnimatePresence>
+			<AnimatePresence>
 				{filteredContainers.length === 0 && (
 					<motion.div
 						initial={{ opacity: 0, y: 10 }}
@@ -494,10 +587,12 @@ export function ContainerDashboard({
 					>
 						{activeFilters.length === 0
 							? dict.dashboard.selectCategory
-							: dict.dashboard.noContainersFiltered}
+							: debouncedQuery
+								? dict.filter.noResults
+								: dict.dashboard.noContainersFiltered}
 					</motion.div>
 				)}
-			</AnimatePresence> */}
+			</AnimatePresence>
 		</>
 	)
 }
