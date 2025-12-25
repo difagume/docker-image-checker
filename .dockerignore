@@ -4,6 +4,9 @@ node_modules
 Dockerfile
 .dockerignore
 compose.yaml
+compose.prod.yaml
+compose.proxy.yaml
+biome.json
 README.md
 .env*
 build
