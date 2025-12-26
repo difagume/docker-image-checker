@@ -35,6 +35,11 @@ export async function checkImageUpdate(
 	dockerHubUrl?: string
 	isLocal?: boolean
 }> {
+	// 1. Detect GHCR images
+	if (imageName.startsWith('ghcr.io/')) {
+		return checkGhcrUpdate(imageName, localDigest)
+	}
+
 	try {
 		const parts = imageName.split(':')
 		let repo = parts[0]
@@ -157,6 +162,102 @@ export async function checkImageUpdate(
 		}
 	} catch (error) {
 		console.error('Failed to check image update:', error)
+		return { hasUpdate: false, isLocal: false }
+	}
+}
+
+async function checkGhcrUpdate(
+	fullImageName: string,
+	localDigest?: string
+): Promise<{
+	hasUpdate: boolean
+	latestDigest?: string
+	lastUpdated?: string
+	currentVersion?: string
+	latestVersion?: string
+	dockerHubUrl?: string
+	isLocal?: boolean
+}> {
+	try {
+		// Example: ghcr.io/nicotsx/zerobyte:latest
+		const nameWithTag = fullImageName.replace('ghcr.io/', '')
+		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
+		const parts = imagePath.split('/')
+
+		if (parts.length < 2) {
+			return { hasUpdate: false, isLocal: true }
+		}
+
+		const owner = parts[0]
+		const repo = parts.slice(1).join('/')
+
+		// URL structured as mentioned by the user
+		const packageUrl = `https://github.com/${owner}/${repo}/pkgs/container/${parts[parts.length - 1]}`
+
+		const response = await fetch(packageUrl, { next: { revalidate: 3600 } })
+		if (!response.ok) {
+			console.error(`GHCR Scrape error: ${response.status} for ${packageUrl}`)
+			return { hasUpdate: false }
+		}
+
+		const html = await response.text()
+
+		// Extract tags using regex from "Recent tagged image versions" section
+		// The user pointed out the structure. We look for tags in the HTML.
+		const recentSection = html.split('Recent tagged image versions')[1]
+		if (!recentSection) {
+			return { hasUpdate: false }
+		}
+
+		// Look for tags in links like: ?tag=v0.20
+		const tagRegex = /\?tag=([^"'>]+)/g
+		const foundTags: string[] = []
+		let match: RegExpExecArray | null
+		// biome-ignore lint/suspicious/noAssignInExpressions: standard regex loop
+		while ((match = tagRegex.exec(recentSection)) !== null) {
+			if (!foundTags.includes(match[1])) {
+				foundTags.push(match[1])
+			}
+		}
+
+		if (foundTags.length === 0) {
+			return { hasUpdate: false }
+		}
+
+		// Latest tag is usually first or named 'latest'
+		const latestTag = foundTags.includes('latest')
+			? 'latest'
+			: foundTags.includes('main')
+				? 'main'
+				: foundTags[0]
+
+		// For GHCR scraping, we don't easily get the digest for ALL tags without more requests,
+		// but we can compare the tag if the user is using a specific version tag.
+		// If they use 'latest', we assume an update is available if 'latest' was recently published (we don't have digest here easily)
+		// HOWEVER, the user specifically wants to control verification.
+
+		// Let's try to extract the digest for the first item if possible
+		const digestMatch = recentSection.match(/sha256:[a-f0-9]{64}/)
+		const remoteDigest = digestMatch ? digestMatch[0] : undefined
+
+		const latestVersion =
+			foundTags.find(
+				(t) => t !== 'latest' && t !== 'main' && /^[vV]?\d+/.test(t)
+			) || latestTag
+
+		const hasUpdate =
+			localDigest && remoteDigest ? localDigest !== remoteDigest : false
+
+		return {
+			hasUpdate,
+			latestDigest: remoteDigest,
+			currentVersion: tag,
+			latestVersion,
+			dockerHubUrl: packageUrl, // Using the GH package page as the URL
+			isLocal: false
+		}
+	} catch (error) {
+		console.error('Failed to check GHCR image update:', error)
 		return { hasUpdate: false, isLocal: false }
 	}
 }
