@@ -40,9 +40,12 @@ export async function checkImageUpdate(
 		return checkGhcrUpdate(imageName, localDigest)
 	}
 
-	// 2. Handle lscr.io images (LinuxServer.io proxy)
+	// 2. Handle known registries proxying Docker Hub
 	if (imageName.startsWith('lscr.io/')) {
 		imageName = imageName.replace('lscr.io/', '')
+	}
+	if (imageName.startsWith('docker.hyperdx.io/')) {
+		imageName = imageName.replace('docker.hyperdx.io/', '')
 	}
 
 	try {
