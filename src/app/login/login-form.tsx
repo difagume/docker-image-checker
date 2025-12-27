@@ -57,7 +57,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 	}
 
 	return (
-		<div className='min-h-screen bg-neutral-950 text-neutral-50 flex flex-col items-center justify-center p-4'>
+		<div className='min-h-dvh bg-neutral-950 text-neutral-50 flex flex-col items-center justify-center p-4'>
 			<div className='mb-6'>
 				<Image
 					src='/logo.png'
