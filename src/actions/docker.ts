@@ -40,6 +40,11 @@ export async function checkImageUpdate(
 		return checkGhcrUpdate(imageName, localDigest)
 	}
 
+	// 2. Handle lscr.io images (LinuxServer.io proxy)
+	if (imageName.startsWith('lscr.io/')) {
+		imageName = imageName.replace('lscr.io/', '')
+	}
+
 	try {
 		const parts = imageName.split(':')
 		let repo = parts[0]
