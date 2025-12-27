@@ -4,21 +4,45 @@ Un panel moderno para monitorear y actualizar contenedores Docker con soporte pa
 
 ## 🔐 Autenticación
 
-El panel incluye soporte para autenticación con sesión usando htpasswd. La autenticación se configura mediante la variable de entorno `HTPASSWD`.
+El panel incluye soporte para autenticación con sesión usando htpasswd y iron-session. La autenticación se configura mediante las variables de entorno `HTPASSWD` y opcionalmente `AUTH_SESSION_PASSWORD`.
 
 ### Configuración de Autenticación
 
 1. Genera una entrada htpasswd usando una herramienta como [htpasswd generator](https://www.htaccesstools.com/htpasswd-generator/) o la API incluida en esta aplicación
 2. Establece la variable de entorno `HTPASSWD` con el contenido generado
-3. Si no se establece la variable, el acceso será automático (sin autenticación)
+3. Opcionalmente, define `AUTH_SESSION_PASSWORD` con una contraseña segura de al menos 32 caracteres para encriptar las sesiones (si no se define, se usará `HTPASSWD`)
+4. Si no se establece la variable `HTPASSWD`, el acceso será automático (sin autenticación)
 
 > [!IMPORTANT]
 > Si estás usando la variable de entorno `HTPASSWD` en un archivo `.env`, recuerda que el carácter `$` debe ser escapado con `\` (doble barra invertida) para evitar que el shell interprete variables. Por ejemplo: `HTPASSWD="usuario:\$2y\$10\$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2"`
 
-Ejemplo de contenido para la variable `HTPASSWD`:
+> [!IMPORTANT]
+> Para `AUTH_SESSION_PASSWORD`, asegúrate de usar una contraseña segura de al menos 32 caracteres. Puedes generar una contraseña segura usando un generador como [1Password](https://1password.com/password-generator/) o con el siguiente comando:
+> ```bash
+> openssl rand -base64 32
+> ```
+
+Ejemplo de contenido para las variables de entorno:
 ```
-usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+AUTH_SESSION_PASSWORD=TuContrasenaSeguraDe32CaracteresOMasXXXXXXXXXX
+GITHUB_GHCR_TOKEN=ghp_TuGitHubTokenAqui
 ```
+
+### 📦 GitHub Container Registry (GHCR)
+
+Para obtener información precisa sobre imágenes alojadas en `ghcr.io` (como el hash exacto y versiones disponibles), se recomienda configurar un **Personal Access Token (PAT)**.
+
+#### Cómo obtener tu token:
+1. Ve a [GitHub Settings >Tokens](https://github.com/settings/tokens) (o Settings > Developer settings > Personal access tokens > Tokens (classic)).
+2. Haz clic en **Generate new token (classic)**.
+3. Ponle un nombre (ej: `Docker Image Checker`).
+4. Selecciona el permiso: `read:packages`.
+5. Haz clic en **Generate token** y cópialo.
+6. Agrégalo a tu archivo `.env` como `GITHUB_GHCR_TOKEN`.
+
+> [!TIP]
+> Si no configuras el token, la aplicación intentará obtener la información mediante scraping HTML, lo cual es menos fiable y más lento.
 
 ### API para Generar Hashes htpasswd
 
