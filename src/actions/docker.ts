@@ -166,7 +166,128 @@ export async function checkImageUpdate(
 	}
 }
 
+interface GhcrPackageVersion {
+	id: number
+	name: string
+	updated_at: string
+	metadata: {
+		package_type: string
+		container: {
+			tags: string[]
+		}
+	}
+}
+
 async function checkGhcrUpdate(
+	fullImageName: string,
+	localDigest?: string
+): Promise<{
+	hasUpdate: boolean
+	latestDigest?: string
+	lastUpdated?: string
+	currentVersion?: string
+	latestVersion?: string
+	dockerHubUrl?: string
+	isLocal?: boolean
+}> {
+	try {
+		// Example: ghcr.io/owner/repo:tag
+		const nameWithTag = fullImageName.replace('ghcr.io/', '')
+		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
+		const parts = imagePath.split('/')
+
+		if (parts.length < 2) {
+			return { hasUpdate: false, isLocal: true }
+		}
+
+		const owner = parts[0]
+		const repo = parts.slice(1).join('/')
+		const packageName = parts[parts.length - 1]
+		const token = process.env.GITHUB_GHCR_TOKEN
+
+		if (!token) {
+			console.warn('GITHUB_GHCR_TOKEN not found, falling back to scraping')
+			return checkGhcrUpdateScraping(fullImageName, localDigest)
+		}
+
+		// Try both user and org endpoints
+		const endpoints = [
+			`https://api.github.com/users/${owner}/packages/container/${packageName}/versions?per_page=100`,
+			`https://api.github.com/orgs/${owner}/packages/container/${packageName}/versions?per_page=100`
+		]
+
+		let data: GhcrPackageVersion[] = []
+		let success = false
+
+		for (const url of endpoints) {
+			const response = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+					Accept: 'application/vnd.github+json',
+					'X-GitHub-Api-Version': '2022-11-28'
+				},
+				next: { revalidate: 3600 }
+			})
+
+			if (response.ok) {
+				data = (await response.json()) as GhcrPackageVersion[]
+				success = true
+				break
+			}
+		}
+
+		if (!success || data.length === 0) {
+			console.warn(
+				'GHCR API failed or returned no data, falling back to scraping'
+			)
+			return checkGhcrUpdateScraping(fullImageName, localDigest)
+		}
+
+		// Find the version matching the current tag
+		const currentTagVersion = data.find((v) =>
+			v.metadata?.container?.tags?.includes(tag)
+		)
+
+		// Latest should be the first one in the list (usually) or the one tagged 'latest'
+		const latestVersionObj =
+			data.find((v) => v.metadata?.container?.tags?.includes('latest')) ||
+			data[0]
+
+		const remoteDigest = latestVersionObj.name // The 'name' field contains the digest like sha256:...
+		const lastUpdated = latestVersionObj.updated_at
+
+		// Extract version string (first tag that looks like a version)
+		const getBestTag = (v: GhcrPackageVersion) => {
+			const tags = v.metadata?.container?.tags || []
+			return (
+				tags.find((t: string) => /^[vV]?\d+/.test(t)) || tags[0] || 'Unknown'
+			)
+		}
+
+		const latestVersion = getBestTag(latestVersionObj)
+		const currentVersionStr = currentTagVersion
+			? getBestTag(currentTagVersion)
+			: tag
+
+		const hasUpdate =
+			localDigest && remoteDigest ? localDigest !== remoteDigest : false
+
+		return {
+			hasUpdate,
+			latestDigest: remoteDigest,
+			lastUpdated,
+			currentVersion: currentVersionStr,
+			latestVersion,
+			dockerHubUrl: `https://github.com/${owner}/${repo}/pkgs/container/${packageName}`,
+			isLocal: false
+		}
+	} catch (error) {
+		console.error('Failed to check GHCR image update with API:', error)
+		return checkGhcrUpdateScraping(fullImageName, localDigest)
+	}
+}
+
+async function checkGhcrUpdateScraping(
 	fullImageName: string,
 	localDigest?: string
 ): Promise<{
