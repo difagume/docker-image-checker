@@ -10,7 +10,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
 	title: 'Docker Image Checker',
-	description: 'Docker Image Checker dashboard',
+	description:
+		'Self-hosted dashboard to monitor Docker containers and detect available image updates.',
+
 	icons: {
 		icon: [
 			{ url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
@@ -21,6 +23,21 @@ export const metadata: Metadata = {
 			{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
 		]
 	},
+
+	openGraph: {
+		title: 'Docker Image Checker',
+		description:
+			'Self-hosted dashboard to monitor Docker containers and detect available image updates.',
+		type: 'website'
+	},
+
+	twitter: {
+		card: 'summary',
+		title: 'Docker Image Checker',
+		description:
+			'Self-hosted dashboard to monitor Docker containers and detect available image updates.'
+	},
+
 	manifest: '/site.webmanifest'
 }
 
