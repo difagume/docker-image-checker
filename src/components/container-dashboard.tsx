@@ -97,9 +97,12 @@ function formatRelativeTime(date: Date, dict: Dictionary, locale: Locale) {
 			if (locale === 'es') {
 				return `${dict.time.ago} ${parts.join(', ')} y ${lastPart}`
 			}
+			if (locale === 'pt') {
+				return `${dict.time.ago} ${parts.join(', ')} e ${lastPart}`
+			}
 			return `${parts.join(', ')} and ${lastPart} ${dict.time.ago}`
 		}
-		if (locale === 'es') {
+		if (locale === 'es' || locale === 'pt') {
 			return `${dict.time.ago} ${parts[0]}`
 		}
 		return `${parts[0]} ${dict.time.ago}`
@@ -109,11 +112,20 @@ function formatRelativeTime(date: Date, dict: Dictionary, locale: Locale) {
 	if (diffInSeconds < 60) return dict.time.momentAgo
 
 	const minutes = Math.floor(diffInSeconds / 60)
-	if (minutes < 60)
-		return `${dict.time.ago} ${minutes} ${minutes === 1 ? dict.time.minute : dict.time.minutes}`
+	if (minutes < 60) {
+		const label = `${minutes} ${minutes === 1 ? dict.time.minute : dict.time.minutes}`
+		if (locale === 'es' || locale === 'pt') {
+			return `${dict.time.ago} ${label}`
+		}
+		return `${label} ${dict.time.ago}`
+	}
 
 	const hours = Math.floor(minutes / 60)
-	return `${dict.time.ago} ${hours} ${hours === 1 ? dict.time.hour : dict.time.hours}`
+	const label = `${hours} ${hours === 1 ? dict.time.hour : dict.time.hours}`
+	if (locale === 'es' || locale === 'pt') {
+		return `${dict.time.ago} ${label}`
+	}
+	return `${label} ${dict.time.ago}`
 }
 
 export function ContainerDashboard({
@@ -374,7 +386,11 @@ export function ContainerDashboard({
 												>
 													<p>
 														{new Date(lastUpdated).toLocaleString(
-															locale === 'es' ? 'es-ES' : 'en-US',
+															locale === 'es'
+																? 'es-ES'
+																: locale === 'pt'
+																	? 'pt-BR'
+																	: 'en-US',
 															{
 																day: '2-digit',
 																month: '2-digit',

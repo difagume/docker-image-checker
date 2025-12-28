@@ -6,8 +6,8 @@
 		"unknown": "Desconocido"
 	},
 	"dashboard": {
-		"title": "Panel de Contenedores Docker",
-		"description": "Monitorea tus contenedores y el estado de sus imágenes.",
+		"title": "Docker Image Checker",
+		"description": "Supervisa tus contenedores y el estado de sus imágenes.",
 		"noContainers": "No se encontraron contenedores. Asegúrate de que Docker esté ejecutándose y el socket sea accesible.",
 		"selectCategory": "Selecciona una categoría arriba para filtrar los contenedores.",
 		"noContainersFiltered": "No se encontraron contenedores para los filtros seleccionados."

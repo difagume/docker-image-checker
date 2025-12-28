@@ -17,6 +17,11 @@ export async function getLocale(): Promise<Locale> {
 		if (languages.includes('es')) {
 			return 'es'
 		}
+
+		// Si detecta portugués, usar portugués
+		if (languages.includes('pt')) {
+			return 'pt'
+		}
 	}
 
 	// Por defecto, inglés

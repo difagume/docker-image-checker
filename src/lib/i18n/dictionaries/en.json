@@ -6,7 +6,7 @@
 		"unknown": "Unknown"
 	},
 	"dashboard": {
-		"title": "Docker Containers Panel",
+		"title": "Docker Image Checker",
 		"description": "Monitor your containers and their image status.",
 		"noContainers": "No containers found. Make sure Docker is running and the socket is accessible.",
 		"selectCategory": "Select a category above to filter containers.",

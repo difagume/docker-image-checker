@@ -1,0 +1,84 @@
+{
+	"common": {
+		"ports": "Portas",
+		"status": "Status",
+		"latest": "latest",
+		"unknown": "Desconhecido"
+	},
+	"dashboard": {
+		"title": "Docker Image Checker",
+		"description": "Monitore seus contêineres e o status de suas imagens.",
+		"noContainers": "Nenhum contêiner encontrado. Certifique-se de que o Docker esteja em execução e que o socket esteja acessível.",
+		"selectCategory": "Selecione uma categoria acima para filtrar os contêineres.",
+		"noContainersFiltered": "Nenhum contêiner encontrado para os filtros selecionados."
+	},
+	"filter": {
+		"placeholder": "Filtrar contêineres por nome, imagem ou versão...",
+		"placeholderMobile": "Filtrar contêineres...",
+		"showing": "Mostrando {count} de {total}",
+		"noResults": "Nenhum contêiner corresponde ao filtro",
+		"clearFilter": "Limpar filtro"
+	},
+	"container": {
+		"updated": "Atualizado",
+		"updateAvailable": "Atualização disponível",
+		"unknown": "Imagem desconhecida",
+		"local": "Imagem local",
+		"showContainer": "Mostrar contêiner",
+		"hideContainer": "Ocultar contêiner",
+		"containerId": "ID do Contêiner",
+		"image": "Imagem",
+		"currentVersion": "Versão atual",
+		"newVersion": "Nova versão",
+		"debugJson": "Depurar JSON",
+		"states": {
+			"running": "Em execução",
+			"stopped": "Parado",
+			"exited": "Finalizado",
+			"paused": "Pausado",
+			"restarting": "Reiniciando",
+			"removing": "Removendo",
+			"created": "Criado",
+			"dead": "Morto"
+		}
+	},
+	"stats": {
+		"updatedImage": "Imagem atualizada",
+		"updatedImages": "Imagens atualizadas",
+		"updateAvailable": "Atualização disponível",
+		"updatesAvailable": "Atualizações disponíveis",
+		"unknownImage": "Imagem desconhecida/local",
+		"unknownImages": "Imagens desconhecidas/locais",
+		"hideMarkedContainers": "Ocultar contêineres marcados",
+		"viewHiddenContainers": "Ver contêineres ocultos",
+		"viewingHidden": "Visualizando ocultos",
+		"hiddenManagement": "Gerenciamento de ocultos"
+	},
+	"time": {
+		"ago": "há",
+		"momentAgo": "há um momento",
+		"year": "ano",
+		"years": "anos",
+		"month": "mês",
+		"months": "meses",
+		"day": "dia",
+		"days": "dias",
+		"minute": "minuto",
+		"minutes": "minutos",
+		"hour": "hora",
+		"hours": "horas"
+	},
+	"login": {
+		"title": "Entrar",
+		"description": "Insira suas credenciais para acessar o painel",
+		"username": "Usuário",
+		"usernamePlaceholder": "Digite seu nome de usuário",
+		"password": "Senha",
+		"passwordPlaceholder": "Digite sua senha",
+		"signIn": "Entrar",
+		"signingIn": "Entrando...",
+		"invalidCredentials": "Usuário ou senha inválidos",
+		"errorOccurred": "Ocorreu um erro. Por favor, tente novamente.",
+		"logout": "Sair"
+	}
+}

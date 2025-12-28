@@ -1,12 +1,14 @@
 import en from '@/lib/i18n/dictionaries/en.json'
 import es from '@/lib/i18n/dictionaries/es.json'
+import pt from '@/lib/i18n/dictionaries/pt-BR.json'
 
-export type Locale = 'en' | 'es'
+export type Locale = 'en' | 'es' | 'pt'
 export const defaultLocale: Locale = 'en'
 
 export const dictionaries = {
 	en,
-	es
+	es,
+	pt
 } as const
 
 export type Dictionary = typeof dictionaries.en
