@@ -106,6 +106,51 @@ services:
       - HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
 ```
 
+## 📊 Monitoreo (Uptime Kuma)
+
+La aplicación incluye un endpoint de salud detallado en `/api/health` diseñado para ser utilizado con herramientas de monitoreo como [Uptime Kuma](https://github.com/louislam/uptime-kuma).
+
+### Endpoint de Salud
+- **Ruta**: `/api/health`
+- **Método**: `GET`
+- **Respuesta**: JSON detallado con el estado de la aplicación y la conexión al daemon de Docker.
+
+#### Ejemplo de respuesta exitosa (200 OK):
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-12-28T02:40:42.021Z",
+  "components": {
+    "app": { "status": "up" },
+    "docker": { "status": "up" }
+  }
+}
+```
+
+#### Ejemplo de respuesta degradada (500 Internal Server Error):
+Si el servicio de Docker no está disponible, el endpoint devolverá un código 500 para alertar al sistema de monitoreo.
+```json
+{
+  "status": "degraded",
+  "timestamp": "...",
+  "components": {
+    "app": { "status": "up" },
+    "docker": { "status": "down", "error": "..." }
+  }
+}
+```
+
+### Configuración en Uptime Kuma
+
+Para monitorear esta aplicación en Uptime Kuma:
+
+1. **Tipo de monitor**: HTTP(s)
+2. **URL**: `https://tu-dominio.com/api/health`
+3. **Intervalo**: 60 segundos
+4. **Códigos de estado aceptados**: 200
+
+Esto garantiza que recibas alertas si la aplicación se cae o si pierde la comunicación con el motor de Docker.
+
 ## 🚀 Construcción y Publicación (Multi-Arquitectura)
 
 Para generar la imagen compatible con **amd64** (Intel/AMD) y **arm64** (Apple Silicon/Raspberry) y subirla a Docker Hub:
