@@ -58,8 +58,8 @@ export async function checkImageUpdate(
 			repo = `library/${repo}`
 		}
 
-		// Single fetch for all tags
-		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=15`
+		// Single fetch for tags
+		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=30`
 		const tagsResponse = await fetch(tagsUrl, { next: { revalidate: 3600 } })
 
 		if (!tagsResponse.ok) {
@@ -72,15 +72,29 @@ export async function checkImageUpdate(
 		}
 
 		const tagsData = await tagsResponse.json()
-		const results = tagsData.results as Array<{
-			name: string
-			digest: string
-			last_updated: string
-		}>
+		const results =
+			(tagsData.results as Array<{
+				name: string
+				digest: string
+				last_updated: string
+			}>) || []
 
 		if (results.length === 0) return { hasUpdate: false }
 
 		// Helper to find the best semantic version tag for a given digest
+		const semverRegex = /^v?(\d+)\.(\d+)\.(\d+)(-(.*))?$/
+		const parseSemver = (name: string) => {
+			const match = name.match(semverRegex)
+			if (!match) return null
+			return {
+				major: parseInt(match[1], 10),
+				minor: parseInt(match[2], 10),
+				patch: parseInt(match[3], 10),
+				suffix: match[5] || '',
+				full: name
+			}
+		}
+
 		const findBestVersionTag = (digestToMatch: string) => {
 			const matches = results.filter(
 				(r) =>
@@ -90,82 +104,105 @@ export async function checkImageUpdate(
 			)
 			if (matches.length === 0) return undefined
 
-			const semverRegex = /^v?\d+\.\d+\.\d+/
-			const looseVersionRegex = /^[0-9]/
-			const unstableKeywords = [
-				'rc',
-				'beta',
-				'alpha',
-				'nightly',
-				'insiders',
-				'dev',
-				'bleeding'
-			]
-
 			return matches.sort((a, b) => {
-				const aIsStrict = semverRegex.test(a.name)
-				const bIsStrict = semverRegex.test(b.name)
+				const aInfo = parseSemver(a.name)
+				const bInfo = parseSemver(b.name)
 
-				if (aIsStrict && !bIsStrict) return -1
-				if (!aIsStrict && bIsStrict) return 1
+				if (aInfo && !bInfo) return -1
+				if (!aInfo && bInfo) return 1
 
-				if (aIsStrict && bIsStrict) {
-					return a.name.length - b.name.length
+				if (aInfo && bInfo) {
+					if (bInfo.major !== aInfo.major) return bInfo.major - aInfo.major
+					if (bInfo.minor !== aInfo.minor) return bInfo.minor - aInfo.minor
+					if (bInfo.patch !== aInfo.patch) return bInfo.patch - aInfo.patch
 				}
 
-				const aHasVer = semverRegex.test(a.name.replace(/^[a-z]+-/, ''))
-				const bHasVer = semverRegex.test(b.name.replace(/^[a-z]+-/, ''))
-
-				if (aHasVer && !bHasVer) return -1
-				if (!aHasVer && bHasVer) return 1
-
-				const aIsNumber = looseVersionRegex.test(a.name)
-				const bIsNumber = looseVersionRegex.test(b.name)
-
-				if (aIsNumber && !bIsNumber) return -1
-				if (!aIsNumber && bIsNumber) return 1
-
-				const isAUnstable = unstableKeywords.some((k) =>
-					a.name.toLowerCase().includes(k)
-				)
-				const isBUnstable = unstableKeywords.some((k) =>
-					b.name.toLowerCase().includes(k)
-				)
-
-				if (!isAUnstable && isBUnstable) return -1
-				if (isAUnstable && !isBUnstable) return 1
-
-				return a.name.localeCompare(b.name)
+				return b.name.localeCompare(a.name, undefined, { numeric: true })
 			})[0]?.name
 		}
 
-		// 1. Identify current 'tag' info (the one tracked by the container)
-		const trackedTagInfo = results.find((r) => r.name === tag)
-		const remoteDigest = trackedTagInfo?.digest || results[0].digest
-		const lastUpdated = trackedTagInfo?.last_updated || results[0].last_updated
+		const findAbsoluteLatestVersion = () => {
+			const candidates = results
+				.map((r) => ({ ...r, info: parseSemver(r.name) }))
+				.filter((r) => r.info !== null) as Array<{
+				name: string
+				digest: string
+				last_updated: string
+				info: NonNullable<ReturnType<typeof parseSemver>>
+			}>
 
-		// 2. Resolve versions
-		let currentVersion = 'Unknown'
-		if (localDigest) {
-			currentVersion = findBestVersionTag(localDigest) || currentVersion
+			if (candidates.length === 0) return null
+
+			return candidates.sort((a, b) => {
+				if (b.info.major !== a.info.major) return b.info.major - a.info.major
+				if (b.info.minor !== a.info.minor) return b.info.minor - a.info.minor
+				if (b.info.patch !== a.info.patch) return b.info.patch - a.info.patch
+
+				// Stable (no suffix) > any suffix
+				if (!b.info.suffix && a.info.suffix) return 1
+				if (b.info.suffix && !a.info.suffix) return -1
+
+				return b.info.suffix.localeCompare(a.info.suffix)
+			})[0]
 		}
 
-		// For latestVersion, we look for the best tag matching the remoteDigest
-		const latestVersion = findBestVersionTag(remoteDigest) || tag
+		// 1. Identify current 'tag' info
+		const trackedTagInfo = results.find((r) => r.name === tag)
+		const tagDigest = trackedTagInfo?.digest || results[0].digest
 
-		// 3. Determine update status
-		const hasUpdate = localDigest ? localDigest !== remoteDigest : false
+		// 2. Resolve current version
+		// Show the tag name. If it's generic (no digits), append the discovered version in parentheses.
+		let currentVersion = tag
+		const hasDigits = /\d/.test(tag)
+		if (!hasDigits && localDigest) {
+			const discovered = findBestVersionTag(localDigest)
+			if (discovered && discovered !== tag) {
+				currentVersion = `${tag} (${discovered})`
+			}
+		}
 
-		// Construct Docker Hub URL
-		const dockerHubUrl = `https://hub.docker.com/r/${repo}/tags?name=${tag}`
+		// 3. Resolve latest version
+		const absoluteLatest = findAbsoluteLatestVersion()
+		const latestVersionTag = absoluteLatest?.name || tag
+		const remoteDigest = absoluteLatest?.digest || tagDigest
+		const lastUpdated =
+			absoluteLatest?.last_updated ||
+			trackedTagInfo?.last_updated ||
+			results[0].last_updated
+
+		// Determine if there's an update (newer digest for same tag OR newer semver found)
+		let hasUpdate = false
+		if (localDigest) {
+			// Newer digest for current tag
+			if (localDigest !== tagDigest) hasUpdate = true
+
+			// OR higher semver exists
+			if (absoluteLatest?.info) {
+				const currentInfo = parseSemver(currentVersion) || parseSemver(tag)
+				if (currentInfo) {
+					if (absoluteLatest.info.major > currentInfo.major) hasUpdate = true
+					else if (
+						absoluteLatest.info.major === currentInfo.major &&
+						absoluteLatest.info.minor > currentInfo.minor
+					)
+						hasUpdate = true
+					else if (
+						absoluteLatest.info.major === currentInfo.major &&
+						absoluteLatest.info.minor === currentInfo.minor &&
+						absoluteLatest.info.patch > currentInfo.patch
+					)
+						hasUpdate = true
+				}
+			}
+		}
 
 		return {
 			hasUpdate,
 			latestDigest: remoteDigest,
 			lastUpdated,
 			currentVersion,
-			latestVersion,
-			dockerHubUrl,
+			latestVersion: latestVersionTag,
+			dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
 			isLocal: false
 		}
 	} catch (error) {

@@ -526,7 +526,7 @@ export function ContainerDashboard({
 												<div className='space-y-1 pl-6 pt-1'>
 													<div
 														className='text-neutral-300 pb-1'
-														title={container.Image}
+														/* title={container.Image} */
 													>
 														{container.Image.split(':')[0]}
 														{/* <span className='text-neutral-500'>
@@ -542,7 +542,7 @@ export function ContainerDashboard({
 															className={
 																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
 															}
-															title={displayCurentVersion}
+															/* title={displayCurentVersion} */
 														>
 															<span className='truncate'>
 																{displayCurentVersion}
@@ -553,7 +553,9 @@ export function ContainerDashboard({
 													{hasUpdateAvailable && (
 														<div className='flex items-center justify-between'>
 															<span className='text-neutral-500 font-medium text-xs'>
-																{dict.container.newVersion}
+																{displayCurentVersion === displayLatestVersion
+																	? dict.container.newBuild
+																	: dict.container.newVersion}
 															</span>
 
 															<Badge
@@ -561,7 +563,7 @@ export function ContainerDashboard({
 																className={
 																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
 																}
-																title={displayLatestVersion}
+																/* title={displayLatestVersion} */
 															>
 																<span className='truncate'>
 																	{displayLatestVersion}

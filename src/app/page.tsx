@@ -54,7 +54,10 @@ export default async function Dashboard() {
 				latestVersion,
 				dockerHubUrl,
 				isLocal
-			} = await checkImageUpdate(container.Image, localDigest)
+			} = await checkImageUpdate(
+				container.Image,
+				localDigest
+			)
 
 			// Fallback: If we couldn't resolve a semantic version, use the tag from the image string if available
 			const imageTag = container.Image.split(':')[1] || 'latest'

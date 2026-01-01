@@ -30,6 +30,7 @@
 		"image": "Imagen",
 		"currentVersion": "Versión Actual",
 		"newVersion": "Nueva Versión",
+		"newBuild": "Nueva Compilación",
 		"debugJson": "Depurar JSON",
 		"states": {
 			"running": "En ejecución",
