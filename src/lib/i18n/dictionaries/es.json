@@ -80,5 +80,13 @@
 		"invalidCredentials": "Usuario o contraseña incorrectos",
 		"errorOccurred": "Ocurrió un error. Por favor intenta de nuevo.",
 		"logout": "Cerrar sesión"
+	},
+	"notifications": {
+		"title": "Actualización de Imagen Docker Disponible",
+		"container": "Contenedor",
+		"image": "Imagen",
+		"current": "Actual",
+		"latest": "Última",
+		"updated": "Actualizado"
 	}
 }

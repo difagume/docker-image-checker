@@ -151,6 +151,18 @@ Para monitorear esta aplicación en Uptime Kuma:
 
 Esto garantiza que recibas alertas si la aplicación se cae o si pierde la comunicación con el motor de Docker.
 
+## 📢 Sistema de Notificaciones
+
+La aplicación incluye un sistema de notificaciones configurable para alertar sobre actualizaciones de imágenes Docker disponibles.
+
+### Características
+- **Múltiples canales**: Soporte para Telegram, ntfy y Discord.
+- **Sincronización de idioma**: Notificaciones en el idioma de tu navegador o configurables por variable de entorno.
+- **Exclusión inteligente**: No notifica sobre contenedores que hayas marcado como ocultos en el dashboard.
+- **Deduplicación**: Evita alertas repetitivas para la misma actualización.
+
+Para detalles sobre cómo configurar cada proveedor y las variables de entorno necesarias, consulta la [Documentación de Notificaciones](NOTIFICATIONS.md).
+
 ## 🚀 Construcción y Publicación (Multi-Arquitectura)
 
 Para generar la imagen compatible con **amd64** (Intel/AMD) y **arm64** (Apple Silicon/Raspberry) y subirla a Docker Hub:

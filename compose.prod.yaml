@@ -9,6 +9,10 @@ services:
       - "3000:3000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - notifications-data:/app/data  # Persistent storage for notification state
     environment:
       - NODE_ENV=production
       - TZ=America/Guayquil
+
+volumes:
+  notifications-data:
