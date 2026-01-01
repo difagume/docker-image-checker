@@ -174,8 +174,10 @@ async function checkGhcrUpdate(
 		const token = process.env.GITHUB_GHCR_TOKEN
 
 		if (!token) {
-			console.warn('GITHUB_GHCR_TOKEN not found, falling back to scraping')
-			return checkGhcrUpdateScraping(fullImageName, localDigest)
+			console.warn(
+				`GITHUB_GHCR_TOKEN not found for ${fullImageName}. GHCR update checks require a token.`
+			)
+			return { hasUpdate: false, isLocal: false }
 		}
 
 		const endpoints = [
@@ -204,15 +206,13 @@ async function checkGhcrUpdate(
 		}
 
 		if (!success || data.length === 0) {
-			console.warn(
-				'GHCR API failed or returned no data, falling back to scraping'
+			console.error(
+				`GHCR API failed or returned no data for ${fullImageName}. Check your token permissions and package visibility.`
 			)
-			return checkGhcrUpdateScraping(fullImageName, localDigest)
+			return { hasUpdate: false, isLocal: false }
 		}
 
 		// Map to RemoteTag[]
-		// Note: One version object in GHCR can have multiple tags.
-		// We flatten them but keep the same digest for all tags linked to that version.
 		const remoteTags: RemoteTag[] = []
 		for (const v of data) {
 			const digest = v.name // The 'name' field contains the digest like sha256:...
@@ -223,7 +223,7 @@ async function checkGhcrUpdate(
 				remoteTags.push({ tag: t, digest, publishedAt })
 			}
 
-			// If no tags, or if we want to ensure we track the digest itself as a reference
+			// If no tags, track the digest itself as a reference
 			if (tags.length === 0) {
 				remoteTags.push({ tag: digest, digest, publishedAt })
 			}
@@ -261,109 +261,10 @@ async function checkGhcrUpdate(
 			policyResult
 		}
 	} catch (error) {
-		console.error('Failed to check GHCR image update with API:', error)
-		return checkGhcrUpdateScraping(fullImageName, localDigest)
-	}
-}
-
-async function checkGhcrUpdateScraping(
-	fullImageName: string,
-	localDigest?: string
-): Promise<{
-	hasUpdate: boolean
-	latestDigest?: string
-	lastUpdated?: string
-	currentVersion?: string
-	latestVersion?: string
-	dockerHubUrl?: string
-	isLocal?: boolean
-	policyResult?: PolicyResult
-}> {
-	try {
-		const nameWithTag = fullImageName.replace('ghcr.io/', '')
-		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
-		const parts = imagePath.split('/')
-
-		if (parts.length < 2) {
-			return { hasUpdate: false, isLocal: true }
-		}
-
-		const owner = parts[0]
-		const repo = parts.slice(1).join('/')
-		const packageUrl = `https://github.com/${owner}/${repo}/pkgs/container/${parts[parts.length - 1]}`
-
-		const response = await fetch(packageUrl, { next: { revalidate: 3600 } })
-		if (!response.ok) {
-			console.error(`GHCR Scrape error: ${response.status} for ${packageUrl}`)
-			return { hasUpdate: false }
-		}
-
-		const html = await response.text()
-		const recentSection = html.split('Recent tagged image versions')[1]
-		if (!recentSection) {
-			return { hasUpdate: false }
-		}
-
-		const tagRegex = /\?tag=([^"'>]+)/g
-		const foundTags: string[] = []
-		let match: RegExpExecArray | null
-		// biome-ignore lint/suspicious/noAssignInExpressions: standard regex loop
-		while ((match = tagRegex.exec(recentSection)) !== null) {
-			if (!foundTags.includes(match[1])) {
-				foundTags.push(match[1])
-			}
-		}
-
-		if (foundTags.length === 0) {
-			return { hasUpdate: false }
-		}
-
-		const digestMatch = recentSection.match(/sha256:[a-f0-9]{64}/)
-		const remoteDigest = digestMatch ? digestMatch[0] : undefined
-
-		// Map to RemoteTag[]
-		// Note: Scraping is limited, we might only have one digest but many tags.
-		// We'll associate the found digest with the first found tag as a best guess for 'latest'
-		// or just use it for all if we don't have better info.
-		const remoteTags: RemoteTag[] = foundTags.map((t, idx) => ({
-			tag: t,
-			digest: idx === 0 && remoteDigest ? remoteDigest : '', // We only know one digest usually
-			publishedAt: undefined
-		}))
-
-		const context: ImageContext = {
-			imageName: fullImageName,
-			currentTag: tag,
-			currentDigest: localDigest || '',
-			remoteTags
-		}
-
-		const policyResult = evaluatePolicies(context)
-
-		const hasUpdate =
-			policyResult.state === 'CONTENT_UPDATED' ||
-			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE'
-
-		const targetTag =
-			policyResult.details?.latestCompatible ||
-			policyResult.details?.majorAvailable ||
-			tag
-
-		const targetRemote =
-			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
-
-		return {
-			hasUpdate,
-			latestDigest: targetRemote.digest,
-			lastUpdated: targetRemote.publishedAt,
-			currentVersion: tag,
-			latestVersion: targetTag,
-			dockerHubUrl: packageUrl,
-			isLocal: false,
-			policyResult
-		}
-	} catch (error) {
-		console.error('Failed to check GHCR image update:', error)
+		console.error(
+			`Failed to check GHCR image update for ${fullImageName}:`,
+			error
+		)
 		return { hasUpdate: false, isLocal: false }
 	}
 }
