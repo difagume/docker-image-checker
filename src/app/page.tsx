@@ -37,7 +37,6 @@ export default async function Dashboard() {
 
 			// Find local image details to get RepoDigests
 			const localImage = images.find((img) => img.Id === container.ImageID)
-			const localDigests = localImage?.RepoDigests || []
 
 			// Find local digest (search in RepoDigests first)
 			let localDigest = localImage?.RepoDigests?.[0]?.split('@')[1]
@@ -48,16 +47,14 @@ export default async function Dashboard() {
 
 			// Check for updates with local digest awareness
 			const {
+				hasUpdate,
 				latestDigest,
 				lastUpdated,
 				currentVersion,
 				latestVersion,
 				dockerHubUrl,
 				isLocal
-			} = await checkImageUpdate(
-				container.Image,
-				localDigest
-			)
+			} = await checkImageUpdate(container.Image, localDigest)
 
 			// Fallback: If we couldn't resolve a semantic version, use the tag from the image string if available
 			const imageTag = container.Image.split(':')[1] || 'latest'
@@ -68,15 +65,12 @@ export default async function Dashboard() {
 
 			let updateStatus: 'updated' | 'available' | 'unknown' | 'local' =
 				'unknown'
-			let isUpToDate = false
+			const isUpToDate = !hasUpdate
 
 			if (isLocal) {
 				updateStatus = 'local'
 			} else if (latestDigest) {
-				isUpToDate = localDigests.some((digest) =>
-					digest.includes(latestDigest)
-				)
-				updateStatus = isUpToDate ? 'updated' : 'available'
+				updateStatus = hasUpdate ? 'available' : 'updated'
 			}
 
 			const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'

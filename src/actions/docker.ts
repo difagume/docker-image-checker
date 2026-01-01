@@ -2,6 +2,12 @@
 
 import type { ContainerInfo, ImageInfo } from 'dockerode'
 import docker from '@/lib/docker'
+import { evaluatePolicies } from '@/lib/policies/engine'
+import type {
+	ImageContext,
+	PolicyResult,
+	RemoteTag
+} from '@/lib/policies/types'
 
 export async function getContainers(): Promise<ContainerInfo[]> {
 	try {
@@ -34,6 +40,7 @@ export async function checkImageUpdate(
 	latestVersion?: string
 	dockerHubUrl?: string
 	isLocal?: boolean
+	policyResult?: PolicyResult
 }> {
 	// 1. Detect GHCR images
 	if (imageName.startsWith('ghcr.io/')) {
@@ -59,7 +66,7 @@ export async function checkImageUpdate(
 		}
 
 		// Single fetch for tags
-		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=30`
+		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=100`
 		const tagsResponse = await fetch(tagsUrl, { next: { revalidate: 3600 } })
 
 		if (!tagsResponse.ok) {
@@ -72,166 +79,54 @@ export async function checkImageUpdate(
 		}
 
 		const tagsData = await tagsResponse.json()
-		const results =
+		const hubResults =
 			(tagsData.results as Array<{
 				name: string
 				digest: string
 				last_updated: string
 			}>) || []
 
-		if (results.length === 0) return { hasUpdate: false }
+		if (hubResults.length === 0) return { hasUpdate: false }
 
-		// Helper to find the best semantic version tag for a given digest
-		const semverRegex = /^v?(\d+)\.(\d+)\.(\d+)(-(.*))?$/
-		const parseSemver = (name: string) => {
-			const match = name.match(semverRegex)
-			if (!match) return null
-			return {
-				major: parseInt(match[1], 10),
-				minor: parseInt(match[2], 10),
-				patch: parseInt(match[3], 10),
-				suffix: match[5] || '',
-				full: name
-			}
+		// Map to ImageContext
+		const remoteTags: RemoteTag[] = hubResults.map((r) => ({
+			tag: r.name,
+			digest: r.digest,
+			publishedAt: r.last_updated
+		}))
+
+		const context: ImageContext = {
+			imageName,
+			currentTag: tag,
+			currentDigest: localDigest || '',
+			remoteTags
 		}
 
-		const findBestVersionTag = (digestToMatch: string) => {
-			const matches = results.filter(
-				(r) =>
-					r.digest === digestToMatch &&
-					r.name !== 'latest' &&
-					!r.name.includes('sha-')
-			)
-			if (matches.length === 0) return undefined
+		const policyResult = evaluatePolicies(context)
 
-			return matches.sort((a, b) => {
-				const aInfo = parseSemver(a.name)
-				const bInfo = parseSemver(b.name)
+		// Map back to result structure
+		const hasUpdate =
+			policyResult.state === 'CONTENT_UPDATED' ||
+			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE'
 
-				if (aInfo && !bInfo) return -1
-				if (!aInfo && bInfo) return 1
+		// Find the actual remote version we are comparing against or recommending
+		const targetTag =
+			policyResult.details?.latestCompatible ||
+			policyResult.details?.majorAvailable ||
+			tag
 
-				if (aInfo && bInfo) {
-					if (bInfo.major !== aInfo.major) return bInfo.major - aInfo.major
-					if (bInfo.minor !== aInfo.minor) return bInfo.minor - aInfo.minor
-					if (bInfo.patch !== aInfo.patch) return bInfo.patch - aInfo.patch
-				}
-
-				return b.name.localeCompare(a.name, undefined, { numeric: true })
-			})[0]?.name
-		}
-
-		const findAbsoluteLatestVersion = () => {
-			const candidates = results
-				.map((r) => ({ ...r, info: parseSemver(r.name) }))
-				.filter((r) => r.info !== null) as Array<{
-				name: string
-				digest: string
-				last_updated: string
-				info: NonNullable<ReturnType<typeof parseSemver>>
-			}>
-
-			if (candidates.length === 0) return null
-
-			return candidates.sort((a, b) => {
-				if (b.info.major !== a.info.major) return b.info.major - a.info.major
-				if (b.info.minor !== a.info.minor) return b.info.minor - a.info.minor
-				if (b.info.patch !== a.info.patch) return b.info.patch - a.info.patch
-
-				// Stable (no suffix) > any suffix
-				if (!b.info.suffix && a.info.suffix) return 1
-				if (b.info.suffix && !a.info.suffix) return -1
-
-				return b.info.suffix.localeCompare(a.info.suffix)
-			})[0]
-		}
-
-		// 1. Identify current 'tag' info
-		const trackedTagInfo = results.find((r) => r.name === tag)
-		const tagDigest = trackedTagInfo?.digest || results[0].digest
-
-		// 2. Resolve current version
-		// Show the tag name. If it's generic (no digits), append the discovered version in parentheses.
-		let currentVersion = tag
-		const hasDigits = /\d/.test(tag)
-		if (!hasDigits && localDigest) {
-			const discovered = findBestVersionTag(localDigest)
-			if (discovered && discovered !== tag) {
-				currentVersion = `${tag} (${discovered})`
-			}
-		}
-
-		// 3. Resolve latest version
-		const absoluteLatest = findAbsoluteLatestVersion()
-
-		// Determine which remote tag properly represents the "latest" state
-		// Use a type that satisfies the common properties we need
-		let bestCandidate:
-			| { name: string; digest: string; last_updated: string }
-			| null
-			| undefined = absoluteLatest
-
-		if (!bestCandidate) {
-			// If no higher SemVer found, fallback to the tracked tag if it exists
-			if (trackedTagInfo) {
-				bestCandidate = trackedTagInfo
-			} else {
-				// If tracked tag is missing (e.g. pagination or just not there),
-				// assume the most recently updated image in the list is the one we want.
-				// We know results.length > 0 due to earlier check.
-				bestCandidate = results[0]
-			}
-		}
-
-		// results.length > 0 check happened earlier, so bestCandidate is guaranteed here if logic holds.
-		// fallback for safety
-		const safeCandidate = bestCandidate || results[0]
-
-		const latestVersionTag = safeCandidate.name
-		const remoteDigest = safeCandidate.digest
-		const lastUpdated = safeCandidate.last_updated
-
-		// Determine if there's an update (newer digest for same tag OR newer semver found)
-		let hasUpdate = false
-		if (localDigest) {
-			// Newer digest for current tag (if we are tracking it and it changed)
-			if (trackedTagInfo && localDigest !== tagDigest) hasUpdate = true
-
-			// Or if we fell back to a different tag because tracked one is missing,
-			// and that fallback tag has a different digest -> strictly speaking this is an update
-			// from the "unknown" state of the local image relative to the new candidate.
-			// BUT, simply having a different digest isn't enough if it's just a different tag.
-			// However, the user explicitly wants to see "master-aio-cpu" as an update if "latest" (tracked) is missing.
-			if (!trackedTagInfo && localDigest !== remoteDigest) hasUpdate = true
-
-			// OR higher semver exists
-			if (absoluteLatest?.info) {
-				const currentInfo = parseSemver(currentVersion) || parseSemver(tag)
-				if (currentInfo) {
-					if (absoluteLatest.info.major > currentInfo.major) hasUpdate = true
-					else if (
-						absoluteLatest.info.major === currentInfo.major &&
-						absoluteLatest.info.minor > currentInfo.minor
-					)
-						hasUpdate = true
-					else if (
-						absoluteLatest.info.major === currentInfo.major &&
-						absoluteLatest.info.minor === currentInfo.minor &&
-						absoluteLatest.info.patch > currentInfo.patch
-					)
-						hasUpdate = true
-				}
-			}
-		}
+		const targetRemote =
+			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
 
 		return {
 			hasUpdate,
-			latestDigest: remoteDigest,
-			lastUpdated,
-			currentVersion,
-			latestVersion: latestVersionTag,
+			latestDigest: targetRemote.digest,
+			lastUpdated: targetRemote.publishedAt,
+			currentVersion: tag,
+			latestVersion: targetTag,
 			dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
-			isLocal: false
+			isLocal: false,
+			policyResult
 		}
 	} catch (error) {
 		console.error('Failed to check image update:', error)
@@ -262,9 +157,9 @@ async function checkGhcrUpdate(
 	latestVersion?: string
 	dockerHubUrl?: string
 	isLocal?: boolean
+	policyResult?: PolicyResult
 }> {
 	try {
-		// Example: ghcr.io/owner/repo:tag
 		const nameWithTag = fullImageName.replace('ghcr.io/', '')
 		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
 		const parts = imagePath.split('/')
@@ -283,7 +178,6 @@ async function checkGhcrUpdate(
 			return checkGhcrUpdateScraping(fullImageName, localDigest)
 		}
 
-		// Try both user and org endpoints
 		const endpoints = [
 			`https://api.github.com/users/${owner}/packages/container/${packageName}/versions?per_page=100`,
 			`https://api.github.com/orgs/${owner}/packages/container/${packageName}/versions?per_page=100`
@@ -316,43 +210,55 @@ async function checkGhcrUpdate(
 			return checkGhcrUpdateScraping(fullImageName, localDigest)
 		}
 
-		// Find the version matching the current tag
-		const currentTagVersion = data.find((v) =>
-			v.metadata?.container?.tags?.includes(tag)
-		)
-
-		// Latest should be the first one in the list (usually) or the one tagged 'latest'
-		const latestVersionObj =
-			data.find((v) => v.metadata?.container?.tags?.includes('latest')) ||
-			data[0]
-
-		const remoteDigest = latestVersionObj.name // The 'name' field contains the digest like sha256:...
-		const lastUpdated = latestVersionObj.updated_at
-
-		// Extract version string (first tag that looks like a version)
-		const getBestTag = (v: GhcrPackageVersion) => {
+		// Map to RemoteTag[]
+		// Note: One version object in GHCR can have multiple tags.
+		// We flatten them but keep the same digest for all tags linked to that version.
+		const remoteTags: RemoteTag[] = []
+		for (const v of data) {
+			const digest = v.name // The 'name' field contains the digest like sha256:...
+			const publishedAt = v.updated_at
 			const tags = v.metadata?.container?.tags || []
-			return (
-				tags.find((t: string) => /^[vV]?\d+/.test(t)) || tags[0] || 'Unknown'
-			)
+
+			for (const t of tags) {
+				remoteTags.push({ tag: t, digest, publishedAt })
+			}
+
+			// If no tags, or if we want to ensure we track the digest itself as a reference
+			if (tags.length === 0) {
+				remoteTags.push({ tag: digest, digest, publishedAt })
+			}
 		}
 
-		const latestVersion = getBestTag(latestVersionObj)
-		const currentVersionStr = currentTagVersion
-			? getBestTag(currentTagVersion)
-			: tag
+		const context: ImageContext = {
+			imageName: fullImageName,
+			currentTag: tag,
+			currentDigest: localDigest || '',
+			remoteTags
+		}
+
+		const policyResult = evaluatePolicies(context)
 
 		const hasUpdate =
-			localDigest && remoteDigest ? localDigest !== remoteDigest : false
+			policyResult.state === 'CONTENT_UPDATED' ||
+			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE'
+
+		const targetTag =
+			policyResult.details?.latestCompatible ||
+			policyResult.details?.majorAvailable ||
+			tag
+
+		const targetRemote =
+			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
 
 		return {
 			hasUpdate,
-			latestDigest: remoteDigest,
-			lastUpdated,
-			currentVersion: currentVersionStr,
-			latestVersion,
+			latestDigest: targetRemote.digest,
+			lastUpdated: targetRemote.publishedAt,
+			currentVersion: tag,
+			latestVersion: targetTag,
 			dockerHubUrl: `https://github.com/${owner}/${repo}/pkgs/container/${packageName}`,
-			isLocal: false
+			isLocal: false,
+			policyResult
 		}
 	} catch (error) {
 		console.error('Failed to check GHCR image update with API:', error)
@@ -371,9 +277,9 @@ async function checkGhcrUpdateScraping(
 	latestVersion?: string
 	dockerHubUrl?: string
 	isLocal?: boolean
+	policyResult?: PolicyResult
 }> {
 	try {
-		// Example: ghcr.io/nicotsx/zerobyte:latest
 		const nameWithTag = fullImageName.replace('ghcr.io/', '')
 		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
 		const parts = imagePath.split('/')
@@ -384,8 +290,6 @@ async function checkGhcrUpdateScraping(
 
 		const owner = parts[0]
 		const repo = parts.slice(1).join('/')
-
-		// URL structured as mentioned by the user
 		const packageUrl = `https://github.com/${owner}/${repo}/pkgs/container/${parts[parts.length - 1]}`
 
 		const response = await fetch(packageUrl, { next: { revalidate: 3600 } })
@@ -395,15 +299,11 @@ async function checkGhcrUpdateScraping(
 		}
 
 		const html = await response.text()
-
-		// Extract tags using regex from "Recent tagged image versions" section
-		// The user pointed out the structure. We look for tags in the HTML.
 		const recentSection = html.split('Recent tagged image versions')[1]
 		if (!recentSection) {
 			return { hasUpdate: false }
 		}
 
-		// Look for tags in links like: ?tag=v0.20
 		const tagRegex = /\?tag=([^"'>]+)/g
 		const foundTags: string[] = []
 		let match: RegExpExecArray | null
@@ -418,37 +318,49 @@ async function checkGhcrUpdateScraping(
 			return { hasUpdate: false }
 		}
 
-		// Latest tag is usually first or named 'latest'
-		const latestTag = foundTags.includes('latest')
-			? 'latest'
-			: foundTags.includes('main')
-				? 'main'
-				: foundTags[0]
-
-		// For GHCR scraping, we don't easily get the digest for ALL tags without more requests,
-		// but we can compare the tag if the user is using a specific version tag.
-		// If they use 'latest', we assume an update is available if 'latest' was recently published (we don't have digest here easily)
-		// HOWEVER, the user specifically wants to control verification.
-
-		// Let's try to extract the digest for the first item if possible
 		const digestMatch = recentSection.match(/sha256:[a-f0-9]{64}/)
 		const remoteDigest = digestMatch ? digestMatch[0] : undefined
 
-		const latestVersion =
-			foundTags.find(
-				(t) => t !== 'latest' && t !== 'main' && /^[vV]?\d+/.test(t)
-			) || latestTag
+		// Map to RemoteTag[]
+		// Note: Scraping is limited, we might only have one digest but many tags.
+		// We'll associate the found digest with the first found tag as a best guess for 'latest'
+		// or just use it for all if we don't have better info.
+		const remoteTags: RemoteTag[] = foundTags.map((t, idx) => ({
+			tag: t,
+			digest: idx === 0 && remoteDigest ? remoteDigest : '', // We only know one digest usually
+			publishedAt: undefined
+		}))
+
+		const context: ImageContext = {
+			imageName: fullImageName,
+			currentTag: tag,
+			currentDigest: localDigest || '',
+			remoteTags
+		}
+
+		const policyResult = evaluatePolicies(context)
 
 		const hasUpdate =
-			localDigest && remoteDigest ? localDigest !== remoteDigest : false
+			policyResult.state === 'CONTENT_UPDATED' ||
+			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE'
+
+		const targetTag =
+			policyResult.details?.latestCompatible ||
+			policyResult.details?.majorAvailable ||
+			tag
+
+		const targetRemote =
+			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
 
 		return {
 			hasUpdate,
-			latestDigest: remoteDigest,
+			latestDigest: targetRemote.digest,
+			lastUpdated: targetRemote.publishedAt,
 			currentVersion: tag,
-			latestVersion,
-			dockerHubUrl: packageUrl, // Using the GH package page as the URL
-			isLocal: false
+			latestVersion: targetTag,
+			dockerHubUrl: packageUrl,
+			isLocal: false,
+			policyResult
 		}
 	} catch (error) {
 		console.error('Failed to check GHCR image update:', error)
