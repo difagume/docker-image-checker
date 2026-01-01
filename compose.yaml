@@ -1,10 +1,11 @@
 services:
   dashboard:
     build: .
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./notifications-data:/app/data  # Persistent storage
     environment:
       - NODE_ENV=production

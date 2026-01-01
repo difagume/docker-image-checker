@@ -5,6 +5,7 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - notifications-data:/app/data  # Persistent storage
     environment:
       - CONTAINERS=1 # Permite listar y ver info de contenedores
       - IMAGES=1     # Permite listar imágenes

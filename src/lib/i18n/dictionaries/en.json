@@ -81,5 +81,13 @@
 		"invalidCredentials": "Invalid username or password",
 		"errorOccurred": "An error occurred. Please try again.",
 		"logout": "Logout"
+	},
+	"notifications": {
+		"title": "Docker Image Update Available",
+		"container": "Container",
+		"image": "Image",
+		"current": "Current",
+		"latest": "Latest",
+		"updated": "Updated"
 	}
 }

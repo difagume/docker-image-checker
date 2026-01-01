@@ -170,14 +170,29 @@ export function ContainerDashboard({
 		return () => window.removeEventListener('resize', handleResize)
 	}, [dict])
 
-	// Load hidden containers and filters from localStorage
+	// Load settings
 	useEffect(() => {
-		try {
-			const savedHidden = localStorage.getItem('hiddenContainerIds')
-			if (savedHidden) {
-				setHiddenContainerIds(JSON.parse(savedHidden))
-			}
+		// Load hidden containers from server
+		fetch('/api/notifications/hidden')
+			.then((res) => {
+				// Ignore unauthorized (e.g. login page handles redirection if needed,
+				// but dashboard might be visible in public mode if configured)
+				// If 401, we just don't load hidden containers (empty list)
+				if (res.status === 401) return null
+				if (res.ok) return res.json()
+				throw new Error('Failed to fetch hidden containers')
+			})
+			.then((data) => {
+				if (data?.hiddenContainerIds) {
+					setHiddenContainerIds(data.hiddenContainerIds)
+				}
+			})
+			.catch((error) => {
+				console.warn('Failed to load hidden containers:', error)
+			})
 
+		// Load filters from localStorage
+		try {
 			const savedFilters = localStorage.getItem('activeFilters')
 			if (savedFilters) {
 				setActiveFilters(JSON.parse(savedFilters))
@@ -187,18 +202,6 @@ export function ContainerDashboard({
 		}
 	}, [])
 
-	// Save data to localStorage
-	useEffect(() => {
-		try {
-			localStorage.setItem(
-				'hiddenContainerIds',
-				JSON.stringify(hiddenContainerIds)
-			)
-		} catch {
-			// Silent fail if localStorage is not available
-		}
-	}, [hiddenContainerIds])
-
 	useEffect(() => {
 		try {
 			localStorage.setItem('activeFilters', JSON.stringify(activeFilters))
@@ -207,10 +210,34 @@ export function ContainerDashboard({
 		}
 	}, [activeFilters])
 
+	// Sync preferred language for notifications
+	useEffect(() => {
+		fetch('/api/notifications/language', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ language: locale })
+		}).catch((error) => {
+			console.warn('Failed to sync preferred language with server:', error)
+		})
+	}, [locale])
+
 	const toggleHideContainer = (id: string) => {
-		setHiddenContainerIds((prev) =>
-			prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-		)
+		const newHiddenIds = hiddenContainerIds.includes(id)
+			? hiddenContainerIds.filter((i) => i !== id)
+			: [...hiddenContainerIds, id]
+
+		setHiddenContainerIds(newHiddenIds)
+
+		// Sync with server
+		fetch('/api/notifications/hidden', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ hiddenContainerIds: newHiddenIds })
+		}).catch((error) => {
+			console.error('Failed to sync hidden containers:', error)
+			// Revert on error?
+			// For now we keep optimistic UI update
+		})
 	}
 
 	const toggleFilter = (status: FilterStatus) => {
