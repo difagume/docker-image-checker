@@ -1,9 +1,10 @@
-import { LogOut, RefreshCcw } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { checkAuth, logout } from '@/actions/auth'
 import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
+import { RefreshButton } from '@/components/refresh-button'
 import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getLocale } from '@/lib/i18n/get-locale'
@@ -135,13 +136,7 @@ export default async function Dashboard() {
 							)}
 
 							<form action={refresh}>
-								<Button
-									variant='outline'
-									size='icon'
-									className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700'
-								>
-									<RefreshCcw className='h-4 w-4' />
-								</Button>
+								<RefreshButton />
 							</form>
 						</div>
 					</div>
