@@ -163,18 +163,46 @@ export async function checkImageUpdate(
 
 		// 3. Resolve latest version
 		const absoluteLatest = findAbsoluteLatestVersion()
-		const latestVersionTag = absoluteLatest?.name || tag
-		const remoteDigest = absoluteLatest?.digest || tagDigest
-		const lastUpdated =
-			absoluteLatest?.last_updated ||
-			trackedTagInfo?.last_updated ||
-			results[0].last_updated
+
+		// Determine which remote tag properly represents the "latest" state
+		// Use a type that satisfies the common properties we need
+		let bestCandidate:
+			| { name: string; digest: string; last_updated: string }
+			| null
+			| undefined = absoluteLatest
+
+		if (!bestCandidate) {
+			// If no higher SemVer found, fallback to the tracked tag if it exists
+			if (trackedTagInfo) {
+				bestCandidate = trackedTagInfo
+			} else {
+				// If tracked tag is missing (e.g. pagination or just not there),
+				// assume the most recently updated image in the list is the one we want.
+				// We know results.length > 0 due to earlier check.
+				bestCandidate = results[0]
+			}
+		}
+
+		// results.length > 0 check happened earlier, so bestCandidate is guaranteed here if logic holds.
+		// fallback for safety
+		const safeCandidate = bestCandidate || results[0]
+
+		const latestVersionTag = safeCandidate.name
+		const remoteDigest = safeCandidate.digest
+		const lastUpdated = safeCandidate.last_updated
 
 		// Determine if there's an update (newer digest for same tag OR newer semver found)
 		let hasUpdate = false
 		if (localDigest) {
-			// Newer digest for current tag
-			if (localDigest !== tagDigest) hasUpdate = true
+			// Newer digest for current tag (if we are tracking it and it changed)
+			if (trackedTagInfo && localDigest !== tagDigest) hasUpdate = true
+
+			// Or if we fell back to a different tag because tracked one is missing,
+			// and that fallback tag has a different digest -> strictly speaking this is an update
+			// from the "unknown" state of the local image relative to the new candidate.
+			// BUT, simply having a different digest isn't enough if it's just a different tag.
+			// However, the user explicitly wants to see "master-aio-cpu" as an update if "latest" (tracked) is missing.
+			if (!trackedTagInfo && localDigest !== remoteDigest) hasUpdate = true
 
 			// OR higher semver exists
 			if (absoluteLatest?.info) {
