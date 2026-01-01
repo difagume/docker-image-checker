@@ -1,16 +1,16 @@
 import type { ImageContext, PolicyResult, RemoteTag } from './types'
 
 // Semver helper
-const SEMVER_REGEX = /^v?(\d+)\.(\d+)\.(\d+)(-(.*))?$/
+const SEMVER_REGEX = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?([-+].*)?$/
 
 function parseSemver(name: string) {
 	const match = name.match(SEMVER_REGEX)
 	if (!match) return null
 	return {
 		major: parseInt(match[1], 10),
-		minor: parseInt(match[2], 10),
-		patch: parseInt(match[3], 10),
-		suffix: match[5] || '',
+		minor: match[2] ? parseInt(match[2], 10) : 0,
+		patch: match[3] ? parseInt(match[3], 10) : 0,
+		suffix: match[4] || '',
 		full: name
 	}
 }
