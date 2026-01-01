@@ -17,7 +17,7 @@ export function RefreshButton() {
 			className='relative bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 disabled:opacity-80'
 		>
 			<RefreshCcw
-				className={cn('h-4 w-4 transition-all', pending && 'animate-spin')}
+				className={cn('h-4 w-4', pending && 'animate-spin')}
 			/>
 		</Button>
 	)
