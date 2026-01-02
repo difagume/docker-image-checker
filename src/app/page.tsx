@@ -53,7 +53,8 @@ export default async function Dashboard() {
 				currentVersion,
 				latestVersion,
 				dockerHubUrl,
-				isLocal
+				isLocal,
+				policyResult
 			} = await checkImageUpdate(container.Image, localDigest)
 
 			// Fallback: If we couldn't resolve a semantic version, use the tag from the image string if available
@@ -86,7 +87,8 @@ export default async function Dashboard() {
 				latestVersion,
 				lastUpdated,
 				dockerHubUrl,
-				isUpToDate
+				isUpToDate,
+				policyState: policyResult?.state
 			}
 		})
 	)

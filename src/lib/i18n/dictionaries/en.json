@@ -22,6 +22,7 @@
 	"container": {
 		"updated": "Updated",
 		"updateAvailable": "Update available",
+		"newMajorAvailable": "New major version available",
 		"unknown": "Unknown image",
 		"local": "Local image",
 		"showContainer": "Show container",
@@ -48,6 +49,7 @@
 		"updatedImages": "Updated images",
 		"updateAvailable": "Update available",
 		"updatesAvailable": "Updates available",
+		"newMajorAvailable": "New major version available",
 		"unknownImage": "Unknown/local image",
 		"unknownImages": "Unknown/local images",
 		"hideMarkedContainers": "Hide marked containers",

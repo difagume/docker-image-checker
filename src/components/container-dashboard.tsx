@@ -12,7 +12,8 @@ import {
 	Package,
 	Search,
 	Server,
-	X
+	X,
+	Zap
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -26,6 +27,7 @@ import {
 	TooltipTrigger
 } from '@/components/ui/tooltip'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
+import type { PolicyState } from '@/lib/policies/types'
 import { type FilterStatus, StatsSummary } from './stats-summary'
 
 interface ContainerData {
@@ -47,6 +49,7 @@ interface ContainerData {
 	lastUpdated?: string
 	dockerHubUrl?: string
 	isUpToDate: boolean
+	policyState?: PolicyState
 }
 
 interface ContainerDashboardProps {
@@ -353,10 +356,12 @@ export function ContainerDashboard({
 							displayCurentVersion,
 							latestVersion,
 							lastUpdated,
-							dockerHubUrl
+							dockerHubUrl,
+							policyState
 						} = item
 
 						const hasUpdateAvailable = updateStatus === 'available'
+						const isNewMajor = policyState === 'NEW_MAJOR_VERSION_AVAILABLE'
 
 						const displayLatestVersion =
 							latestVersion !== 'latest' && latestVersion !== 'Unknown'
@@ -373,8 +378,18 @@ export function ContainerDashboard({
 							)
 						} else if (updateStatus === 'available') {
 							updateStatusInfo = (
-								<Alert className='bg-amber-500/10 rounded-[3.5px] border-amber-500/50 text-amber-200 p-3'>
-									<ArrowUpCircle className='h-4 w-4 !text-amber-400' />
+								<Alert
+									className={`rounded-[3.5px] p-3 ${
+										isNewMajor
+											? 'bg-violet-500/10 border-violet-500/50 text-violet-300'
+											: 'bg-amber-500/10 border-amber-500/50 text-amber-200'
+									}`}
+								>
+									{isNewMajor ? (
+										<Zap className='h-4 w-4 !text-violet-400' />
+									) : (
+										<ArrowUpCircle className='h-4 w-4 !text-amber-400' />
+									)}
 									{dockerHubUrl ? (
 										<a
 											href={dockerHubUrl}
@@ -382,21 +397,39 @@ export function ContainerDashboard({
 											rel='noopener noreferrer'
 											className='hover:underline'
 										>
-											<AlertTitle className='text-amber-400 font-bold text-sm mb-0 flex items-center gap-1.5'>
-												{dict.container.updateAvailable}
+											<AlertTitle
+												className={`font-bold text-sm mb-0 flex items-center gap-1.5 ${
+													isNewMajor ? 'text-violet-400' : 'text-amber-400'
+												}`}
+											>
+												{isNewMajor
+													? dict.container.newMajorAvailable
+													: dict.container.updateAvailable}
 												<ExternalLink className='h-3.5 w-3.5' />
 											</AlertTitle>
 										</a>
 									) : (
-										<AlertTitle className='text-amber-400 font-bold text-sm mb-0'>
-											{dict.container.updateAvailable}
+										<AlertTitle
+											className={`font-bold text-sm mb-0 ${
+												isNewMajor ? 'text-violet-400' : 'text-amber-400'
+											}`}
+										>
+											{isNewMajor
+												? dict.container.newMajorAvailable
+												: dict.container.updateAvailable}
 										</AlertTitle>
 									)}
 									{lastUpdated && (
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
-													<AlertDescription className='flex items-center gap-1 text-amber-300/80 hover:text-amber-300 transition-colors cursor-help'>
+													<AlertDescription
+														className={`flex items-center gap-1 hover:text-opacity-100 transition-colors cursor-help ${
+															isNewMajor
+																? 'text-violet-300/80'
+																: 'text-amber-300/80'
+														}`}
+													>
 														<Clock className='h-3 w-3' />
 														<span className='text-xs'>
 															{formatRelativeTime(
@@ -459,7 +492,13 @@ export function ContainerDashboard({
 								className='min-w-0'
 							>
 								<Card
-									className={`bg-neutral-900 rounded-[3.5px] border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${hasUpdateAvailable ? 'border-l-amber-500' : ''} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
+									className={`bg-neutral-900 rounded-[3.5px] border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${
+										hasUpdateAvailable
+											? isNewMajor
+												? 'border-l-violet-500'
+												: 'border-l-amber-500'
+											: ''
+									} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
 								>
 									<CardHeader>
 										<div className='flex justify-between items-start gap-4'>
@@ -580,16 +619,21 @@ export function ContainerDashboard({
 													{hasUpdateAvailable && (
 														<div className='flex items-center justify-between'>
 															<span className='text-neutral-500 font-medium text-xs'>
-																{displayCurentVersion === displayLatestVersion
-																	? dict.container.newBuild
-																	: dict.container.newVersion}
+																{isNewMajor
+																	? dict.container.newMajorAvailable
+																	: displayCurentVersion ===
+																			displayLatestVersion
+																		? dict.container.newBuild
+																		: dict.container.newVersion}
 															</span>
 
 															<Badge
 																variant='outline'
-																className={
-																	'bg-neutral-800/80 text-amber-500 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
-																}
+																className={`bg-neutral-800/80 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px] ${
+																	isNewMajor
+																		? 'text-violet-500'
+																		: 'text-amber-500'
+																}`}
 																/* title={displayLatestVersion} */
 															>
 																<span className='truncate'>

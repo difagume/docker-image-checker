@@ -22,6 +22,7 @@
 	"container": {
 		"updated": "Atualizado",
 		"updateAvailable": "Atualização disponível",
+		"newMajorAvailable": "Nova versão major disponível",
 		"unknown": "Imagem desconhecida",
 		"local": "Imagem local",
 		"showContainer": "Mostrar contêiner",
@@ -48,6 +49,7 @@
 		"updatedImages": "Imagens atualizadas",
 		"updateAvailable": "Atualização disponível",
 		"updatesAvailable": "Atualizações disponíveis",
+		"newMajorAvailable": "Nova versão major disponível",
 		"unknownImage": "Imagem desconhecida/local",
 		"unknownImages": "Imagens desconhecidas/locais",
 		"hideMarkedContainers": "Ocultar contêineres marcados",

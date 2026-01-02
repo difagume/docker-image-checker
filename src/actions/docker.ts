@@ -107,7 +107,8 @@ export async function checkImageUpdate(
 		// Map back to result structure
 		const hasUpdate =
 			policyResult.state === 'CONTENT_UPDATED' ||
-			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE'
+			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
+			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
 
 		// Find the actual remote version we are comparing against or recommending
 		const targetTag =
@@ -240,7 +241,8 @@ async function checkGhcrUpdate(
 
 		const hasUpdate =
 			policyResult.state === 'CONTENT_UPDATED' ||
-			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE'
+			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
+			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
 
 		const targetTag =
 			policyResult.details?.latestCompatible ||
