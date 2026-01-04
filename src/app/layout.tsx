@@ -1,6 +1,7 @@
 import { IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
+import { Footer } from '@/components/footer'
 
 const ibmPlexMono = IBM_Plex_Mono({
 	variable: '--font-ibm-plex-mono',
@@ -53,8 +54,11 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang='en' suppressHydrationWarning>
-			<body className={`${ibmPlexMono.variable} font-sans antialiased`}>
+			<body
+				className={`${ibmPlexMono.variable} font-sans antialiased min-h-dvh flex flex-col bg-neutral-950 text-neutral-50`}
+			>
 				{children}
+				<Footer />
 			</body>
 		</html>
 	)

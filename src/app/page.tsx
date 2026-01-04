@@ -104,7 +104,7 @@ export default async function Dashboard() {
 	}
 
 	return (
-		<div className='min-h-dvh bg-neutral-950 text-neutral-50 p-8'>
+		<div className='flex-1 p-8'>
 			<div className='max-w-7xl mx-auto space-y-8'>
 				<div className='flex flex-col gap-2'>
 					{/* Fila superior: título + acciones */}
