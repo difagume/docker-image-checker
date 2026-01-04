@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
 	Activity,
 	ArrowUpCircle,
+	Bell,
+	BellOff,
 	Clock,
 	ExternalLink,
 	Eye,
@@ -143,6 +145,9 @@ export function ContainerDashboard({
 		'unknown'
 	])
 	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
+	const [ignoredNotificationIds, setIgnoredNotificationIds] = useState<
+		string[]
+	>([])
 	const [showHiddenMode, setShowHiddenMode] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -194,6 +199,22 @@ export function ContainerDashboard({
 				console.warn('Failed to load hidden containers:', error)
 			})
 
+		// Load ignored notification containers from server
+		fetch('/api/notifications/ignored')
+			.then((res) => {
+				if (res.status === 401) return null
+				if (res.ok) return res.json()
+				throw new Error('Failed to fetch ignored containers')
+			})
+			.then((data) => {
+				if (data?.ignoredNotificationIds) {
+					setIgnoredNotificationIds(data.ignoredNotificationIds)
+				}
+			})
+			.catch((error) => {
+				console.warn('Failed to load ignored containers:', error)
+			})
+
 		// Load filters from localStorage
 		try {
 			const savedFilters = localStorage.getItem('activeFilters')
@@ -240,6 +261,23 @@ export function ContainerDashboard({
 			console.error('Failed to sync hidden containers:', error)
 			// Revert on error?
 			// For now we keep optimistic UI update
+		})
+	}
+
+	const toggleIgnoreNotification = (id: string) => {
+		const newIgnoredIds = ignoredNotificationIds.includes(id)
+			? ignoredNotificationIds.filter((i) => i !== id)
+			: [...ignoredNotificationIds, id]
+
+		setIgnoredNotificationIds(newIgnoredIds)
+
+		// Sync with server
+		fetch('/api/notifications/ignored', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ ignoredNotificationIds: newIgnoredIds })
+		}).catch((error) => {
+			console.error('Failed to sync ignored containers:', error)
 		})
 	}
 
@@ -516,26 +554,50 @@ export function ContainerDashboard({
 												<span className='flex-1 line-clamp-3'>
 													{containerName}
 												</span>
-												<button
-													type='button'
-													onClick={() => toggleHideContainer(container.Id)}
-													className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 mt-1 shrink-0 ${
-														hiddenContainerIds.includes(container.Id)
-															? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-															: 'text-neutral-600 hover:text-neutral-400'
-													}`}
-													title={
-														hiddenContainerIds.includes(container.Id)
-															? dict.container.showContainer
-															: dict.container.hideContainer
-													}
-												>
-													{hiddenContainerIds.includes(container.Id) ? (
-														<Eye className='h-3.5 w-3.5' />
-													) : (
-														<EyeOff className='h-3.5 w-3.5' />
-													)}
-												</button>
+												<div className='flex items-center gap-1 mt-1'>
+													<button
+														type='button'
+														onClick={() =>
+															toggleIgnoreNotification(container.Id)
+														}
+														className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 shrink-0 ${
+															ignoredNotificationIds.includes(container.Id)
+																? 'text-neutral-600 hover:text-neutral-400'
+																: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
+														}`}
+														title={
+															ignoredNotificationIds.includes(container.Id)
+																? dict.container.enableNotifications
+																: dict.container.disableNotifications
+														}
+													>
+														{ignoredNotificationIds.includes(container.Id) ? (
+															<BellOff className='h-3.5 w-3.5' />
+														) : (
+															<Bell className='h-3.5 w-3.5' />
+														)}
+													</button>
+													<button
+														type='button'
+														onClick={() => toggleHideContainer(container.Id)}
+														className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 shrink-0 ${
+															hiddenContainerIds.includes(container.Id)
+																? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+																: 'text-neutral-600 hover:text-neutral-400'
+														}`}
+														title={
+															hiddenContainerIds.includes(container.Id)
+																? dict.container.showContainer
+																: dict.container.hideContainer
+														}
+													>
+														{hiddenContainerIds.includes(container.Id) ? (
+															<Eye className='h-3.5 w-3.5' />
+														) : (
+															<EyeOff className='h-3.5 w-3.5' />
+														)}
+													</button>
+												</div>
 											</CardTitle>
 											<Badge
 												variant='outline'

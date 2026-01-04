@@ -42,7 +42,9 @@
 			"removing": "Eliminando",
 			"created": "Creado",
 			"dead": "Muerto"
-		}
+		},
+		"enableNotifications": "Activar notificaciones",
+		"disableNotifications": "Desactivar notificaciones"
 	},
 	"stats": {
 		"updatedImage": "Imagen actualizada",

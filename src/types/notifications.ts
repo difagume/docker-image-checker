@@ -41,7 +41,8 @@ export interface NotifiedUpdate {
 export interface NotificationState {
 	notifiedUpdates: Record<string, NotifiedUpdate>
 	lastCheck?: string
-	hiddenContainerIds?: string[] // Container IDs that should be excluded from notifications
+	hiddenContainerIds?: string[] // Container IDs that should be hidden from the dashboard
+	ignoredNotificationIds?: string[] // Container IDs that should be excluded from notifications
 	preferredLanguage?: string // User's preferred language for notifications (en, es, pt)
 }
 

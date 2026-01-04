@@ -34,7 +34,7 @@ export async function checkAndNotify(
 	)
 
 	const state = await loadState()
-	const hiddenContainerIds = state.hiddenContainerIds || []
+	const ignoredNotificationIds = state.ignoredNotificationIds || []
 	const updates: ContainerUpdate[] = []
 
 	// Check each container for updates
@@ -42,10 +42,10 @@ export async function checkAndNotify(
 		try {
 			const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'
 
-			// Skip hidden containers
-			if (hiddenContainerIds.includes(container.Id)) {
+			// Skip ignored containers
+			if (ignoredNotificationIds.includes(container.Id)) {
 				console.log(
-					`🔕 Container ${containerName} is hidden, skipping notification`
+					`🔕 Container ${containerName} has notifications disabled, skipping notification`
 				)
 				continue
 			}

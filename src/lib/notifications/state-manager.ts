@@ -163,12 +163,38 @@ export async function setHiddenContainerIds(ids: string[]): Promise<void> {
 	await saveState(state)
 }
 
-/**
- * Check if a container is hidden
- */
 export async function isContainerHidden(containerId: string): Promise<boolean> {
 	const hiddenIds = await getHiddenContainerIds()
 	return hiddenIds.includes(containerId)
+}
+
+/**
+ * Get ignored notification container IDs
+ */
+export async function getIgnoredNotificationContainerIds(): Promise<string[]> {
+	const state = await loadState()
+	return state.ignoredNotificationIds || []
+}
+
+/**
+ * Set ignored notification container IDs
+ */
+export async function setIgnoredNotificationContainerIds(
+	ids: string[]
+): Promise<void> {
+	const state = await loadState()
+	state.ignoredNotificationIds = ids
+	await saveState(state)
+}
+
+/**
+ * Check if a container has notifications ignored
+ */
+export async function isContainerIgnored(
+	containerId: string
+): Promise<boolean> {
+	const ignoredIds = await getIgnoredNotificationContainerIds()
+	return ignoredIds.includes(containerId)
 }
 
 /**
