@@ -305,6 +305,7 @@ export function ContainerDashboard({
 						placeholder={placeholder}
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
+						maxLength={70}
 						className={`pl-10 bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-700 h-11 md:h-10 transition-all hover:border-neutral-700 rounded-[3.5px] ${
 							debouncedQuery ? 'pr-10 md:pr-48' : 'pr-10'
 						}`}

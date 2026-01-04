@@ -93,6 +93,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								onChange={(e) => setUsername(e.target.value)}
 								placeholder={dict.usernamePlaceholder}
 								required
+								maxLength={40}
 								className='bg-neutral-800 border-neutral-700 text-white rounded-[3.5px] placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-0'
 							/>
 						</div>
@@ -108,6 +109,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								onChange={(e) => setPassword(e.target.value)}
 								placeholder={dict.passwordPlaceholder}
 								required
+								maxLength={40}
 								className='bg-neutral-800 border-neutral-700 text-white rounded-[3.5px] placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-0'
 							/>
 						</div>
