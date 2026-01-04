@@ -15,7 +15,7 @@ import {
 	X,
 	Zap
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -251,38 +251,47 @@ export function ContainerDashboard({
 		)
 	}
 
-	const filteredContainers = processedContainers.filter((item) => {
-		// Treat 'local' as 'unknown' for filtering purposes
-		const statusForFilter =
-			item.updateStatus === 'local' ? 'unknown' : item.updateStatus
-		const isStatusMatch = activeFilters.includes(statusForFilter)
-		const isHidden = hiddenContainerIds.includes(item.container.Id)
+	const filteredContainers = useMemo(() => {
+		return processedContainers.filter((item) => {
+			// Treat 'local' as 'unknown' for filtering purposes
+			const statusForFilter =
+				item.updateStatus === 'local' ? 'unknown' : item.updateStatus
+			const isStatusMatch = activeFilters.includes(statusForFilter)
+			const isHidden = hiddenContainerIds.includes(item.container.Id)
 
-		// Text Search Filtering
-		let isTextMatch = true
-		if (debouncedQuery) {
-			const q = debouncedQuery.toLowerCase()
-			const nameMatch = item.containerName.toLowerCase().includes(q)
-			const imageMatch = item.container.Image.toLowerCase().includes(q)
-			// Check versions/tags
-			const currentVerMatch = item.displayCurentVersion
-				?.toLowerCase()
-				.includes(q)
-			const latestVerMatch =
-				item.latestVersion?.toLowerCase().includes(q) || false
+			// Text Search Filtering
+			let isTextMatch = true
+			if (debouncedQuery) {
+				const q = debouncedQuery.toLowerCase()
+				const nameMatch = item.containerName.toLowerCase().includes(q)
+				const imageMatch = item.container.Image.toLowerCase().includes(q)
+				// Check versions/tags
+				const currentVerMatch = item.displayCurentVersion
+					?.toLowerCase()
+					.includes(q)
+				const latestVerMatch =
+					item.latestVersion?.toLowerCase().includes(q) || false
 
-			isTextMatch = nameMatch || imageMatch || currentVerMatch || latestVerMatch
-		}
+				isTextMatch =
+					nameMatch || imageMatch || currentVerMatch || latestVerMatch
+			}
 
-		if (showHiddenMode) {
-			// In management mode, we show everything that matches the status filter
-			// or we could show only hidden ones. Let's show everything but highlighted.
-			return isStatusMatch && isTextMatch
-		}
+			if (showHiddenMode) {
+				// In management mode, we show everything that matches the status filter
+				// or we could show only hidden ones. Let's show everything but highlighted.
+				return isStatusMatch && isTextMatch
+			}
 
-		// In normal mode, exclude hidden containers
-		return isStatusMatch && !isHidden && isTextMatch
-	})
+			// In normal mode, exclude hidden containers
+			return isStatusMatch && !isHidden && isTextMatch
+		})
+	}, [
+		processedContainers,
+		activeFilters,
+		hiddenContainerIds,
+		debouncedQuery,
+		showHiddenMode
+	])
 
 	return (
 		<>
