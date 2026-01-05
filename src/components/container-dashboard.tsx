@@ -63,6 +63,7 @@ interface ContainerDashboardProps {
 	}
 	dict: Dictionary
 	locale: Locale
+	notificationsEnabled?: boolean
 }
 
 const cardVariants = {
@@ -137,7 +138,8 @@ export function ContainerDashboard({
 	processedContainers,
 	stats,
 	dict,
-	locale
+	locale,
+	notificationsEnabled = false
 }: ContainerDashboardProps) {
 	const [activeFilters, setActiveFilters] = useState<FilterStatus[]>([
 		'updated',
@@ -200,20 +202,22 @@ export function ContainerDashboard({
 			})
 
 		// Load ignored notification containers from server
-		fetch('/api/notifications/ignored')
-			.then((res) => {
-				if (res.status === 401) return null
-				if (res.ok) return res.json()
-				throw new Error('Failed to fetch ignored containers')
-			})
-			.then((data) => {
-				if (data?.ignoredNotificationIds) {
-					setIgnoredNotificationIds(data.ignoredNotificationIds)
-				}
-			})
-			.catch((error) => {
-				console.warn('Failed to load ignored containers:', error)
-			})
+		if (notificationsEnabled) {
+			fetch('/api/notifications/ignored')
+				.then((res) => {
+					if (res.status === 401) return null
+					if (res.ok) return res.json()
+					throw new Error('Failed to fetch ignored containers')
+				})
+				.then((data) => {
+					if (data?.ignoredNotificationIds) {
+						setIgnoredNotificationIds(data.ignoredNotificationIds)
+					}
+				})
+				.catch((error) => {
+					console.warn('Failed to load ignored containers:', error)
+				})
+		}
 
 		// Load filters from localStorage
 		try {
@@ -224,7 +228,7 @@ export function ContainerDashboard({
 		} catch (_error) {
 			console.warn('LocalStorage is not available or restricted:', _error)
 		}
-	}, [])
+	}, [notificationsEnabled])
 
 	useEffect(() => {
 		try {
@@ -236,14 +240,16 @@ export function ContainerDashboard({
 
 	// Sync preferred language for notifications
 	useEffect(() => {
-		fetch('/api/notifications/language', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ language: locale })
-		}).catch((error) => {
-			console.warn('Failed to sync preferred language with server:', error)
-		})
-	}, [locale])
+		if (notificationsEnabled) {
+			fetch('/api/notifications/language', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ language: locale })
+			}).catch((error) => {
+				console.warn('Failed to sync preferred language with server:', error)
+			})
+		}
+	}, [locale, notificationsEnabled])
 
 	const toggleHideContainer = (id: string) => {
 		const newHiddenIds = hiddenContainerIds.includes(id)
@@ -555,28 +561,30 @@ export function ContainerDashboard({
 													{containerName}
 												</span>
 												<div className='flex items-center gap-1 mt-1'>
-													<button
-														type='button'
-														onClick={() =>
-															toggleIgnoreNotification(container.Id)
-														}
-														className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 shrink-0 ${
-															ignoredNotificationIds.includes(container.Id)
-																? 'text-neutral-600 hover:text-neutral-400'
-																: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
-														}`}
-														title={
-															ignoredNotificationIds.includes(container.Id)
-																? dict.container.enableNotifications
-																: dict.container.disableNotifications
-														}
-													>
-														{ignoredNotificationIds.includes(container.Id) ? (
-															<BellOff className='h-3.5 w-3.5' />
-														) : (
-															<Bell className='h-3.5 w-3.5' />
-														)}
-													</button>
+													{notificationsEnabled && (
+														<button
+															type='button'
+															onClick={() =>
+																toggleIgnoreNotification(container.Id)
+															}
+															className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 shrink-0 ${
+																ignoredNotificationIds.includes(container.Id)
+																	? 'text-neutral-600 hover:text-neutral-400'
+																	: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
+															}`}
+															title={
+																ignoredNotificationIds.includes(container.Id)
+																	? dict.container.enableNotifications
+																	: dict.container.disableNotifications
+															}
+														>
+															{ignoredNotificationIds.includes(container.Id) ? (
+																<BellOff className='h-3.5 w-3.5' />
+															) : (
+																<Bell className='h-3.5 w-3.5' />
+															)}
+														</button>
+													)}
 													<button
 														type='button'
 														onClick={() => toggleHideContainer(container.Id)}

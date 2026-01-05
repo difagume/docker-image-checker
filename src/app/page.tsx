@@ -149,6 +149,7 @@ export default async function Dashboard() {
 					stats={stats}
 					dict={dict}
 					locale={locale}
+					notificationsEnabled={process.env.NOTIFICATIONS_ENABLED === 'true'}
 				/>
 
 				{containers.length === 0 && (
