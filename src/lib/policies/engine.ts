@@ -11,7 +11,8 @@ function parseSemver(name: string) {
 		minor: match[2] ? parseInt(match[2], 10) : 0,
 		patch: match[3] ? parseInt(match[3], 10) : 0,
 		suffix: match[4] || '',
-		full: name
+		full: name,
+		parts: (match[1] ? 1 : 0) + (match[2] ? 1 : 0) + (match[3] ? 1 : 0)
 	}
 }
 
@@ -60,7 +61,22 @@ function evaluateSemverPolicy(context: ImageContext): PolicyResult | null {
 		})
 
 	const higherMajor = semverTags
-		.filter((t) => t.ver.major > currentVer.major)
+		.filter((t) => {
+			if (t.ver.major <= currentVer.major) return false
+
+			// Heuristic to avoid date-based tags if current is clearly semver
+			// If current has 3 parts (x.y.z) and is small, avoid massive major jumps (years) with only 1 part
+			if (
+				currentVer.parts >= 2 &&
+				currentVer.major < 1000 &&
+				t.ver.major > 2000 &&
+				t.ver.parts === 1
+			) {
+				return false
+			}
+
+			return true
+		})
 		.sort((a, b) => a.ver.major - b.ver.major) // Get lowest higher major
 
 	const latestCompatible = sameMajor[0]
