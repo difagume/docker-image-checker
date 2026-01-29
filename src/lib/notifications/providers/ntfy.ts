@@ -60,7 +60,8 @@ export class NtfyNotificationProvider extends BaseNotificationProvider {
 				image: 'Image',
 				current: 'Current',
 				latest: 'Latest',
-				updated: 'Updated'
+				updated: 'Updated',
+				viewReference: 'View reference'
 			}
 
 			const title = `🐳 ${t.title}`
@@ -94,14 +95,22 @@ export class NtfyNotificationProvider extends BaseNotificationProvider {
 
 			// Add actions if Docker Hub URL is available
 			if (message.dockerHubUrl) {
-				payload.actions = [
-					{
-						action: 'view',
-						label: 'Open Registry',
-						url: message.dockerHubUrl,
-						clear: true
-					}
-				]
+				payload.actions = payload.actions || []
+				payload.actions.push({
+					action: 'view',
+					label: 'Open Registry',
+					url: message.dockerHubUrl,
+					clear: true
+				})
+			}
+			if (message.referenceUrl) {
+				payload.actions = payload.actions || []
+				payload.actions.push({
+					action: 'view',
+					label: t.viewReference,
+					url: message.referenceUrl,
+					clear: true
+				})
 			}
 
 			const headers: Record<string, string> = {

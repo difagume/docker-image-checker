@@ -62,7 +62,8 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 			image: 'Image',
 			current: 'Current',
 			latest: 'Latest',
-			updated: 'Updated'
+			updated: 'Updated',
+			viewReference: 'View reference'
 		}
 
 		const lines = [
@@ -88,7 +89,10 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 		}
 
 		if (message.dockerHubUrl) {
-			lines.push('', `[View on Registry](${message.dockerHubUrl})`)
+			lines.push('', `📂 [View on Registry](${message.dockerHubUrl})`)
+		}
+		if (message.referenceUrl) {
+			lines.push('', `🔗 [${t.viewReference}](${message.referenceUrl})`)
 		}
 
 		return lines.join('\n')

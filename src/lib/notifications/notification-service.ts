@@ -1,6 +1,7 @@
 import type { ContainerInfo, ImageInfo } from 'dockerode'
 import { checkImageUpdate } from '@/actions/docker'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
+import { getReferenceUrls } from '@/lib/reference-url-manager'
 import type {
 	ContainerUpdate,
 	NotificationMessage
@@ -35,6 +36,7 @@ export async function checkAndNotify(
 
 	const state = await loadState()
 	const ignoredNotificationIds = state.ignoredNotificationIds || []
+	const referenceUrls = await getReferenceUrls()
 	const updates: ContainerUpdate[] = []
 
 	// Check each container for updates
@@ -130,6 +132,7 @@ export async function checkAndNotify(
 			currentVersion: update.currentVersion, // Already resolved
 			latestVersion: update.latestVersion,
 			dockerHubUrl: update.dockerHubUrl,
+			referenceUrl: referenceUrls[update.imageName]?.referenceUrl,
 			lastUpdated: update.lastUpdated,
 			translations: {
 				title: t.title,
@@ -137,7 +140,8 @@ export async function checkAndNotify(
 				image: t.image,
 				current: t.current,
 				latest: t.latest,
-				updated: t.updated
+				updated: t.updated,
+				viewReference: t.viewReference
 			},
 			locale: language
 		}

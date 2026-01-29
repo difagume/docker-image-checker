@@ -45,7 +45,8 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 				image: 'Image',
 				current: 'Current',
 				latest: 'Latest',
-				updated: 'Updated'
+				updated: 'Updated',
+				viewReference: 'View reference'
 			}
 
 			const embed: DiscordEmbed = {
@@ -93,6 +94,13 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 						hour: '2-digit',
 						minute: '2-digit'
 					}),
+					inline: false
+				})
+			}
+			if (message.referenceUrl) {
+				embed.fields.push({
+					name: t.viewReference,
+					value: `[${message.referenceUrl}](${message.referenceUrl})`,
 					inline: false
 				})
 			}
