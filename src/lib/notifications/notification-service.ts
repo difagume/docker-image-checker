@@ -141,7 +141,8 @@ export async function checkAndNotify(
 				current: t.current,
 				latest: t.latest,
 				updated: t.updated,
-				viewReference: t.viewReference
+				viewReference: t.viewReference,
+				viewOnRegistry: t.viewOnRegistry
 			},
 			locale: language
 		}

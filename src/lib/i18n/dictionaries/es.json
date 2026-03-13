@@ -106,6 +106,7 @@
 		"current": "Actual",
 		"latest": "Última",
 		"updated": "Actualizado",
-		"viewReference": "Ver referencia"
+		"viewReference": "Ver referencia",
+		"viewOnRegistry": "Ver en Registry"
 	}
 }

@@ -6,6 +6,7 @@ export interface NotificationTranslations {
 	latest: string
 	updated: string
 	viewReference: string
+	viewOnRegistry: string
 }
 
 export interface NotificationMessage {
