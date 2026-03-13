@@ -1,10 +1,9 @@
 import { LogOut } from 'lucide-react'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { checkAuth, logout } from '@/actions/auth'
-import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
-import { ContainerDashboard } from '@/components/container-dashboard'
-import { GhcrTokenToast } from '@/components/ghcr-token-toast'
+import { DashboardContent } from '@/components/dashboard-content'
 import { RefreshButton } from '@/components/refresh-button'
 import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -19,99 +18,13 @@ export default async function Dashboard() {
 	}
 
 	const locale = await getLocale()
-	const dict = await getDictionary(locale)
-	const containers = await getContainers()
-	const images = await getImages()
+	const dict = getDictionary(locale)
 	const authEnabled = !!process.env.AUTH_HTPASSWD
 
 	async function refresh() {
 		'use server'
 		revalidatePath('/')
 	}
-
-	const processedContainers = await Promise.all(
-		containers.map(async (container) => {
-			const isRunning = container.State === 'running'
-			const ports = (container.Ports || [])
-				.map((p) => `${p.PrivatePort}:${p.PublicPort}`)
-				.join(', ')
-
-			// Find local image details to get RepoDigests
-			const localImage = images.find((img) => img.Id === container.ImageID)
-
-			// Find local digest (search in RepoDigests first)
-			let localDigest = localImage?.RepoDigests?.[0]?.split('@')[1]
-			// Fallback to ImageID if no repo digest
-			if (!localDigest && container.ImageID) {
-				localDigest = container.ImageID
-			}
-
-			// Check for updates with local digest awareness
-			const {
-				hasUpdate,
-				latestDigest,
-				lastUpdated,
-				currentVersion,
-				latestVersion,
-				dockerHubUrl,
-				isLocal,
-				policyResult,
-				ghcrError,
-				ghcrImageName
-			} = await checkImageUpdate(container.Image, localDigest)
-
-			// Fallback: If we couldn't resolve a semantic version, use the tag from the image string if available
-			const imageTag = container.Image.split(':')[1] || 'latest'
-			const displayCurentVersion =
-				currentVersion && currentVersion !== 'Unknown'
-					? currentVersion
-					: imageTag
-
-			let updateStatus: 'updated' | 'available' | 'unknown' | 'local' =
-				'unknown'
-			const isUpToDate = !hasUpdate
-
-			if (isLocal) {
-				updateStatus = 'local'
-			} else if (latestDigest) {
-				updateStatus = hasUpdate ? 'available' : 'updated'
-			}
-
-			const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'
-
-			return {
-				container,
-				isRunning,
-				ports,
-				updateStatus,
-				containerName,
-				currentVersion,
-				displayCurentVersion,
-				latestVersion,
-				lastUpdated,
-				dockerHubUrl,
-				isUpToDate,
-				policyState: policyResult?.state,
-				ghcrError,
-				ghcrImageName
-			}
-		})
-	)
-
-	const stats = {
-		updated: processedContainers.filter((c) => c.updateStatus === 'updated')
-			.length,
-		available: processedContainers.filter((c) => c.updateStatus === 'available')
-			.length,
-		unknown: processedContainers.filter(
-			(c) => c.updateStatus === 'unknown' || c.updateStatus === 'local'
-		).length
-	}
-
-	// Get all GHCR token errors with their image names
-	const ghcrTokenErrors = processedContainers
-		.filter((c) => c.ghcrError === 'invalid_token' && c.ghcrImageName)
-		.map((c) => c.ghcrImageName as string)
 
 	return (
 		<div className='flex-1 p-8'>
@@ -154,23 +67,29 @@ export default async function Dashboard() {
 					<p className='text-neutral-400'>{dict.dashboard.description}</p>
 				</div>
 
-				{ghcrTokenErrors.length > 0 && (
-					<GhcrTokenToast imageNames={ghcrTokenErrors} dict={dict} />
-				)}
-
-				<ContainerDashboard
-					processedContainers={processedContainers}
-					stats={stats}
-					dict={dict}
-					locale={locale}
-					notificationsEnabled={process.env.NOTIFICATIONS_ENABLED === 'true'}
-				/>
-
-				{containers.length === 0 && (
-					<div className='text-center py-20 text-neutral-500'>
-						{dict.dashboard.noContainers}
-					</div>
-				)}
+				<Suspense
+					fallback={
+						<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+							{Array.from({ length: 6 }).map((_, i) => (
+								<div
+									key={`fallback-container-${i}`}
+									className='rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 animate-pulse'
+								>
+									<div className='flex items-center justify-between mb-4'>
+										<div className='h-5 w-32 bg-neutral-800 rounded' />
+										<div className='h-5 w-16 bg-neutral-800 rounded' />
+									</div>
+									<div className='space-y-2'>
+										<div className='h-4 w-full bg-neutral-800/50 rounded' />
+										<div className='h-4 w-3/4 bg-neutral-800/50 rounded' />
+									</div>
+								</div>
+							))}
+						</div>
+					}
+				>
+					<DashboardContent locale={locale} />
+				</Suspense>
 			</div>
 		</div>
 	)

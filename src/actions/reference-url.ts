@@ -18,7 +18,7 @@ export async function getReferenceUrlsAction() {
 export async function saveReferenceUrlAction(imageName: string, url: string) {
 	try {
 		await saveUrl(imageName, url)
-		revalidatePath('/')
+		// revalidatePath('/')
 		return { success: true }
 	} catch (error) {
 		console.error('Failed to save reference URL:', error)

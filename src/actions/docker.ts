@@ -9,6 +9,36 @@ import type {
 	RemoteTag
 } from '@/lib/policies/types'
 
+const FETCH_TIMEOUT = 8000
+
+function fetchWithTimeout(
+	url: string,
+	options: RequestInit = {},
+	timeout = FETCH_TIMEOUT
+): Promise<Response> {
+	const startTime = Date.now()
+	console.log(`[Docker API] Starting fetch: ${url}`)
+
+	let timeoutId: NodeJS.Timeout | null = null
+
+	const fetchPromise = fetch(url, options).then((response) => {
+		if (timeoutId) clearTimeout(timeoutId)
+		const elapsed = Date.now() - startTime
+		console.log(`[Docker API] Success: ${url} (${elapsed}ms)`)
+		return response
+	})
+
+	const timeoutPromise = new Promise<Response>((_, reject) => {
+		timeoutId = setTimeout(() => {
+			const elapsed = Date.now() - startTime
+			console.warn(`[Docker API] Timeout: ${url} after ${elapsed}ms`)
+			reject(new Error(`Timeout after ${timeout}ms`))
+		}, timeout)
+	})
+
+	return Promise.race([fetchPromise, timeoutPromise])
+}
+
 export async function getContainers(): Promise<ContainerInfo[]> {
 	try {
 		const containers = await docker.listContainers({ all: true })
@@ -69,8 +99,8 @@ export async function checkImageUpdate(
 		}
 
 		// Single fetch for tags
-		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=100`
-		const tagsResponse = await fetch(tagsUrl, { next: { revalidate: 3600 } })
+		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=70`
+		const tagsResponse = await fetchWithTimeout(tagsUrl, { next: { revalidate: 3600 } })
 
 		if (!tagsResponse.ok) {
 			if (tagsResponse.status === 404) {
@@ -113,7 +143,6 @@ export async function checkImageUpdate(
 			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
 			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
 
-		// Find the actual remote version we are comparing against or recommending
 		const targetTag =
 			policyResult.details?.latestCompatible ||
 			policyResult.details?.majorAvailable ||
@@ -187,15 +216,15 @@ async function checkGhcrUpdate(
 		}
 
 		const endpoints = [
-			`https://api.github.com/users/${owner}/packages/container/${packageName}/versions?per_page=100`,
-			`https://api.github.com/orgs/${owner}/packages/container/${packageName}/versions?per_page=100`
+			`https://api.github.com/users/${owner}/packages/container/${packageName}/versions?per_page=70`,
+			`https://api.github.com/orgs/${owner}/packages/container/${packageName}/versions?per_page=70`
 		]
 
 		let data: GhcrPackageVersion[] = []
 		let success = false
 
 		for (const url of endpoints) {
-			const response = await fetch(url, {
+			const response = await fetchWithTimeout(url, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					Accept: 'application/vnd.github+json',
@@ -223,10 +252,9 @@ async function checkGhcrUpdate(
 			}
 		}
 
-		// Map to RemoteTag[]
 		const remoteTags: RemoteTag[] = []
 		for (const v of data) {
-			const digest = v.name // The 'name' field contains the digest like sha256:...
+			const digest = v.name
 			const publishedAt = v.updated_at
 			const tags = v.metadata?.container?.tags || []
 
@@ -234,7 +262,6 @@ async function checkGhcrUpdate(
 				remoteTags.push({ tag: t, digest, publishedAt })
 			}
 
-			// If no tags, track the digest itself as a reference
 			if (tags.length === 0) {
 				remoteTags.push({ tag: digest, digest, publishedAt })
 			}
