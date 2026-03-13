@@ -178,8 +178,8 @@ docker buildx inspect --bootstrap
 Reemplaza `TU_USUARIO` con tu cuenta de Docker Hub:
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t TU_USUARIO/image-checker:latest \
-  -t TU_USUARIO/image-checker:1.0.0 \
+  -t difagume/image-checker:latest \
+  -t difagume/image-checker:1.0.18 \
   --push .
 ```
 
