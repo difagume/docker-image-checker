@@ -2,10 +2,13 @@
 	"name": "docker-image-checker",
 	"version": "0.1.0",
 	"private": true,
+	"packageManager": "pnpm@10.32.1",
 	"scripts": {
 		"dev": "next dev",
 		"build": "next build",
-		"start": "next start"
+		"start": "next start",
+		"audit": "pnpm audit",
+		"audit:fix": "pnpm audit --fix"
 	},
 	"dependencies": {
 		"@radix-ui/react-label": "^2.1.8",
