@@ -5,6 +5,8 @@ export interface NotificationTranslations {
 	current: string
 	latest: string
 	updated: string
+	viewReference: string
+	viewOnRegistry: string
 }
 
 export interface NotificationMessage {
@@ -13,6 +15,7 @@ export interface NotificationMessage {
 	currentVersion: string
 	latestVersion: string
 	dockerHubUrl?: string
+	referenceUrl?: string
 	lastUpdated?: string
 	translations?: NotificationTranslations
 	locale?: string

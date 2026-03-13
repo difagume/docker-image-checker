@@ -2,6 +2,7 @@ import { IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Footer } from '@/components/footer'
+import { Toaster } from '@/components/ui/sonner'
 
 const ibmPlexMono = IBM_Plex_Mono({
 	variable: '--font-ibm-plex-mono',
@@ -59,6 +60,7 @@ export default function RootLayout({
 			>
 				{children}
 				<Footer />
+				<Toaster richColors />
 			</body>
 		</html>
 	)

@@ -41,10 +41,13 @@ export async function checkImageUpdate(
 	dockerHubUrl?: string
 	isLocal?: boolean
 	policyResult?: PolicyResult
+	ghcrError?: 'invalid_token'
+	ghcrImageName?: string
 }> {
 	// 1. Detect GHCR images
 	if (imageName.startsWith('ghcr.io/')) {
-		return checkGhcrUpdate(imageName, localDigest)
+		const result = await checkGhcrUpdate(imageName, localDigest)
+		return result
 	}
 
 	// 2. Handle known registries proxying Docker Hub
@@ -159,6 +162,8 @@ async function checkGhcrUpdate(
 	dockerHubUrl?: string
 	isLocal?: boolean
 	policyResult?: PolicyResult
+	ghcrError?: 'invalid_token'
+	ghcrImageName?: string
 }> {
 	try {
 		const nameWithTag = fullImageName.replace('ghcr.io/', '')
@@ -210,7 +215,12 @@ async function checkGhcrUpdate(
 			console.error(
 				`GHCR API failed or returned no data for ${fullImageName}. Check your token permissions and package visibility.`
 			)
-			return { hasUpdate: false, isLocal: false }
+			return {
+				hasUpdate: false,
+				isLocal: false,
+				ghcrError: 'invalid_token',
+				ghcrImageName: fullImageName
+			}
 		}
 
 		// Map to RemoteTag[]

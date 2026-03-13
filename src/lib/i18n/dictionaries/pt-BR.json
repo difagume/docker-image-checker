@@ -5,6 +5,12 @@
 		"latest": "latest",
 		"unknown": "Desconhecido"
 	},
+	"alerts": {
+		"ghcrTokenInvalid": {
+			"title": "Token do GitHub Container Registry inválido",
+			"description": "O GITHUB_GHCR_TOKEN é inválido ou expirou. Não foi possível verificar as imagens:"
+		}
+	},
 	"dashboard": {
 		"title": "Docker Image Checker",
 		"description": "Monitore seus contêineres e o status de suas imagens.",
@@ -44,7 +50,14 @@
 			"dead": "Morto"
 		},
 		"enableNotifications": "Ativar notificações",
-		"disableNotifications": "Desativar notificações"
+		"disableNotifications": "Desativar notificações",
+		"referenceUrlTitle": "Referência de atualização",
+		"referenceUrlPlaceholder": "https://...",
+		"addReference": "Adicionar link de referência",
+		"editReference": "Editar link de referência",
+		"save": "Salvar",
+		"open": "Abrir",
+		"delete": "Excluir"
 	},
 	"stats": {
 		"updatedImage": "Imagem atualizada",
@@ -92,6 +105,8 @@
 		"image": "Imagem",
 		"current": "Atual",
 		"latest": "Mais recente",
-		"updated": "Atualizado"
+		"updated": "Atualizado",
+		"viewReference": "Ver referência",
+		"viewOnRegistry": "Ver no Registry"
 	}
 }

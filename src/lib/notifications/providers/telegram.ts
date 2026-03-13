@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
-import type { NotificationMessage } from '@/types/notifications'
+import type { NotificationMessage, NotificationTranslations } from '@/types/notifications'
 import { BaseNotificationProvider } from './base'
 
 export class TelegramNotificationProvider extends BaseNotificationProvider {
@@ -56,14 +56,7 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 
 	private formatTelegramMessage(message: NotificationMessage): string {
 		// Get translations from message (will be added by notification service)
-		const t = message.translations || {
-			title: 'Docker Image Update Available',
-			container: 'Container',
-			image: 'Image',
-			current: 'Current',
-			latest: 'Latest',
-			updated: 'Updated'
-		}
+		const t = message.translations as NotificationTranslations
 
 		const lines = [
 			`🐳 *${t.title}*`,
@@ -88,7 +81,10 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 		}
 
 		if (message.dockerHubUrl) {
-			lines.push('', `[View on Registry](${message.dockerHubUrl})`)
+			lines.push('', `📂 [${t.viewOnRegistry}](${message.dockerHubUrl})`)
+		}
+		if (message.referenceUrl) {
+			lines.push('', `🔗 [${t.viewReference}](${message.referenceUrl})`)
 		}
 
 		return lines.join('\n')

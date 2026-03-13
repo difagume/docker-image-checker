@@ -18,6 +18,10 @@ import {
 	Zap
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import {
+	getReferenceUrlsAction,
+	saveReferenceUrlAction
+} from '@/actions/reference-url'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,7 +34,13 @@ import {
 } from '@/components/ui/tooltip'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
+import { ReferenceUrlPopover } from './reference-url-popover'
 import { type FilterStatus, StatsSummary } from './stats-summary'
+
+interface ReferenceUrlData {
+	image: string
+	referenceUrl: string
+}
 
 interface ContainerData {
 	container: {
@@ -154,6 +164,9 @@ export function ContainerDashboard({
 	const [searchQuery, setSearchQuery] = useState('')
 	const [debouncedQuery, setDebouncedQuery] = useState('')
 	const [placeholder, setPlaceholder] = useState(dict.filter.placeholder)
+	const [referenceUrls, setReferenceUrls] = useState<
+		Record<string, ReferenceUrlData>
+	>({})
 
 	// Debounce search query
 	useEffect(() => {
@@ -185,9 +198,6 @@ export function ContainerDashboard({
 		// Load hidden containers from server
 		fetch('/api/notifications/hidden')
 			.then((res) => {
-				// Ignore unauthorized (e.g. login page handles redirection if needed,
-				// but dashboard might be visible in public mode if configured)
-				// If 401, we just don't load hidden containers (empty list)
 				if (res.status === 401) return null
 				if (res.ok) return res.json()
 				throw new Error('Failed to fetch hidden containers')
@@ -228,6 +238,11 @@ export function ContainerDashboard({
 		} catch (_error) {
 			console.warn('LocalStorage is not available or restricted:', _error)
 		}
+
+		// Load reference URLs
+		getReferenceUrlsAction().then((urls) => {
+			setReferenceUrls(urls)
+		})
 	}, [notificationsEnabled])
 
 	useEffect(() => {
@@ -265,8 +280,6 @@ export function ContainerDashboard({
 			body: JSON.stringify({ hiddenContainerIds: newHiddenIds })
 		}).catch((error) => {
 			console.error('Failed to sync hidden containers:', error)
-			// Revert on error?
-			// For now we keep optimistic UI update
 		})
 	}
 
@@ -297,19 +310,16 @@ export function ContainerDashboard({
 
 	const filteredContainers = useMemo(() => {
 		return processedContainers.filter((item) => {
-			// Treat 'local' as 'unknown' for filtering purposes
 			const statusForFilter =
 				item.updateStatus === 'local' ? 'unknown' : item.updateStatus
 			const isStatusMatch = activeFilters.includes(statusForFilter)
 			const isHidden = hiddenContainerIds.includes(item.container.Id)
 
-			// Text Search Filtering
 			let isTextMatch = true
 			if (debouncedQuery) {
 				const q = debouncedQuery.toLowerCase()
 				const nameMatch = item.containerName.toLowerCase().includes(q)
 				const imageMatch = item.container.Image.toLowerCase().includes(q)
-				// Check versions/tags
 				const currentVerMatch = item.displayCurentVersion
 					?.toLowerCase()
 					.includes(q)
@@ -321,12 +331,9 @@ export function ContainerDashboard({
 			}
 
 			if (showHiddenMode) {
-				// In management mode, we show everything that matches the status filter
-				// or we could show only hidden ones. Let's show everything but highlighted.
 				return isStatusMatch && isTextMatch
 			}
 
-			// In normal mode, exclude hidden containers
 			return isStatusMatch && !isHidden && isTextMatch
 		})
 	}, [
@@ -350,7 +357,6 @@ export function ContainerDashboard({
 				dict={dict.stats}
 			/>
 
-			{/* Contextual Filter Bar */}
 			<div className='flex flex-col md:flex-row gap-4 items-center justify-between mb-8 md:mb-6'>
 				<div className='relative w-full shadow-sm'>
 					<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none' />
@@ -385,7 +391,6 @@ export function ContainerDashboard({
 					)}
 				</div>
 
-				{/* Counter - Mobile only */}
 				{debouncedQuery && (
 					<div className='w-full md:hidden text-center'>
 						<span className='text-sm text-neutral-500 font-medium'>
@@ -406,7 +411,6 @@ export function ContainerDashboard({
 							ports,
 							updateStatus,
 							containerName,
-							// currentVersion,
 							displayCurentVersion,
 							latestVersion,
 							lastUpdated,
@@ -556,7 +560,7 @@ export function ContainerDashboard({
 								>
 									<CardHeader>
 										<div className='flex justify-between items-start gap-4'>
-											<CardTitle className='text-lg font-medium text-white [overflow-wrap:anywhere] break-normal flex items-start gap-2'>
+											<CardTitle className='text-lg font-medium text-white wrap-anywhere break-normal flex items-start gap-2'>
 												<span className='flex-1 line-clamp-3'>
 													{containerName}
 												</span>
@@ -663,6 +667,27 @@ export function ContainerDashboard({
 														<span className='text-white font-bold text-sm'>
 															{dict.container.image}:
 														</span>
+														<ReferenceUrlPopover
+															imageName={container.Image.split(':')[0]}
+															currentUrl={
+																referenceUrls[container.Image.split(':')[0]]
+																	?.referenceUrl
+															}
+															onSave={(url: string) => {
+																const imgName = container.Image.split(':')[0]
+																setReferenceUrls(
+																	(prev: Record<string, ReferenceUrlData>) => ({
+																		...prev,
+																		[imgName]: {
+																			image: imgName,
+																			referenceUrl: url
+																		}
+																	})
+																)
+																saveReferenceUrlAction(imgName, url)
+															}}
+															dict={dict.container}
+														/>
 													</div>
 													<span className='text-xs text-neutral-400'>
 														{container.ImageID.substring(7, 19)}
@@ -670,14 +695,8 @@ export function ContainerDashboard({
 												</div>
 
 												<div className='space-y-1 pl-6 pt-1'>
-													<div
-														className='text-neutral-300 pb-1'
-														/* title={container.Image} */
-													>
+													<div className='text-neutral-300 pb-1'>
 														{container.Image.split(':')[0]}
-														{/* <span className='text-neutral-500'>
-															:{container.Image.split(':')[1] || 'latest'}
-														</span> */}
 													</div>
 													<div className='flex items-center justify-between'>
 														<span className='text-neutral-500 font-medium text-xs'>
@@ -685,10 +704,7 @@ export function ContainerDashboard({
 														</span>
 														<Badge
 															variant='outline'
-															className={
-																'bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
-															}
-															/* title={displayCurentVersion} */
+															className='bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
 														>
 															<span className='truncate'>
 																{displayCurentVersion}
@@ -714,7 +730,6 @@ export function ContainerDashboard({
 																		? 'text-violet-500'
 																		: 'text-amber-500'
 																}`}
-																/* title={displayLatestVersion} */
 															>
 																<span className='truncate'>
 																	{displayLatestVersion}
@@ -728,15 +743,6 @@ export function ContainerDashboard({
 													{updateStatusInfo}
 												</div>
 											</div>
-
-											{/* <details className='mt-2 border-t border-neutral-800 pt-2'>
-												<summary className='cursor-pointer text-xs text-neutral-500 hover:text-neutral-300'>
-													{dict.container.debugJson}
-												</summary>
-												<pre className='text-[10px] bg-black p-2 rounded overflow-x-auto mt-1 max-h-40 text-neutral-400 w-full'>
-													{JSON.stringify(container, null, 2)}
-												</pre>
-											</details> */}
 										</div>
 									</CardContent>
 								</Card>

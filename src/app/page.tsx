@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { checkAuth, logout } from '@/actions/auth'
 import { checkImageUpdate, getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
+import { GhcrTokenToast } from '@/components/ghcr-token-toast'
 import { RefreshButton } from '@/components/refresh-button'
 import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -54,7 +55,9 @@ export default async function Dashboard() {
 				latestVersion,
 				dockerHubUrl,
 				isLocal,
-				policyResult
+				policyResult,
+				ghcrError,
+				ghcrImageName
 			} = await checkImageUpdate(container.Image, localDigest)
 
 			// Fallback: If we couldn't resolve a semantic version, use the tag from the image string if available
@@ -88,7 +91,9 @@ export default async function Dashboard() {
 				lastUpdated,
 				dockerHubUrl,
 				isUpToDate,
-				policyState: policyResult?.state
+				policyState: policyResult?.state,
+				ghcrError,
+				ghcrImageName
 			}
 		})
 	)
@@ -102,6 +107,11 @@ export default async function Dashboard() {
 			(c) => c.updateStatus === 'unknown' || c.updateStatus === 'local'
 		).length
 	}
+
+	// Get all GHCR token errors with their image names
+	const ghcrTokenErrors = processedContainers
+		.filter((c) => c.ghcrError === 'invalid_token' && c.ghcrImageName)
+		.map((c) => c.ghcrImageName as string)
 
 	return (
 		<div className='flex-1 p-8'>
@@ -143,6 +153,10 @@ export default async function Dashboard() {
 					{/* Fila inferior: descripción */}
 					<p className='text-neutral-400'>{dict.dashboard.description}</p>
 				</div>
+
+				{ghcrTokenErrors.length > 0 && (
+					<GhcrTokenToast imageNames={ghcrTokenErrors} dict={dict} />
+				)}
 
 				<ContainerDashboard
 					processedContainers={processedContainers}
