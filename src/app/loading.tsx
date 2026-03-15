@@ -18,9 +18,9 @@ export default async function Loading() {
 				</div>
 
 				<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-					{Array.from({ length: 6 }).map((_, i) => (
+					{Array.from({ length: 6 }).map(() => (
 						<div
-							key={`skeleton-container-${i}`}
+							key={crypto.randomUUID()}
 							className='rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 animate-pulse'
 						>
 							<div className='flex items-center justify-between mb-4'>
@@ -36,9 +36,9 @@ export default async function Loading() {
 				</div>
 
 				<div className='grid gap-4 md:grid-cols-3'>
-					{Array.from({ length: 3 }).map((_, i) => (
+					{Array.from({ length: 3 }).map(() => (
 						<div
-							key={`skeleton-stats-${i}`}
+							key={crypto.randomUUID()}
 							className='rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 animate-pulse'
 						>
 							<div className='h-4 w-20 bg-neutral-800 rounded mb-2' />
