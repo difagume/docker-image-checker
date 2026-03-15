@@ -277,7 +277,10 @@ export function ContainerDashboard({
 				}
 			}
 
-			// Fetch all updates in parallel
+			// Fetch all updates in parallel with progress tracking
+			let completed = 0
+			const total = containersToCheck.length
+
 			const updateResults = await Promise.all(
 				containersToCheck.map(async (containerData) => {
 					try {
@@ -358,6 +361,11 @@ export function ContainerDashboard({
 							containerId: containerData.container.Id,
 							error
 						}
+					} finally {
+						completed++
+						if (!isCancelled && total > 0) {
+							setCheckProgress({ current: completed, total })
+						}
 					}
 				})
 			)
@@ -394,11 +402,6 @@ export function ContainerDashboard({
 					}
 				})
 			})
-
-			// Update progress to complete
-			if (!isCancelled && itemsToProcess > 0) {
-				setCheckProgress({ current: itemsToProcess, total: itemsToProcess })
-			}
 
 			// All instances checked, save the cache back to the server
 			if (!isCancelled && Object.keys(finalCache).length > 0) {
