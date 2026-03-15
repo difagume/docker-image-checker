@@ -1,5 +1,25 @@
 'use client'
 
+import NumberFlow from '@number-flow/react'
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+	Activity,
+	ArrowUpCircle,
+	Bell,
+	BellOff,
+	Clock,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	Fingerprint,
+	Loader2,
+	Package,
+	Search,
+	Server,
+	X,
+	Zap
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { saveAllContainersCacheAction } from '@/actions/container-cache'
 import { checkImageUpdate } from '@/actions/docker'
 import {
@@ -20,26 +40,6 @@ import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
 import type { FilterStatus } from '@/types/app-state'
-import { AnimatePresence, motion } from 'framer-motion'
-import NumberFlow from '@number-flow/react'
-import {
-	Activity,
-	ArrowUpCircle,
-	Bell,
-	BellOff,
-	Clock,
-	ExternalLink,
-	Eye,
-	EyeOff,
-	Fingerprint,
-	Loader2,
-	Package,
-	Search,
-	Server,
-	X,
-	Zap
-} from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
 import { ReferenceUrlPopover } from './reference-url-popover'
 import { StatsSummary } from './stats-summary'
 
@@ -157,14 +157,14 @@ function formatRelativeTime(date: Date, dict: Dictionary, locale: Locale) {
 
 export function ContainerDashboard({
 	processedContainers,
-	stats,
 	dict,
 	locale,
 	notificationsEnabled = false,
 	initialActiveFilters = ['updated', 'available', 'unknown'],
 	initialShowHiddenMode = false
 }: ContainerDashboardProps) {
-	const [activeFilters, setActiveFilters] = useState<FilterStatus[]>(initialActiveFilters)
+	const [activeFilters, setActiveFilters] =
+		useState<FilterStatus[]>(initialActiveFilters)
 	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
 	const [ignoredNotificationIds, setIgnoredNotificationIds] = useState<
 		string[]
@@ -188,7 +188,8 @@ export function ContainerDashboard({
 	const dynamicStats = useMemo(() => {
 		return {
 			updated: containers.filter((c) => c.updateStatus === 'updated').length,
-			available: containers.filter((c) => c.updateStatus === 'available').length,
+			available: containers.filter((c) => c.updateStatus === 'available')
+				.length,
 			unknown: containers.filter(
 				(c) =>
 					c.updateStatus === 'unknown' ||
@@ -231,92 +232,112 @@ export function ContainerDashboard({
 
 		const fetchUpdates = async () => {
 			const finalCache: ContainersCache = {}
-			const itemsToProcess = processedContainers.filter(
-				(c) => c.updateStatus === 'checking' || c.isStale
-			).length
+
+			// Collect containers that need checking
+			const containersToCheck = processedContainers.filter(
+				(containerData) =>
+					containerData.updateStatus === 'checking' || containerData.isStale
+			)
+			const itemsToProcess = containersToCheck.length
 
 			if (itemsToProcess > 0) {
 				setCheckProgress({ current: 0, total: itemsToProcess })
 			}
 
-			let completed = 0
-
+			// Build final cache for non-checking containers first
 			for (const containerData of processedContainers) {
-				if (isCancelled) return
-
 				const cacheKey = containerData.localDigest
 					? `${containerData.container.Image}::${containerData.localDigest}`
 					: null
 
-				// Skip containers that are neither freshly checking nor stale
 				if (
+					cacheKey &&
+					containerData.localDigest &&
+					containerData.updateStatus !== 'local' &&
+					containerData.updateStatus !== 'unknown' &&
 					containerData.updateStatus !== 'checking' &&
 					!containerData.isStale
 				) {
-					// Add non-checked containers to final cache to preserve them
-					if (
-						cacheKey &&
-						containerData.localDigest &&
-						containerData.updateStatus !== 'local' &&
-						containerData.updateStatus !== 'unknown'
-					) {
-						finalCache[cacheKey] = {
-							imageName: containerData.container.Image,
-							localDigest: containerData.localDigest,
-							updateStatus: containerData.updateStatus as
-								| 'updated'
-								| 'available'
-								| 'unknown',
-							currentVersion: containerData.currentVersion,
-							displayCurrentVersion: containerData.displayCurrentVersion,
-							latestVersion: containerData.latestVersion,
-							lastUpdated: containerData.lastUpdated,
-							dockerHubUrl: containerData.dockerHubUrl,
-							isUpToDate: containerData.isUpToDate,
-							policyState: containerData.policyState,
-							cachedAt: new Date().toISOString()
-						}
+					finalCache[cacheKey] = {
+						imageName: containerData.container.Image,
+						localDigest: containerData.localDigest,
+						updateStatus: containerData.updateStatus as
+							| 'updated'
+							| 'available'
+							| 'unknown',
+						currentVersion: containerData.currentVersion,
+						displayCurrentVersion: containerData.displayCurrentVersion,
+						latestVersion: containerData.latestVersion,
+						lastUpdated: containerData.lastUpdated,
+						dockerHubUrl: containerData.dockerHubUrl,
+						isUpToDate: containerData.isUpToDate,
+						policyState: containerData.policyState,
+						cachedAt: new Date().toISOString()
 					}
-					continue
 				}
+			}
 
-				try {
-					const {
-						hasUpdate,
-						latestDigest,
-						lastUpdated,
-						currentVersion,
-						latestVersion,
-						dockerHubUrl,
-						isLocal,
-						policyResult
-					} = await checkImageUpdate(
-						containerData.container.Image,
-						containerData.localDigest
-					)
-
-					const imageTag = containerData.container.Image.split(':')[1] || 'latest'
-					const displayCurrentVersionStr =
-						currentVersion && currentVersion !== 'Unknown'
-							? currentVersion
-							: imageTag
-
-					let updateStatus: FilterStatus | 'local' = 'unknown'
-					if (isLocal) {
-						updateStatus = 'local'
-					} else if (latestDigest) {
-						updateStatus = hasUpdate ? 'available' : 'updated'
-					}
-
-					setContainers((prev) => {
-						const next = [...prev]
-						const index = next.findIndex(
-							(c) => c.container.Id === containerData.container.Id
+			// Fetch all updates in parallel
+			const updateResults = await Promise.all(
+				containersToCheck.map(async (containerData) => {
+					try {
+						const {
+							hasUpdate,
+							latestDigest,
+							lastUpdated,
+							currentVersion,
+							latestVersion,
+							dockerHubUrl,
+							isLocal,
+							policyResult
+						} = await checkImageUpdate(
+							containerData.container.Image,
+							containerData.localDigest
 						)
-						if (index === -1) return prev
 
-						next[index] = {
-							...next[index],
+						const imageTag =
+							containerData.container.Image.split(':')[1] || 'latest'
+						const displayCurrentVersionStr =
+							currentVersion && currentVersion !== 'Unknown'
+								? currentVersion
+								: imageTag
+
+						let updateStatus: FilterStatus | 'local' = 'unknown'
+						if (isLocal) {
+							updateStatus = 'local'
+						} else if (latestDigest) {
+							updateStatus = hasUpdate ? 'available' : 'updated'
+						}
+
+						const cacheKey = containerData.localDigest
+							? `${containerData.container.Image}::${containerData.localDigest}`
+							: null
+
+						if (
+							cacheKey &&
+							containerData.localDigest &&
+							updateStatus !== 'local'
+						) {
+							finalCache[cacheKey] = {
+								imageName: containerData.container.Image,
+								localDigest: containerData.localDigest,
+								updateStatus: updateStatus as
+									| 'updated'
+									| 'available'
+									| 'unknown',
+								currentVersion,
+								displayCurrentVersion: displayCurrentVersionStr,
+								latestVersion,
+								lastUpdated,
+								dockerHubUrl,
+								isUpToDate: !hasUpdate,
+								policyState: policyResult?.state,
+								cachedAt: new Date().toISOString()
+							}
+						}
+
+						return {
+							containerId: containerData.container.Id,
 							updateStatus,
 							currentVersion,
 							displayCurrentVersion: displayCurrentVersionStr,
@@ -325,77 +346,58 @@ export function ContainerDashboard({
 							dockerHubUrl,
 							isUpToDate: !hasUpdate,
 							policyState: policyResult?.state,
-							isStale: false
+							isStale: false,
+							error: null
 						}
-
-						return next
-					})
-
-					// Update our finalCache object for this specific container
-					if (cacheKey && containerData.localDigest && updateStatus !== 'local') {
-						finalCache[cacheKey] = {
-							imageName: containerData.container.Image,
-							localDigest: containerData.localDigest,
-							updateStatus: updateStatus as
-								| 'updated'
-								| 'available'
-								| 'unknown',
-							currentVersion,
-							displayCurrentVersion: displayCurrentVersionStr,
-							latestVersion,
-							lastUpdated,
-							dockerHubUrl,
-							isUpToDate: !hasUpdate,
-							policyState: policyResult?.state,
-							cachedAt: new Date().toISOString()
+					} catch (error) {
+						console.error(
+							`Failed to check update for ${containerData.container.Image}`,
+							error
+						)
+						return {
+							containerId: containerData.container.Id,
+							error
 						}
 					}
-				} catch (error) {
-					console.error(
-						`Failed to check update for ${containerData.container.Image}`,
-						error
+				})
+			)
+
+			// Apply all updates in a single state update
+			setContainers((prev) => {
+				return prev.map((container) => {
+					const result = updateResults.find(
+						(r) => r?.containerId === container.container.Id
 					)
-					// On error, only change 'checking' containers to 'unknown';
-					// keep stale containers with their cached value
-					if (containerData.updateStatus === 'checking') {
-						setContainers((prev) => {
-							const next = [...prev]
-							const index = next.findIndex(
-								(c) => c.container.Id === containerData.container.Id
-							)
-							if (index !== -1) {
-								next[index] = { ...next[index], updateStatus: 'unknown' }
-							}
-							return next
-						})
-					} else if (
-						cacheKey &&
-						containerData.localDigest
-					) {
-						// Keep previous cache on error if it was stale
-						finalCache[cacheKey] = {
-							imageName: containerData.container.Image,
-							localDigest: containerData.localDigest,
-							updateStatus: containerData.updateStatus as
-								| 'updated'
-								| 'available'
-								| 'unknown',
-							currentVersion: containerData.currentVersion,
-							displayCurrentVersion: containerData.displayCurrentVersion,
-							latestVersion: containerData.latestVersion,
-							lastUpdated: containerData.lastUpdated,
-							dockerHubUrl: containerData.dockerHubUrl,
-							isUpToDate: containerData.isUpToDate,
-							policyState: containerData.policyState,
-							cachedAt: new Date().toISOString()
+
+					if (!result) return container
+
+					if (result.error) {
+						// On error, only change 'checking' containers to 'unknown'
+						if (container.updateStatus === 'checking') {
+							return { ...container, updateStatus: 'unknown' as FilterStatus }
 						}
+						return container
 					}
-				} finally {
-					completed++
-					if (!isCancelled && itemsToProcess > 0) {
-						setCheckProgress({ current: completed, total: itemsToProcess })
+
+					return {
+						...container,
+						updateStatus: result.updateStatus as FilterStatus,
+						currentVersion: result.currentVersion ?? container.currentVersion,
+						displayCurrentVersion:
+							result.displayCurrentVersion ?? container.displayCurrentVersion,
+						latestVersion: result.latestVersion ?? container.latestVersion,
+						lastUpdated: result.lastUpdated ?? container.lastUpdated,
+						dockerHubUrl: result.dockerHubUrl ?? container.dockerHubUrl,
+						isUpToDate: result.isUpToDate ?? container.isUpToDate,
+						policyState: result.policyState ?? container.policyState,
+						isStale: result.isStale ?? container.isStale
 					}
-				}
+				})
+			})
+
+			// Update progress to complete
+			if (!isCancelled && itemsToProcess > 0) {
+				setCheckProgress({ current: itemsToProcess, total: itemsToProcess })
 			}
 
 			// All instances checked, save the cache back to the server
@@ -452,7 +454,6 @@ export function ContainerDashboard({
 		window.addEventListener('resize', handleResize)
 		return () => window.removeEventListener('resize', handleResize)
 	}, [dict])
-
 
 	// Sync dashboard settings with server
 	useEffect(() => {
