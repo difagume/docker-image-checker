@@ -26,6 +26,7 @@ import {
 	getReferenceUrlsAction,
 	saveReferenceUrlAction
 } from '@/actions/reference-url'
+import { dispatchLoading } from '@/components/loading-events'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -183,6 +184,13 @@ export function ContainerDashboard({
 		current: number
 		total: number
 	}>({ current: 0, total: 0 })
+
+	// Sync loading state with event for the refresh button
+	const isLoading = checkProgress.total > 0
+
+	useEffect(() => {
+		dispatchLoading(isLoading)
+	}, [isLoading])
 
 	// Derive stats dynamically from containers state
 	const dynamicStats = useMemo(() => {
