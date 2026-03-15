@@ -179,6 +179,10 @@ export function ContainerDashboard({
 
 	const [containers, setContainers] =
 		useState<ContainerData[]>(processedContainers)
+	const [checkProgress, setCheckProgress] = useState<{
+		current: number
+		total: number
+	}>({ current: 0, total: 0 })
 
 	// Derive stats dynamically from containers state
 	const dynamicStats = useMemo(() => {
@@ -227,6 +231,15 @@ export function ContainerDashboard({
 
 		const fetchUpdates = async () => {
 			const finalCache: ContainersCache = {}
+			const itemsToProcess = processedContainers.filter(
+				(c) => c.updateStatus === 'checking' || c.isStale
+			).length
+
+			if (itemsToProcess > 0) {
+				setCheckProgress({ current: 0, total: itemsToProcess })
+			}
+
+			let completed = 0
 
 			for (const containerData of processedContainers) {
 				if (isCancelled) return
@@ -377,6 +390,11 @@ export function ContainerDashboard({
 							cachedAt: new Date().toISOString()
 						}
 					}
+				} finally {
+					completed++
+					if (!isCancelled && itemsToProcess > 0) {
+						setCheckProgress({ current: completed, total: itemsToProcess })
+					}
 				}
 			}
 
@@ -393,6 +411,13 @@ export function ContainerDashboard({
 						error
 					)
 				}
+			}
+
+			if (!isCancelled) {
+				// Wait a bit so user sees 100%
+				setTimeout(() => {
+					if (!isCancelled) setCheckProgress({ current: 0, total: 0 })
+				}, 1000)
 			}
 		}
 
@@ -537,6 +562,18 @@ export function ContainerDashboard({
 
 	return (
 		<>
+			<AnimatePresence>
+				{checkProgress.total > 0 && (
+					<motion.div
+						className='fixed top-0 left-0 right-0 z-100 h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] origin-left'
+						initial={{ scaleX: 0 }}
+						animate={{ scaleX: checkProgress.current / checkProgress.total }}
+						exit={{ opacity: 0, transition: { duration: 0.5 } }}
+						transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+					/>
+				)}
+			</AnimatePresence>
+
 			<StatsSummary
 				updatedCount={dynamicStats.updated}
 				availableCount={dynamicStats.available}
