@@ -2,14 +2,15 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type {
 	ContainerUpdate,
+	FilterStatus,
 	NotificationState,
 	NotifiedUpdate
-} from '@/types/notifications'
+} from '@/types/app-state'
 
 const STATE_FILE_PATH = path.join(
 	process.cwd(),
 	'data',
-	'notifications-state.json'
+	'dashboard-state.json'
 )
 
 /**
@@ -31,17 +32,18 @@ export async function loadState(): Promise<NotificationState> {
 
 		// Try to read existing state
 		const data = await fs.readFile(STATE_FILE_PATH, 'utf-8')
+		if (!data || data.trim() === '') {
+			return { notifiedUpdates: {} }
+		}
 		return JSON.parse(data) as NotificationState
 	} catch (error) {
 		// If file doesn't exist or is invalid, return empty state
 		if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-			console.log('No existing notification state found, creating new state')
+			console.log('No existing app state found, creating new state')
 		} else {
-			console.error('Error loading notification state:', error)
+			console.error('Error loading app state:', error)
 		}
-		return {
-			notifiedUpdates: {}
-		}
+		return { notifiedUpdates: {} }
 	}
 }
 
@@ -56,18 +58,18 @@ export async function saveState(state: NotificationState): Promise<void> {
 
 		// Write state to file
 		await fs.writeFile(STATE_FILE_PATH, JSON.stringify(state, null, 2), 'utf-8')
-		console.log('Notification state saved successfully')
+		console.log('App state saved successfully')
 	} catch (error) {
 		const err = error as NodeJS.ErrnoException
 		if (err.code === 'EACCES') {
 			console.error(
-				`Error saving notification state: Permission denied at ${STATE_FILE_PATH}.`
+				`Error saving app state: Permission denied at ${STATE_FILE_PATH}.`
 			)
 			console.error(
 				'Tip: If using Docker bind mounts, ensure the host directory has the correct permissions (e.g., sudo chown -R 1001:1001 ./notifications-data)'
 			)
 		} else {
-			console.error('Error saving notification state:', error)
+			console.error('Error saving app state:', error)
 		}
 		throw error
 	}
@@ -211,5 +213,40 @@ export async function getPreferredLanguage(): Promise<string> {
 export async function setPreferredLanguage(language: string): Promise<void> {
 	const state = await loadState()
 	state.preferredLanguage = language
+	await saveState(state)
+}
+
+/**
+ * Get dashboard settings (filters, show hidden)
+ */
+export async function getDashboardSettings(): Promise<{
+	activeFilters: FilterStatus[]
+	showHiddenMode: boolean
+}> {
+	const state = await loadState()
+	return {
+		activeFilters: (state.activeFilters as FilterStatus[]) || [
+			'updated',
+			'available',
+			'unknown'
+		],
+		showHiddenMode: state.showHiddenMode || false
+	}
+}
+
+/**
+ * Set dashboard settings
+ */
+export async function setDashboardSettings(settings: {
+	activeFilters?: FilterStatus[]
+	showHiddenMode?: boolean
+}): Promise<void> {
+	const state = await loadState()
+	if (settings.activeFilters !== undefined) {
+		state.activeFilters = settings.activeFilters
+	}
+	if (settings.showHiddenMode !== undefined) {
+		state.showHiddenMode = settings.showHiddenMode
+	}
 	await saveState(state)
 }

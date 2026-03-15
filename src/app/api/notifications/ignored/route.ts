@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import {
 	getIgnoredNotificationContainerIds,
 	setIgnoredNotificationContainerIds
-} from '@/lib/notifications/state-manager'
+} from '@/lib/app-state'
 import { getSession } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'

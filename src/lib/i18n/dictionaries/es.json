@@ -27,6 +27,7 @@
 	},
 	"container": {
 		"updated": "Actualizado",
+		"checking": "Comprobando actualización...",
 		"updateAvailable": "Actualización disponible",
 		"newMajorAvailable": "Nueva versión mayor disponible",
 		"unknown": "Imagen desconocida",

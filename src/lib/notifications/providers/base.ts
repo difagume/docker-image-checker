@@ -1,7 +1,7 @@
 import type {
 	NotificationMessage,
 	NotificationProvider
-} from '@/types/notifications'
+} from '@/types/app-state'
 
 export abstract class BaseNotificationProvider implements NotificationProvider {
 	abstract name: string

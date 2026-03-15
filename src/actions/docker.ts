@@ -100,7 +100,9 @@ export async function checkImageUpdate(
 
 		// Single fetch for tags
 		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=70`
-		const tagsResponse = await fetchWithTimeout(tagsUrl, { next: { revalidate: 3600 } })
+		const tagsResponse = await fetchWithTimeout(tagsUrl, {
+			next: { revalidate: 3600 }
+		})
 
 		if (!tagsResponse.ok) {
 			if (tagsResponse.status === 404) {
@@ -151,7 +153,7 @@ export async function checkImageUpdate(
 		const targetRemote =
 			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
 
-		return {
+		const result = {
 			hasUpdate,
 			latestDigest: targetRemote.digest,
 			lastUpdated: targetRemote.publishedAt,
@@ -161,6 +163,8 @@ export async function checkImageUpdate(
 			isLocal: false,
 			policyResult
 		}
+
+		return result
 	} catch (error) {
 		console.error('Failed to check image update:', error)
 		return { hasUpdate: false, isLocal: false }
@@ -289,7 +293,7 @@ async function checkGhcrUpdate(
 		const targetRemote =
 			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
 
-		return {
+		const ghcrResult = {
 			hasUpdate,
 			latestDigest: targetRemote.digest,
 			lastUpdated: targetRemote.publishedAt,
@@ -299,6 +303,8 @@ async function checkGhcrUpdate(
 			isLocal: false,
 			policyResult
 		}
+
+		return ghcrResult
 	} catch (error) {
 		console.error(
 			`Failed to check GHCR image update for ${fullImageName}:`,

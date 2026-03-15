@@ -1,3 +1,10 @@
+export type FilterStatus =
+	| 'updated'
+	| 'available'
+	| 'unknown'
+	| 'local'
+	| 'checking'
+
 export interface NotificationTranslations {
 	title: string
 	container: string
@@ -47,6 +54,8 @@ export interface NotificationState {
 	hiddenContainerIds?: string[] // Container IDs that should be hidden from the dashboard
 	ignoredNotificationIds?: string[] // Container IDs that should be excluded from notifications
 	preferredLanguage?: string // User's preferred language for notifications (en, es, pt)
+	activeFilters?: string[] // Active filters for the dashboard
+	showHiddenMode?: boolean // Whether to show hidden containers
 }
 
 export interface NotificationConfig {

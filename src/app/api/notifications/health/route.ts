@@ -3,7 +3,7 @@ import { getEnabledProviders } from '@/lib/notifications/provider-factory'
 import {
 	getPreferredLanguage,
 	loadState
-} from '@/lib/notifications/state-manager'
+} from '@/lib/app-state'
 
 export const dynamic = 'force-dynamic'
 

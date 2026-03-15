@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import {
-	getHiddenContainerIds,
-	setHiddenContainerIds
+	getDashboardSettings,
+	setDashboardSettings
 } from '@/lib/app-state'
 import { getSession } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * GET: Get hidden container IDs
+ * GET: Get dashboard settings
  */
 export async function GET() {
 	try {
@@ -20,13 +20,13 @@ export async function GET() {
 			}
 		}
 
-		const hiddenIds = await getHiddenContainerIds()
-		return NextResponse.json({ hiddenContainerIds: hiddenIds })
+		const settings = await getDashboardSettings()
+		return NextResponse.json(settings)
 	} catch (error) {
-		console.error('Error getting hidden containers:', error)
+		console.error('Error getting dashboard settings:', error)
 		return NextResponse.json(
 			{
-				error: 'Failed to get hidden containers',
+				error: 'Failed to get dashboard settings',
 				message: error instanceof Error ? error.message : 'Unknown error'
 			},
 			{ status: 500 }
@@ -35,7 +35,7 @@ export async function GET() {
 }
 
 /**
- * POST: Sync hidden container IDs from client
+ * POST: Update dashboard settings
  */
 export async function POST(request: Request) {
 	try {
@@ -48,35 +48,19 @@ export async function POST(request: Request) {
 		}
 
 		const body = await request.json()
-		const { hiddenContainerIds } = body
+		const { activeFilters, showHiddenMode } = body
 
-		if (!Array.isArray(hiddenContainerIds)) {
-			return NextResponse.json(
-				{ error: 'hiddenContainerIds must be an array' },
-				{ status: 400 }
-			)
-		}
-
-		// Validate that all items are strings
-		if (!hiddenContainerIds.every((id) => typeof id === 'string')) {
-			return NextResponse.json(
-				{ error: 'All container IDs must be strings' },
-				{ status: 400 }
-			)
-		}
-
-		await setHiddenContainerIds(hiddenContainerIds)
+		await setDashboardSettings({ activeFilters, showHiddenMode })
 
 		return NextResponse.json({
 			success: true,
-			message: 'Hidden containers synced successfully',
-			hiddenContainerIds
+			message: 'Dashboard settings updated successfully'
 		})
 	} catch (error) {
-		console.error('Error syncing hidden containers:', error)
+		console.error('Error updating dashboard settings:', error)
 		return NextResponse.json(
 			{
-				error: 'Failed to sync hidden containers',
+				error: 'Failed to update dashboard settings',
 				message: error instanceof Error ? error.message : 'Unknown error'
 			},
 			{ status: 500 }

@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api'
-import type { NotificationMessage, NotificationTranslations } from '@/types/notifications'
+import type { NotificationMessage, NotificationTranslations } from '@/types/app-state'
 import { BaseNotificationProvider } from './base'
 
 export class TelegramNotificationProvider extends BaseNotificationProvider {

@@ -1,4 +1,4 @@
-import type { NotificationMessage } from '@/types/notifications'
+import type { NotificationMessage } from '@/types/app-state'
 import { BaseNotificationProvider } from './base'
 
 interface DiscordEmbed {

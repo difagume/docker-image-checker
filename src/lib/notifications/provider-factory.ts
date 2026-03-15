@@ -1,4 +1,4 @@
-import type { NotificationProvider } from '@/types/notifications'
+import type { NotificationProvider } from '@/types/app-state'
 import { DiscordNotificationProvider } from './providers/discord'
 import { NtfyNotificationProvider } from './providers/ntfy'
 import { TelegramNotificationProvider } from './providers/telegram'

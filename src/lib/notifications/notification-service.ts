@@ -5,14 +5,14 @@ import { getReferenceUrls } from '@/lib/reference-url-manager'
 import type {
 	ContainerUpdate,
 	NotificationMessage
-} from '@/types/notifications'
+} from '@/types/app-state'
 import { getEnabledProviders } from './provider-factory'
 import {
 	getPreferredLanguage,
 	hasBeenNotified,
 	loadState,
 	markAsNotified
-} from './state-manager'
+} from '@/lib/app-state'
 
 /**
  * Check for container updates and send notifications

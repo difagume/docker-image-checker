@@ -1,23 +1,7 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
-import {
-	Activity,
-	ArrowUpCircle,
-	Bell,
-	BellOff,
-	Clock,
-	ExternalLink,
-	Eye,
-	EyeOff,
-	Fingerprint,
-	Package,
-	Search,
-	Server,
-	X,
-	Zap
-} from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { saveAllContainersCacheAction } from '@/actions/container-cache'
+import { checkImageUpdate } from '@/actions/docker'
 import {
 	getReferenceUrlsAction,
 	saveReferenceUrlAction
@@ -32,10 +16,32 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
+import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
+import type { FilterStatus } from '@/types/app-state'
+import { AnimatePresence, motion } from 'framer-motion'
+import NumberFlow from '@number-flow/react'
+import {
+	Activity,
+	ArrowUpCircle,
+	Bell,
+	BellOff,
+	Clock,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	Fingerprint,
+	Loader2,
+	Package,
+	Search,
+	Server,
+	X,
+	Zap
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { ReferenceUrlPopover } from './reference-url-popover'
-import { type FilterStatus, StatsSummary } from './stats-summary'
+import { StatsSummary } from './stats-summary'
 
 interface ReferenceUrlData {
 	image: string
@@ -56,12 +62,15 @@ interface ContainerData {
 	updateStatus: FilterStatus | 'local'
 	containerName: string
 	currentVersion?: string
-	displayCurentVersion: string
+	displayCurrentVersion: string
 	latestVersion?: string
 	lastUpdated?: string
 	dockerHubUrl?: string
 	isUpToDate: boolean
 	policyState?: PolicyState
+	localDigest?: string
+	/** true = loaded from cache, will refresh silently in the background */
+	isStale?: boolean
 }
 
 interface ContainerDashboardProps {
@@ -74,6 +83,8 @@ interface ContainerDashboardProps {
 	dict: Dictionary
 	locale: Locale
 	notificationsEnabled?: boolean
+	initialActiveFilters?: FilterStatus[]
+	initialShowHiddenMode?: boolean
 }
 
 const cardVariants = {
@@ -149,24 +160,248 @@ export function ContainerDashboard({
 	stats,
 	dict,
 	locale,
-	notificationsEnabled = false
+	notificationsEnabled = false,
+	initialActiveFilters = ['updated', 'available', 'unknown'],
+	initialShowHiddenMode = false
 }: ContainerDashboardProps) {
-	const [activeFilters, setActiveFilters] = useState<FilterStatus[]>([
-		'updated',
-		'available',
-		'unknown'
-	])
+	const [activeFilters, setActiveFilters] = useState<FilterStatus[]>(initialActiveFilters)
 	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
 	const [ignoredNotificationIds, setIgnoredNotificationIds] = useState<
 		string[]
 	>([])
-	const [showHiddenMode, setShowHiddenMode] = useState(false)
+	const [showHiddenMode, setShowHiddenMode] = useState(initialShowHiddenMode)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [debouncedQuery, setDebouncedQuery] = useState('')
 	const [placeholder, setPlaceholder] = useState(dict.filter.placeholder)
 	const [referenceUrls, setReferenceUrls] = useState<
 		Record<string, ReferenceUrlData>
 	>({})
+
+	const [containers, setContainers] =
+		useState<ContainerData[]>(processedContainers)
+
+	// Derive stats dynamically from containers state
+	const dynamicStats = useMemo(() => {
+		return {
+			updated: containers.filter((c) => c.updateStatus === 'updated').length,
+			available: containers.filter((c) => c.updateStatus === 'available').length,
+			unknown: containers.filter(
+				(c) =>
+					c.updateStatus === 'unknown' ||
+					c.updateStatus === 'local' ||
+					c.updateStatus === 'checking'
+			).length
+		}
+	}, [containers])
+
+	// Sync containers state with props when they change (e.g. after a manual refresh)
+	useEffect(() => {
+		setContainers(processedContainers)
+	}, [processedContainers])
+
+	// Load initial configuration and state from API
+	useEffect(() => {
+		fetch('/api/notifications/hidden')
+			.then((res) => (res.ok ? res.json() : null))
+			.then((data) => {
+				if (data?.hiddenContainerIds)
+					setHiddenContainerIds(data.hiddenContainerIds)
+			})
+
+		if (notificationsEnabled) {
+			fetch('/api/notifications/ignored')
+				.then((res) => (res.ok ? res.json() : null))
+				.then((data) => {
+					if (data?.ignoredNotificationIds)
+						setIgnoredNotificationIds(data.ignoredNotificationIds)
+				})
+		}
+
+		// Load reference URLs
+		getReferenceUrlsAction().then((urls) => setReferenceUrls(urls))
+	}, [notificationsEnabled])
+
+	// Progressive Background Fetch for container updates
+	useEffect(() => {
+		let isCancelled = false
+
+		const fetchUpdates = async () => {
+			const finalCache: ContainersCache = {}
+
+			for (const containerData of processedContainers) {
+				if (isCancelled) return
+
+				const cacheKey = containerData.localDigest
+					? `${containerData.container.Image}::${containerData.localDigest}`
+					: null
+
+				// Skip containers that are neither freshly checking nor stale
+				if (
+					containerData.updateStatus !== 'checking' &&
+					!containerData.isStale
+				) {
+					// Add non-checked containers to final cache to preserve them
+					if (
+						cacheKey &&
+						containerData.localDigest &&
+						containerData.updateStatus !== 'local' &&
+						containerData.updateStatus !== 'unknown'
+					) {
+						finalCache[cacheKey] = {
+							imageName: containerData.container.Image,
+							localDigest: containerData.localDigest,
+							updateStatus: containerData.updateStatus as
+								| 'updated'
+								| 'available'
+								| 'unknown',
+							currentVersion: containerData.currentVersion,
+							displayCurrentVersion: containerData.displayCurrentVersion,
+							latestVersion: containerData.latestVersion,
+							lastUpdated: containerData.lastUpdated,
+							dockerHubUrl: containerData.dockerHubUrl,
+							isUpToDate: containerData.isUpToDate,
+							policyState: containerData.policyState,
+							cachedAt: new Date().toISOString()
+						}
+					}
+					continue
+				}
+
+				try {
+					const {
+						hasUpdate,
+						latestDigest,
+						lastUpdated,
+						currentVersion,
+						latestVersion,
+						dockerHubUrl,
+						isLocal,
+						policyResult
+					} = await checkImageUpdate(
+						containerData.container.Image,
+						containerData.localDigest
+					)
+
+					const imageTag = containerData.container.Image.split(':')[1] || 'latest'
+					const displayCurrentVersionStr =
+						currentVersion && currentVersion !== 'Unknown'
+							? currentVersion
+							: imageTag
+
+					let updateStatus: FilterStatus | 'local' = 'unknown'
+					if (isLocal) {
+						updateStatus = 'local'
+					} else if (latestDigest) {
+						updateStatus = hasUpdate ? 'available' : 'updated'
+					}
+
+					setContainers((prev) => {
+						const next = [...prev]
+						const index = next.findIndex(
+							(c) => c.container.Id === containerData.container.Id
+						)
+						if (index === -1) return prev
+
+						next[index] = {
+							...next[index],
+							updateStatus,
+							currentVersion,
+							displayCurrentVersion: displayCurrentVersionStr,
+							latestVersion,
+							lastUpdated,
+							dockerHubUrl,
+							isUpToDate: !hasUpdate,
+							policyState: policyResult?.state,
+							isStale: false
+						}
+
+						return next
+					})
+
+					// Update our finalCache object for this specific container
+					if (cacheKey && containerData.localDigest && updateStatus !== 'local') {
+						finalCache[cacheKey] = {
+							imageName: containerData.container.Image,
+							localDigest: containerData.localDigest,
+							updateStatus: updateStatus as
+								| 'updated'
+								| 'available'
+								| 'unknown',
+							currentVersion,
+							displayCurrentVersion: displayCurrentVersionStr,
+							latestVersion,
+							lastUpdated,
+							dockerHubUrl,
+							isUpToDate: !hasUpdate,
+							policyState: policyResult?.state,
+							cachedAt: new Date().toISOString()
+						}
+					}
+				} catch (error) {
+					console.error(
+						`Failed to check update for ${containerData.container.Image}`,
+						error
+					)
+					// On error, only change 'checking' containers to 'unknown';
+					// keep stale containers with their cached value
+					if (containerData.updateStatus === 'checking') {
+						setContainers((prev) => {
+							const next = [...prev]
+							const index = next.findIndex(
+								(c) => c.container.Id === containerData.container.Id
+							)
+							if (index !== -1) {
+								next[index] = { ...next[index], updateStatus: 'unknown' }
+							}
+							return next
+						})
+					} else if (
+						cacheKey &&
+						containerData.localDigest
+					) {
+						// Keep previous cache on error if it was stale
+						finalCache[cacheKey] = {
+							imageName: containerData.container.Image,
+							localDigest: containerData.localDigest,
+							updateStatus: containerData.updateStatus as
+								| 'updated'
+								| 'available'
+								| 'unknown',
+							currentVersion: containerData.currentVersion,
+							displayCurrentVersion: containerData.displayCurrentVersion,
+							latestVersion: containerData.latestVersion,
+							lastUpdated: containerData.lastUpdated,
+							dockerHubUrl: containerData.dockerHubUrl,
+							isUpToDate: containerData.isUpToDate,
+							policyState: containerData.policyState,
+							cachedAt: new Date().toISOString()
+						}
+					}
+				}
+			}
+
+			// All instances checked, save the cache back to the server
+			if (!isCancelled && Object.keys(finalCache).length > 0) {
+				try {
+					await saveAllContainersCacheAction(finalCache)
+					console.log(
+						'[Cache] Successfully synchronized container cache to server'
+					)
+				} catch (error) {
+					console.error(
+						'[Cache] Failed to synchronize container cache to server',
+						error
+					)
+				}
+			}
+		}
+
+		fetchUpdates()
+
+		return () => {
+			isCancelled = true
+		}
+	}, [processedContainers])
 
 	// Debounce search query
 	useEffect(() => {
@@ -193,65 +428,17 @@ export function ContainerDashboard({
 		return () => window.removeEventListener('resize', handleResize)
 	}, [dict])
 
-	// Load settings
+
+	// Sync dashboard settings with server
 	useEffect(() => {
-		// Load hidden containers from server
-		fetch('/api/notifications/hidden')
-			.then((res) => {
-				if (res.status === 401) return null
-				if (res.ok) return res.json()
-				throw new Error('Failed to fetch hidden containers')
-			})
-			.then((data) => {
-				if (data?.hiddenContainerIds) {
-					setHiddenContainerIds(data.hiddenContainerIds)
-				}
-			})
-			.catch((error) => {
-				console.warn('Failed to load hidden containers:', error)
-			})
-
-		// Load ignored notification containers from server
-		if (notificationsEnabled) {
-			fetch('/api/notifications/ignored')
-				.then((res) => {
-					if (res.status === 401) return null
-					if (res.ok) return res.json()
-					throw new Error('Failed to fetch ignored containers')
-				})
-				.then((data) => {
-					if (data?.ignoredNotificationIds) {
-						setIgnoredNotificationIds(data.ignoredNotificationIds)
-					}
-				})
-				.catch((error) => {
-					console.warn('Failed to load ignored containers:', error)
-				})
-		}
-
-		// Load filters from localStorage
-		try {
-			const savedFilters = localStorage.getItem('activeFilters')
-			if (savedFilters) {
-				setActiveFilters(JSON.parse(savedFilters))
-			}
-		} catch (_error) {
-			console.warn('LocalStorage is not available or restricted:', _error)
-		}
-
-		// Load reference URLs
-		getReferenceUrlsAction().then((urls) => {
-			setReferenceUrls(urls)
+		fetch('/api/dashboard/settings', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ activeFilters, showHiddenMode })
+		}).catch((error) => {
+			console.error('Failed to sync dashboard settings:', error)
 		})
-	}, [notificationsEnabled])
-
-	useEffect(() => {
-		try {
-			localStorage.setItem('activeFilters', JSON.stringify(activeFilters))
-		} catch {
-			// Silent fail if localStorage is not available
-		}
-	}, [activeFilters])
+	}, [activeFilters, showHiddenMode])
 
 	// Sync preferred language for notifications
 	useEffect(() => {
@@ -309,10 +496,14 @@ export function ContainerDashboard({
 	}
 
 	const filteredContainers = useMemo(() => {
-		return processedContainers.filter((item) => {
+		return containers.filter((item) => {
 			const statusForFilter =
-				item.updateStatus === 'local' ? 'unknown' : item.updateStatus
-			const isStatusMatch = activeFilters.includes(statusForFilter)
+				item.updateStatus === 'local' || item.updateStatus === 'checking'
+					? 'unknown'
+					: item.updateStatus
+			const isStatusMatch = activeFilters.includes(
+				statusForFilter as FilterStatus
+			)
 			const isHidden = hiddenContainerIds.includes(item.container.Id)
 
 			let isTextMatch = true
@@ -320,7 +511,7 @@ export function ContainerDashboard({
 				const q = debouncedQuery.toLowerCase()
 				const nameMatch = item.containerName.toLowerCase().includes(q)
 				const imageMatch = item.container.Image.toLowerCase().includes(q)
-				const currentVerMatch = item.displayCurentVersion
+				const currentVerMatch = item.displayCurrentVersion
 					?.toLowerCase()
 					.includes(q)
 				const latestVerMatch =
@@ -337,7 +528,7 @@ export function ContainerDashboard({
 			return isStatusMatch && !isHidden && isTextMatch
 		})
 	}, [
-		processedContainers,
+		containers,
 		activeFilters,
 		hiddenContainerIds,
 		debouncedQuery,
@@ -347,9 +538,9 @@ export function ContainerDashboard({
 	return (
 		<>
 			<StatsSummary
-				updatedCount={stats.updated}
-				availableCount={stats.available}
-				unknownCount={stats.unknown}
+				updatedCount={dynamicStats.updated}
+				availableCount={dynamicStats.available}
+				unknownCount={dynamicStats.unknown}
 				activeFilters={activeFilters}
 				onToggleFilter={toggleFilter}
 				showHiddenMode={showHiddenMode}
@@ -371,9 +562,11 @@ export function ContainerDashboard({
 					/>
 					{debouncedQuery && (
 						<span className='absolute right-9 top-1/2 -translate-y-1/2 text-xs text-neutral-500 font-medium hidden md:block pointer-events-none'>
-							{dict.filter.showing
-								.replace('{count}', filteredContainers.length.toString())
-								.replace('{total}', processedContainers.length.toString())}
+							{dict.filter.showing.split('{count}')[0]}
+							<NumberFlow value={filteredContainers.length} />
+							{dict.filter.showing.split('{count}')[1].split('{total}')[0]}
+							<NumberFlow value={containers.length} />
+							{dict.filter.showing.split('{total}')[1]}
 						</span>
 					)}
 					{searchQuery && (
@@ -394,9 +587,11 @@ export function ContainerDashboard({
 				{debouncedQuery && (
 					<div className='w-full md:hidden text-center'>
 						<span className='text-sm text-neutral-500 font-medium'>
-							{dict.filter.showing
-								.replace('{count}', filteredContainers.length.toString())
-								.replace('{total}', processedContainers.length.toString())}
+							{dict.filter.showing.split('{count}')[0]}
+							<NumberFlow value={filteredContainers.length} />
+							{dict.filter.showing.split('{count}')[1].split('{total}')[0]}
+							<NumberFlow value={containers.length} />
+							{dict.filter.showing.split('{total}')[1]}
 						</span>
 					</div>
 				)}
@@ -411,7 +606,7 @@ export function ContainerDashboard({
 							ports,
 							updateStatus,
 							containerName,
-							displayCurentVersion,
+							displayCurrentVersion,
 							latestVersion,
 							lastUpdated,
 							dockerHubUrl,
@@ -444,9 +639,9 @@ export function ContainerDashboard({
 									}`}
 								>
 									{isNewMajor ? (
-										<Zap className='h-4 w-4 !text-violet-400' />
+										<Zap className='h-4 w-4 text-violet-400!' />
 									) : (
-										<ArrowUpCircle className='h-4 w-4 !text-amber-400' />
+										<ArrowUpCircle className='h-4 w-4 text-amber-400!' />
 									)}
 									{dockerHubUrl ? (
 										<a
@@ -534,6 +729,13 @@ export function ContainerDashboard({
 							updateStatusInfo = (
 								<span className='text-neutral-500 font-medium'>
 									{dict.container.unknown}
+								</span>
+							)
+						} else if (updateStatus === 'checking') {
+							updateStatusInfo = (
+								<span className='text-neutral-400 font-medium flex items-center gap-1.5'>
+									<Loader2 className='h-3.5 w-3.5 animate-spin' />
+									{(dict.container as any).checking || 'Checking...'}
 								</span>
 							)
 						}
@@ -707,7 +909,7 @@ export function ContainerDashboard({
 															className='bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
 														>
 															<span className='truncate'>
-																{displayCurentVersion}
+																{displayCurrentVersion}
 															</span>
 														</Badge>
 													</div>
@@ -717,7 +919,7 @@ export function ContainerDashboard({
 															<span className='text-neutral-500 font-medium text-xs'>
 																{isNewMajor
 																	? dict.container.newMajorAvailable
-																	: displayCurentVersion ===
+																	: displayCurrentVersion ===
 																			displayLatestVersion
 																		? dict.container.newBuild
 																		: dict.container.newVersion}

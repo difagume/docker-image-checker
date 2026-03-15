@@ -1,9 +1,9 @@
 'use client'
 
 import { ArrowUp, Check, Eye, EyeOff, HelpCircle } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
-
-export type FilterStatus = 'updated' | 'available' | 'unknown' | 'local'
+import type { FilterStatus } from '@/types/app-state'
 
 interface StatsSummaryProps {
 	updatedCount: number
@@ -49,7 +49,7 @@ export function StatsSummary({
 					<span
 						className={`font-semibold text-sm ${isFilterActive('updated') ? 'text-white' : 'text-neutral-400'}`}
 					>
-						{updatedCount}{' '}
+						<NumberFlow value={updatedCount} />{' '}
 						{updatedCount === 1 ? dict.updatedImage : dict.updatedImages}
 					</span>
 				</div>
@@ -76,7 +76,7 @@ export function StatsSummary({
 					}`}
 			>
 				{isFilterActive('available') && (
-					<div className='absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-amber-500/5 to-transparent opacity-80 pointer-events-none' />
+					<div className='absolute inset-0 bg-linear-to-tr from-amber-500/10 via-amber-500/5 to-transparent opacity-80 pointer-events-none' />
 				)}
 				<div className='flex items-center gap-3 relative z-10'>
 					<div className='bg-amber-950/40 text-amber-500 p-2 rounded-[3.5px] border border-amber-500/20 shrink-0'>
@@ -85,7 +85,7 @@ export function StatsSummary({
 					<span
 						className={`font-semibold text-sm ${isFilterActive('available') ? 'text-amber-400' : 'text-neutral-400'}`}
 					>
-						{availableCount}{' '}
+						<NumberFlow value={availableCount} />{' '}
 						{availableCount === 1
 							? dict.updateAvailable
 							: dict.updatesAvailable}
@@ -120,7 +120,7 @@ export function StatsSummary({
 					<span
 						className={`font-semibold text-sm ${isFilterActive('unknown') ? 'text-neutral-200' : 'text-neutral-500'}`}
 					>
-						{unknownCount}{' '}
+						<NumberFlow value={unknownCount} />{' '}
 						{unknownCount === 1 ? dict.unknownImage : dict.unknownImages}
 					</span>
 				</div>

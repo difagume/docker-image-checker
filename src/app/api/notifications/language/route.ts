@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import {
 	getPreferredLanguage,
 	setPreferredLanguage
-} from '@/lib/notifications/state-manager'
+} from '@/lib/app-state'
 
 export const dynamic = 'force-dynamic'
 

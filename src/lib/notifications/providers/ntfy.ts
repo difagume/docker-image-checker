@@ -1,4 +1,4 @@
-import type { NotificationMessage, NotificationTranslations } from '@/types/notifications'
+import type { NotificationMessage, NotificationTranslations } from '@/types/app-state'
 import { BaseNotificationProvider } from './base'
 
 interface NtfyAction {

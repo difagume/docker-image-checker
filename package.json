@@ -11,6 +11,7 @@
 		"audit:fix": "pnpm audit --fix"
 	},
 	"dependencies": {
+		"@number-flow/react": "^0.6.0",
 		"@radix-ui/react-label": "^2.1.8",
 		"@radix-ui/react-popover": "^1.1.15",
 		"@radix-ui/react-scroll-area": "^1.2.10",
