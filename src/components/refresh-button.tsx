@@ -25,9 +25,22 @@ export function RefreshButton() {
 			variant='outline'
 			size='icon'
 			disabled={isLoading}
-			className='relative bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 disabled:opacity-80'
+			aria-busy={isLoading}
+			aria-label={isLoading ? 'Refreshing containers' : 'Refresh dashboard'}
+			className={cn(
+				'relative rounded-[3.5px] transition-all duration-300',
+				isLoading
+					? 'border-blue-500/50 bg-blue-500/15 text-blue-100 shadow-[0_0_4px_rgba(59,130,246,0.45)] ring-1 ring-blue-500/30 animate-pulse disabled:opacity-100 hover:bg-blue-500/20'
+					: 'border-neutral-700 bg-neutral-800 text-white hover:bg-neutral-700 disabled:opacity-80'
+			)}
 		>
-			<RefreshCcw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+			<RefreshCcw
+				className={cn(
+					'h-4 w-4 shrink-0',
+					isLoading && 'animate-spin text-blue-400'
+				)}
+				aria-hidden
+			/>
 		</Button>
 	)
 }

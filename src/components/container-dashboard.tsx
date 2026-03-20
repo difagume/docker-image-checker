@@ -193,6 +193,7 @@ export function ContainerDashboard({
 
 	const [containers, setContainers] =
 		useState<ContainerData[]>(processedContainers)
+	// Progreso de checks (barra superior comentada en el JSX; sigue usándose para RefreshButton)
 	const [checkProgress, setCheckProgress] = useState<{
 		current: number
 		total: number
@@ -638,17 +639,26 @@ export function ContainerDashboard({
 
 	return (
 		<>
-			<AnimatePresence>
-				{checkProgress.total > 0 && (
-					<motion.div
-						className='fixed top-0 left-0 right-0 z-100 h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] origin-left'
-						initial={{ scaleX: 0 }}
-						animate={{ scaleX: checkProgress.current / checkProgress.total }}
-						exit={{ opacity: 0, transition: { duration: 0.5 } }}
-						transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-					/>
-				)}
-			</AnimatePresence>
+			{/*
+			 * Barra de progreso superior (UI desactivada): con `checkImagesUpdatesBatch` el
+			 * cliente no recibe avances hasta terminar la petición, así que la barra no reflejaba
+			 * bien el progreso. Se deja el código comentado para recuperarlo si en el futuro se
+			 * vuelve a un flujo con actualizaciones por chunk o por contenedor.
+			 * Nota: `checkProgress` / `setCheckProgress` siguen activos para `dispatchLoading`
+			 * y el estado de carga del RefreshButton.
+			 *
+			 * <AnimatePresence>
+			 *   {checkProgress.total > 0 && (
+			 *     <motion.div
+			 *       className='fixed top-0 left-0 right-0 z-100 h-0.5 bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] origin-left'
+			 *       initial={{ scaleX: 0 }}
+			 *       animate={{ scaleX: checkProgress.current / checkProgress.total }}
+			 *       exit={{ opacity: 0, transition: { duration: 0.5 } }}
+			 *       transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+			 *     />
+			 *   )}
+			 * </AnimatePresence>
+			 */}
 
 			<StatsSummary
 				updatedCount={dynamicStats.updated}
