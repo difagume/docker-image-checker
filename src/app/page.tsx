@@ -70,9 +70,9 @@ export default async function Dashboard() {
 				<Suspense
 					fallback={
 						<div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-							{Array.from({ length: 6 }).map(() => (
+							{Array.from({ length: 6 }).map((_, index) => (
 								<div
-									key={crypto.randomUUID()}
+									key={index.toString()}
 									className='rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 animate-pulse'
 								>
 									<div className='flex items-center justify-between mb-4'>
