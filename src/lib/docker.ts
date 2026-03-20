@@ -1,14 +1,46 @@
 import Docker from 'dockerode'
 
-// Use a singleton pattern to avoid creating multiple connections in dev mode
 let docker: Docker
 
-if (process.env.DOCKER_HOST) {
-	// Support for TCP connection (e.g. via docker-socket-proxy)
-	const hostUrl = new URL(process.env.DOCKER_HOST)
+function parseDockerHost(): { host: string; port: string } | null {
+	const dockerHost = process.env.DOCKER_HOST
+
+	if (!dockerHost) {
+		return null
+	}
+
+	try {
+		const url = new URL(dockerHost)
+
+		if (url.protocol !== 'tcp:') {
+			throw new Error(
+				`Unsupported protocol: ${url.protocol}. Only 'tcp://' is supported.`
+			)
+		}
+
+		if (!url.hostname) {
+			throw new Error('Invalid hostname in DOCKER_HOST')
+		}
+
+		return {
+			host: url.hostname,
+			port: url.port || '2375'
+		}
+	} catch (error) {
+		console.error(
+			'Invalid DOCKER_HOST configuration:',
+			error instanceof Error ? error.message : error
+		)
+		return null
+	}
+}
+
+const dockerHostConfig = parseDockerHost()
+
+if (dockerHostConfig) {
 	docker = new Docker({
-		host: hostUrl.hostname,
-		port: hostUrl.port || '2375'
+		host: dockerHostConfig.host,
+		port: dockerHostConfig.port
 	})
 } else if (process.env.NODE_ENV === 'production') {
 	docker = new Docker({ socketPath: '/var/run/docker.sock' })
