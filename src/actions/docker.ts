@@ -323,3 +323,41 @@ export async function checkDockerConnection(): Promise<boolean> {
 		return false
 	}
 }
+
+export async function checkImagesUpdatesBatch(
+	items: Array<{
+		containerId: string
+		imageName: string
+		localDigest?: string
+	}>
+): Promise<
+	Array<{
+		containerId: string
+		hasUpdate: boolean
+		latestDigest?: string
+		lastUpdated?: string
+		currentVersion?: string
+		latestVersion?: string
+		dockerHubUrl?: string
+		isLocal?: boolean
+		policyResult?: PolicyResult
+		ghcrError?: 'invalid_token'
+		ghcrImageName?: string
+		error?: string
+	}>
+> {
+	return Promise.all(
+		items.map(async (item) => {
+			try {
+				const result = await checkImageUpdate(item.imageName, item.localDigest)
+				return { containerId: item.containerId, ...result }
+			} catch (error) {
+				return {
+					containerId: item.containerId,
+					hasUpdate: false,
+					error: error instanceof Error ? error.message : 'Unknown error'
+				}
+			}
+		})
+	)
+}

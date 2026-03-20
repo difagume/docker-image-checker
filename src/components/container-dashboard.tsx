@@ -20,8 +20,16 @@ import {
 	Zap
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import {
+	getHiddenContainerIdsAction,
+	getIgnoredNotificationContainerIdsAction,
+	setHiddenContainerIdsAction,
+	setDashboardSettingsAction,
+	setIgnoredNotificationContainerIdsAction,
+	setPreferredLanguageAction
+} from '@/actions/app-state'
 import { saveAllContainersCacheAction } from '@/actions/container-cache'
-import { checkImageUpdate } from '@/actions/docker'
+import { checkImagesUpdatesBatch } from '@/actions/docker'
 import {
 	getReferenceUrlsAction,
 	saveReferenceUrlAction
@@ -177,6 +185,11 @@ export function ContainerDashboard({
 	const [referenceUrls, setReferenceUrls] = useState<
 		Record<string, ReferenceUrlData>
 	>({})
+	const [lastSyncedSettings, setLastSyncedSettings] = useState<{
+		activeFilters: FilterStatus[]
+		showHiddenMode: boolean
+	} | null>(null)
+	const [lastSyncedLanguage, setLastSyncedLanguage] = useState<Locale | null>(null)
 
 	const [containers, setContainers] =
 		useState<ContainerData[]>(processedContainers)
@@ -214,24 +227,34 @@ export function ContainerDashboard({
 
 	// Load initial configuration and state from API
 	useEffect(() => {
-		fetch('/api/notifications/hidden')
-			.then((res) => (res.ok ? res.json() : null))
-			.then((data) => {
-				if (data?.hiddenContainerIds)
-					setHiddenContainerIds(data.hiddenContainerIds)
-			})
+		let isCancelled = false
+		const loadInitialState = async () => {
+			try {
+				const [hiddenIds, ignoredIds, urls] = await Promise.all([
+					getHiddenContainerIdsAction(),
+					notificationsEnabled
+						? getIgnoredNotificationContainerIdsAction()
+						: Promise.resolve<string[]>([]),
+					getReferenceUrlsAction()
+				])
 
-		if (notificationsEnabled) {
-			fetch('/api/notifications/ignored')
-				.then((res) => (res.ok ? res.json() : null))
-				.then((data) => {
-					if (data?.ignoredNotificationIds)
-						setIgnoredNotificationIds(data.ignoredNotificationIds)
-				})
+				if (!isCancelled) {
+					setHiddenContainerIds(hiddenIds)
+					if (notificationsEnabled) {
+						setIgnoredNotificationIds(ignoredIds)
+					}
+					setReferenceUrls(urls)
+				}
+			} catch (error) {
+				console.error('Failed to load dashboard state:', error)
+			}
 		}
 
-		// Load reference URLs
-		getReferenceUrlsAction().then((urls) => setReferenceUrls(urls))
+		loadInitialState()
+
+		return () => {
+			isCancelled = true
+		}
 	}, [notificationsEnabled])
 
 	// Progressive Background Fetch for container updates
@@ -289,67 +312,58 @@ export function ContainerDashboard({
 			let completed = 0
 			const total = containersToCheck.length
 
-			const updateResults = await Promise.all(
-				containersToCheck.map(async (containerData) => {
-					try {
-						const {
-							hasUpdate,
-							latestDigest,
-							lastUpdated,
-							currentVersion,
-							latestVersion,
-							dockerHubUrl,
-							isLocal,
-							policyResult
-						} = await checkImageUpdate(
-							containerData.container.Image,
-							containerData.localDigest
-						)
+			const updateResults = await checkImagesUpdatesBatch(
+				containersToCheck.map((containerData) => ({
+					containerId: containerData.container.Id,
+					imageName: containerData.container.Image,
+					localDigest: containerData.localDigest
+				}))
+			)
 
-						const imageTag =
-							containerData.container.Image.split(':')[1] || 'latest'
-						const displayCurrentVersionStr =
-							currentVersion && currentVersion !== 'Unknown'
-								? currentVersion
-								: imageTag
+			for (const result of updateResults) {
+				const containerData = containersToCheck.find(
+					(item) => item.container.Id === result.containerId
+				)
+				if (!containerData) continue
+				try {
+					if (result.error) {
+						throw new Error(result.error)
+					}
 
-						let updateStatus: FilterStatus | 'local' = 'unknown'
-						if (isLocal) {
-							updateStatus = 'local'
-						} else if (latestDigest) {
-							updateStatus = hasUpdate ? 'available' : 'updated'
-						}
+					const {
+						hasUpdate,
+						latestDigest,
+						lastUpdated,
+						currentVersion,
+						latestVersion,
+						dockerHubUrl,
+						isLocal,
+						policyResult
+					} = result
 
-						const cacheKey = containerData.localDigest
-							? `${containerData.container.Image}::${containerData.localDigest}`
-							: null
+					const imageTag =
+						containerData.container.Image.split(':')[1] || 'latest'
+					const displayCurrentVersionStr =
+						currentVersion && currentVersion !== 'Unknown'
+							? currentVersion
+							: imageTag
 
-						if (
-							cacheKey &&
-							containerData.localDigest &&
-							updateStatus !== 'local'
-						) {
-							finalCache[cacheKey] = {
-								imageName: containerData.container.Image,
-								localDigest: containerData.localDigest,
-								updateStatus: updateStatus as
-									| 'updated'
-									| 'available'
-									| 'unknown',
-								currentVersion,
-								displayCurrentVersion: displayCurrentVersionStr,
-								latestVersion,
-								lastUpdated,
-								dockerHubUrl,
-								isUpToDate: !hasUpdate,
-								policyState: policyResult?.state,
-								cachedAt: new Date().toISOString()
-							}
-						}
+					let updateStatus: FilterStatus | 'local' = 'unknown'
+					if (isLocal) {
+						updateStatus = 'local'
+					} else if (latestDigest) {
+						updateStatus = hasUpdate ? 'available' : 'updated'
+					}
 
-						return {
-							containerId: containerData.container.Id,
-							updateStatus,
+					const cacheKey = containerData.localDigest
+						? `${containerData.container.Image}::${containerData.localDigest}`
+						: null
+
+					if (cacheKey && containerData.localDigest && updateStatus !== 'local') {
+						finalCache[cacheKey] = {
+							imageName: containerData.container.Image,
+							localDigest: containerData.localDigest,
+							updateStatus: updateStatus as 'updated' | 'available' | 'unknown',
 							currentVersion,
 							displayCurrentVersion: displayCurrentVersionStr,
 							latestVersion,
@@ -357,29 +371,70 @@ export function ContainerDashboard({
 							dockerHubUrl,
 							isUpToDate: !hasUpdate,
 							policyState: policyResult?.state,
-							isStale: false,
-							error: null
-						}
-					} catch (error) {
-						console.error(
-							`Failed to check update for ${containerData.container.Image}`,
-							error
-						)
-						return {
-							containerId: containerData.container.Id,
-							error
-						}
-					} finally {
-						completed++
-						if (!isCancelled && total > 0) {
-							setCheckProgress({ current: completed, total })
+							cachedAt: new Date().toISOString()
 						}
 					}
-				})
-			)
+				} catch (error) {
+					console.error(
+						`Failed to process update for ${containerData.container.Image}`,
+						error
+					)
+				} finally {
+					completed++
+					if (!isCancelled && total > 0) {
+						setCheckProgress({ current: completed, total })
+					}
+				}
+			}
+
+			const normalizedUpdateResults = updateResults.map((result) => {
+				const containerData = containersToCheck.find(
+					(item) => item.container.Id === result.containerId
+				)
+				if (!containerData) {
+					return {
+						containerId: result.containerId,
+						error: result.error || 'Container not found'
+					}
+				}
+
+				if (result.error) {
+					return {
+						containerId: result.containerId,
+						error: result.error
+					}
+				}
+
+				const imageTag = containerData.container.Image.split(':')[1] || 'latest'
+				const displayCurrentVersionStr =
+					result.currentVersion && result.currentVersion !== 'Unknown'
+						? result.currentVersion
+						: imageTag
+
+				let updateStatus: FilterStatus | 'local' = 'unknown'
+				if (result.isLocal) {
+					updateStatus = 'local'
+				} else if (result.latestDigest) {
+					updateStatus = result.hasUpdate ? 'available' : 'updated'
+				}
+
+				return {
+					containerId: result.containerId,
+					updateStatus,
+					currentVersion: result.currentVersion,
+					displayCurrentVersion: displayCurrentVersionStr,
+					latestVersion: result.latestVersion,
+					lastUpdated: result.lastUpdated,
+					dockerHubUrl: result.dockerHubUrl,
+					isUpToDate: !result.hasUpdate,
+					policyState: result.policyResult?.state,
+					isStale: false,
+					error: null
+				}
+			})
 
 			const resultsByContainerId = new Map(
-				updateResults
+				normalizedUpdateResults
 					.filter((result) => result?.containerId)
 					.map((result) => [result.containerId, result] as const)
 			)
@@ -472,27 +527,40 @@ export function ContainerDashboard({
 
 	// Sync dashboard settings with server
 	useEffect(() => {
-		fetch('/api/dashboard/settings', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ activeFilters, showHiddenMode })
-		}).catch((error) => {
-			console.error('Failed to sync dashboard settings:', error)
-		})
-	}, [activeFilters, showHiddenMode])
+		const nextSettings = { activeFilters, showHiddenMode }
+		if (
+			lastSyncedSettings &&
+			JSON.stringify(lastSyncedSettings) === JSON.stringify(nextSettings)
+		) {
+			return
+		}
+
+		const timeoutId = setTimeout(() => {
+			setDashboardSettingsAction(nextSettings)
+				.then(() => setLastSyncedSettings(nextSettings))
+				.catch((error) => {
+					console.error('Failed to sync dashboard settings:', error)
+				})
+		}, 300)
+
+		return () => clearTimeout(timeoutId)
+	}, [activeFilters, showHiddenMode, lastSyncedSettings])
 
 	// Sync preferred language for notifications
 	useEffect(() => {
 		if (notificationsEnabled) {
-			fetch('/api/notifications/language', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ language: locale })
-			}).catch((error) => {
-				console.warn('Failed to sync preferred language with server:', error)
-			})
+			if (lastSyncedLanguage === locale) return
+			const timeoutId = setTimeout(() => {
+				setPreferredLanguageAction(locale)
+					.then(() => setLastSyncedLanguage(locale))
+					.catch((error) => {
+						console.warn('Failed to sync preferred language with server:', error)
+					})
+			}, 300)
+
+			return () => clearTimeout(timeoutId)
 		}
-	}, [locale, notificationsEnabled])
+	}, [locale, notificationsEnabled, lastSyncedLanguage])
 
 	const toggleHideContainer = (id: string) => {
 		const newHiddenIds = hiddenContainerIds.includes(id)
@@ -502,11 +570,7 @@ export function ContainerDashboard({
 		setHiddenContainerIds(newHiddenIds)
 
 		// Sync with server
-		fetch('/api/notifications/hidden', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ hiddenContainerIds: newHiddenIds })
-		}).catch((error) => {
+		setHiddenContainerIdsAction(newHiddenIds).catch((error) => {
 			console.error('Failed to sync hidden containers:', error)
 		})
 	}
@@ -519,11 +583,7 @@ export function ContainerDashboard({
 		setIgnoredNotificationIds(newIgnoredIds)
 
 		// Sync with server
-		fetch('/api/notifications/ignored', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ ignoredNotificationIds: newIgnoredIds })
-		}).catch((error) => {
+		setIgnoredNotificationContainerIdsAction(newIgnoredIds).catch((error) => {
 			console.error('Failed to sync ignored containers:', error)
 		})
 	}
@@ -785,10 +845,13 @@ export function ContainerDashboard({
 								</span>
 							)
 						} else if (updateStatus === 'checking') {
+							const checkingLabel =
+								(dict.container as { checking?: string }).checking ??
+								'Checking...'
 							updateStatusInfo = (
 								<span className='text-neutral-400 font-medium flex items-center gap-1.5'>
 									<Loader2 className='h-3.5 w-3.5 animate-spin' />
-									{(dict.container as any).checking || 'Checking...'}
+									{checkingLabel}
 								</span>
 							)
 						}
