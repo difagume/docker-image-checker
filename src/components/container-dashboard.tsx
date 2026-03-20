@@ -378,12 +378,16 @@ export function ContainerDashboard({
 				})
 			)
 
+			const resultsByContainerId = new Map(
+				updateResults
+					.filter((result) => result?.containerId)
+					.map((result) => [result.containerId, result] as const)
+			)
+
 			// Apply all updates in a single state update
 			setContainers((prev) => {
 				return prev.map((container) => {
-					const result = updateResults.find(
-						(r) => r?.containerId === container.container.Id
-					)
+					const result = resultsByContainerId.get(container.container.Id)
 
 					if (!result) return container
 
