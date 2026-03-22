@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
+import { getPreferredLanguage, loadState } from '@/lib/app-state'
 import { getEnabledProviders } from '@/lib/notifications/provider-factory'
-import {
-	getPreferredLanguage,
-	loadState
-} from '@/lib/app-state'
 
 export const dynamic = 'force-dynamic'
 

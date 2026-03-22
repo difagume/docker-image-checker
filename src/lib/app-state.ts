@@ -7,11 +7,7 @@ import type {
 	NotifiedUpdate
 } from '@/types/app-state'
 
-const STATE_FILE_PATH = path.join(
-	process.cwd(),
-	'data',
-	'dashboard-state.json'
-)
+const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'dashboard-state.json')
 
 /**
  * Generate a unique ID for a container update

@@ -21,7 +21,7 @@
 		"bcryptjs": "^3.0.3",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
-		"dockerode": "^4.0.9",
+		"dockerode": "^4.0.10",
 		"framer-motion": "^12.38.0",
 		"iron-session": "^8.0.4",
 		"lucide-react": "^0.577.0",

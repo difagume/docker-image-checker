@@ -69,7 +69,7 @@ export async function saveContainersCache(
 	const operation = cacheMutex.then(async () => {
 		try {
 			await ensureDataDir()
-			const tempPath = CACHE_FILE_PATH + '.tmp'
+			const tempPath = `${CACHE_FILE_PATH}.tmp`
 			await fs.writeFile(tempPath, JSON.stringify(cache, null, 2), 'utf-8')
 			await fs.rename(tempPath, CACHE_FILE_PATH)
 		} catch (error) {
@@ -79,4 +79,3 @@ export async function saveContainersCache(
 	cacheMutex = operation
 	return operation
 }
-

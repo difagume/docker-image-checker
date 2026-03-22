@@ -27,7 +27,9 @@ export async function getHiddenContainerIdsAction(): Promise<string[]> {
 	return getHiddenContainerIds()
 }
 
-export async function setHiddenContainerIdsAction(ids: string[]): Promise<void> {
+export async function setHiddenContainerIdsAction(
+	ids: string[]
+): Promise<void> {
 	await requireAuthIfEnabled()
 	if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) {
 		throw new Error('hiddenContainerIds must be a string array')
@@ -86,7 +88,9 @@ export async function getPreferredLanguageAction(): Promise<string> {
 	return getPreferredLanguage()
 }
 
-export async function setPreferredLanguageAction(language: Locale): Promise<void> {
+export async function setPreferredLanguageAction(
+	language: Locale
+): Promise<void> {
 	await requireAuthIfEnabled()
 	if (!['en', 'es', 'pt'].includes(language)) {
 		throw new Error('Invalid language')

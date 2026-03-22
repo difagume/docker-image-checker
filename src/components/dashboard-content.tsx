@@ -3,10 +3,10 @@
 import { getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { GhcrTokenToast } from '@/components/ghcr-token-toast'
+import { getDashboardSettings } from '@/lib/app-state'
 import { getCacheKey, loadContainersCache } from '@/lib/cache/containers'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
-import { getDashboardSettings } from '@/lib/app-state'
 import type { FilterStatus } from '@/types/app-state'
 
 export async function DashboardContent({ locale }: { locale: Locale }) {

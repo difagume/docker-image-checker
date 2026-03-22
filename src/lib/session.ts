@@ -9,7 +9,8 @@ export interface SessionData {
 }
 
 function getSessionPassword() {
-	const password = process.env.AUTH_SESSION_PASSWORD || process.env.AUTH_HTPASSWD
+	const password =
+		process.env.AUTH_SESSION_PASSWORD || process.env.AUTH_HTPASSWD
 
 	if (!password) {
 		throw new Error(

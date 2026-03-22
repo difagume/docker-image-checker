@@ -1,18 +1,15 @@
 import type { ContainerInfo, ImageInfo } from 'dockerode'
 import { checkImageUpdate } from '@/actions/docker'
-import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
-import { getReferenceUrls } from '@/lib/reference-url-manager'
-import type {
-	ContainerUpdate,
-	NotificationMessage
-} from '@/types/app-state'
-import { getEnabledProviders } from './provider-factory'
 import {
 	getPreferredLanguage,
 	hasBeenNotified,
 	loadState,
 	markAsNotified
 } from '@/lib/app-state'
+import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
+import { getReferenceUrls } from '@/lib/reference-url-manager'
+import type { ContainerUpdate, NotificationMessage } from '@/types/app-state'
+import { getEnabledProviders } from './provider-factory'
 
 /**
  * Check for container updates and send notifications
