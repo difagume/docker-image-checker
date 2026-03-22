@@ -1,30 +1,45 @@
 # Docker Image Checker
 
-Un panel moderno para monitorear y actualizar contenedores Docker con soporte para versiones semánticas.
+Un panel moderno para monitorear contenedores Docker y verificar actualizaciones de imágenes disponibles.
+
+## 🔌 Conexión a Docker
+
+Por defecto, la aplicación se conecta al daemon de Docker usando el socket del sistema:
+- **Windows**: Named pipe `//./pipe/docker_engine`
+- **Unix/Linux**: Socket `/var/run/docker.sock`
+
+### Variable DOCKER_HOST
+
+Puedes especificar una conexión remota usando la variable `DOCKER_HOST`:
+
+```
+# Conexión TCP a un host remoto
+DOCKER_HOST=tcp://192.168.1.100:2375
+```
 
 ## 🔐 Autenticación
 
-El panel incluye soporte para autenticación con sesión usando htpasswd y iron-session. La autenticación se configura mediante las variables de entorno `HTPASSWD` y opcionalmente `AUTH_SESSION_PASSWORD`.
+El panel incluye soporte para autenticación con sesión usando htpasswd y iron-session. La autenticación se configura mediante las variables de entorno `AUTH_HTPASSWD` y opcionalmente `AUTH_SESSION_PASSWORD`.
 
 ### Configuración de Autenticación
 
 1. Genera una entrada htpasswd usando una herramienta como [htpasswd generator](https://www.htaccesstools.com/htpasswd-generator/) o la API incluida en esta aplicación
-2. Establece la variable de entorno `HTPASSWD` con el contenido generado
-3. Opcionalmente, define `AUTH_SESSION_PASSWORD` con una contraseña segura de al menos 32 caracteres para encriptar las sesiones (si no se define, se usará `HTPASSWD`)
-4. Si no se establece la variable `HTPASSWD`, el acceso será automático (sin autenticación)
+2. Establece la variable de entorno `AUTH_HTPASSWD` con el contenido generado
+3. Opcionalmente, define `AUTH_SESSION_PASSWORD` para encriptar las cookies de sesión. Si no se define, se usará `AUTH_HTPASSWD` como secreto de sesión
+4. Si no se establece la variable `AUTH_HTPASSWD`, el acceso será automático (sin autenticación)
 
 > [!IMPORTANT]
-> Si estás usando la variable de entorno `HTPASSWD` en un archivo `.env`, recuerda que el carácter `$` debe ser escapado con `\` (doble barra invertida) para evitar que el shell interprete variables. Por ejemplo: `HTPASSWD="usuario:\$2y\$10\$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2"`
+> Si estás usando la variable de entorno `AUTH_HTPASSWD` en un archivo `.env`, recuerda que el carácter `$` debe ser escapado con `\` (doble barra invertida) para evitar que el shell interprete variables. Por ejemplo: `AUTH_HTPASSWD="usuario:\$2y\$10\$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2"`
 
 > [!IMPORTANT]
-> Para `AUTH_SESSION_PASSWORD`, asegúrate de usar una contraseña segura de al menos 32 caracteres. Puedes generar una contraseña segura usando un generador como [1Password](https://1password.com/password-generator/) o con el siguiente comando:
+> Si usas autenticación (`AUTH_HTPASSWD`), define explícitamente `AUTH_SESSION_PASSWORD` para separar credenciales de login y secreto de sesión. Puedes generar una contraseña segura con [1Password](https://1password.com/password-generator/) o con el siguiente comando:
 > ```bash
 > openssl rand -base64 32
 > ```
 
 Ejemplo de contenido para las variables de entorno:
 ```
-HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+AUTH_HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
 AUTH_SESSION_PASSWORD=TuContrasenaSeguraDe32CaracteresOMasXXXXXXXXXX
 GITHUB_GHCR_TOKEN=ghp_TuGitHubTokenAqui
 ```
@@ -40,9 +55,6 @@ Para obtener información precisa sobre imágenes alojadas en `ghcr.io` (como el
 4. Selecciona el permiso: `read:packages`.
 5. Haz clic en **Generate token** y cópialo.
 6. Agrégalo a tu archivo `.env` como `GITHUB_GHCR_TOKEN`.
-
-> [!TIP]
-> Si no configuras el token, la aplicación intentará obtener la información mediante scraping HTML, lo cual es menos fiable y más lento.
 
 ### API para Generar Hashes htpasswd
 
@@ -103,7 +115,7 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=America/Guayaquil
-      - HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+      - AUTH_HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
 ```
 
 ## 📊 Monitoreo (Uptime Kuma)
@@ -161,7 +173,30 @@ La aplicación incluye un sistema de notificaciones configurable para alertar so
 - **Exclusión inteligente**: No notifica sobre contenedores que hayas marcado como ocultos en el dashboard.
 - **Deduplicación**: Evita alertas repetitivas para la misma actualización.
 
-Para detalles sobre cómo configurar cada proveedor y las variables de entorno necesarias, consulta la [Documentación de Notificaciones](NOTIFICATIONS.md).
+### Variables de Entorno
+
+#### Configuración General
+- `NOTIFICATIONS_ENABLED`: Habilitar o deshabilitar el sistema de notificaciones (default: false)
+- `NOTIFICATIONS_LANGUAGE`: Idioma por defecto para notificaciones (en, es, pt) (default: en)
+- `NOTIFICATIONS_CRON_SCHEDULE`: Expresión cron para verificaciones de actualizaciones (default: "0 */6 * * *")
+- `TZ`: Zona horaria para el programador (ej: America/Guayaquil)
+
+#### Telegram
+- `TELEGRAM_ENABLED`: Habilitar notificaciones Telegram
+- `TELEGRAM_BOT_TOKEN`: Token del bot de Telegram (@BotFather)
+- `TELEGRAM_CHAT_ID`: Chat ID para notificaciones
+
+#### ntfy
+- `NTFY_ENABLED`: Habilitar notificaciones ntfy
+- `NTFY_TOPIC`: Nombre del tema de ntfy
+- `NTFY_SERVER`: Servidor ntfy personalizado (default: https://ntfy.sh)
+- `NTFY_TOKEN`: Token de autenticación opcional para ntfy
+
+#### Discord
+- `DISCORD_ENABLED`: Habilitar notificaciones Discord
+- `DISCORD_WEBHOOK_URL`: URL del webhook de Discord
+
+Para detalles adicionales sobre configuración y despliegue, consulta la [Documentación de Notificaciones](NOTIFICATIONS.md).
 
 ## 🚀 Construcción y Publicación (Multi-Arquitectura)
 
@@ -174,12 +209,15 @@ docker buildx create --name image-checker --use
 docker buildx inspect --bootstrap
 ```
 
+> [!NOTE]
+> Si ya existe una instancia llamada "image-checker", puedes usar `docker buildx use image-checker` para seleccionarla o eliminarla y volver a crearla con `docker buildx rm image-checker && docker buildx create --name image-checker --use`.
+
 ### 2. Construir y Publicar
 Reemplaza `TU_USUARIO` con tu cuenta de Docker Hub:
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t difagume/image-checker:latest \
-  -t difagume/image-checker:1.0.18 \
+  -t TU_USUARIO/image-checker:latest \
+  -t TU_USUARIO/image-checker:1.0.0 \
   --push .
 ```
 
