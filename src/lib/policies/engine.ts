@@ -16,6 +16,42 @@ function parseSemver(name: string) {
 	}
 }
 
+/**
+ * When several tags share the same semver core (e.g. 8.6.1 vs 8.6.1-trixie),
+ * pick the tag that best matches how the image was pinned:
+ * - Plain semver → prefer no extra suffix (-baseline, -trixie, …).
+ * - Variant pin (e.g. -alpine) → prefer exact -alpine over -alpine3.23.
+ * Lower score = better match for display as "latest compatible".
+ */
+function suffixPreferenceScore(
+	currentSuffix: string,
+	candidateSuffix: string
+): number {
+	if (currentSuffix === '') {
+		return candidateSuffix === '' ? 0 : 10 + candidateSuffix.length
+	}
+	const S = currentSuffix
+	const C = candidateSuffix
+	if (C === S) return 0
+	if (C.startsWith(S) && C.length > S.length) return 10 + C.length
+	if (C === '') return 100
+	return 200 + C.length
+}
+
+function compareSemverRemoteTags(
+	a: RemoteTag & { ver: NonNullable<ReturnType<typeof parseSemver>> },
+	b: RemoteTag & { ver: NonNullable<ReturnType<typeof parseSemver>> },
+	currentSuffix: string
+): number {
+	if (b.ver.minor !== a.ver.minor) return b.ver.minor - a.ver.minor
+	if (b.ver.patch !== a.ver.patch) return b.ver.patch - a.ver.patch
+	const diff =
+		suffixPreferenceScore(currentSuffix, a.ver.suffix) -
+		suffixPreferenceScore(currentSuffix, b.ver.suffix)
+	if (diff !== 0) return diff
+	return a.tag.localeCompare(b.tag)
+}
+
 // 5.1 LatestPolicy
 function evaluateLatestPolicy(context: ImageContext): PolicyResult | null {
 	if (context.currentTag !== 'latest') return null
@@ -55,10 +91,7 @@ function evaluateSemverPolicy(context: ImageContext): PolicyResult | null {
 
 	const sameMajor = semverTags
 		.filter((t) => t.ver.major === currentVer.major)
-		.sort((a, b) => {
-			if (b.ver.minor !== a.ver.minor) return b.ver.minor - a.ver.minor
-			return b.ver.patch - a.ver.patch
-		})
+		.sort((a, b) => compareSemverRemoteTags(a, b, currentVer.suffix))
 
 	const higherMajor = semverTags
 		.filter((t) => {
@@ -77,7 +110,10 @@ function evaluateSemverPolicy(context: ImageContext): PolicyResult | null {
 
 			return true
 		})
-		.sort((a, b) => a.ver.major - b.ver.major) // Get lowest higher major
+		.sort((a, b) => {
+			if (a.ver.major !== b.ver.major) return a.ver.major - b.ver.major
+			return compareSemverRemoteTags(a, b, currentVer.suffix)
+		})
 
 	const latestCompatible = sameMajor[0]
 
