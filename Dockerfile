@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20.20.1-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -48,8 +48,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+RUN mkdir .next && chown nextjs:nodejs .next
 
 # Create data directory for notification state persistence
 RUN mkdir -p data && chown nextjs:nodejs data
