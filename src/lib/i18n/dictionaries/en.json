@@ -3,7 +3,8 @@
 		"ports": "Ports",
 		"status": "Status",
 		"latest": "latest",
-		"unknown": "Unknown"
+		"unknown": "Unknown",
+		"cancel": "Cancel"
 	},
 	"alerts": {
 		"ghcrTokenInvalid": {
@@ -40,6 +41,7 @@
 		"newVersion": "New Version",
 		"newBuild": "New Build",
 		"debugJson": "Debug JSON",
+		"update": "Update",
 		"states": {
 			"running": "Running",
 			"stopped": "Stopped",
@@ -109,5 +111,25 @@
 		"updated": "Updated",
 		"viewReference": "View reference",
 		"viewOnRegistry": "View on Registry"
+	},
+	"updateDialog": {
+		"title": "Update Container Image",
+		"currentImage": "Current",
+		"newImage": "New",
+		"confirm": "Update",
+		"tryAgain": "Try Again",
+		"pulling": "Pulling image...",
+		"recreating": "Recreating container...",
+		"stoppingRecreating": "Stopping, removing, and starting new container",
+		"success": "Update successful!",
+		"error": "Update failed",
+		"unknownError": "An unknown error occurred",
+		"closing": "Closing...",
+		"processing": "Processing...",
+		"pullingImage": "The new image will be pulled from the registry before updating.",
+		"downtimeWarning": {
+			"title": "Service Downtime",
+			"description": "This container is currently running. The update process will stop, recreate, and restart the container, causing temporary downtime."
+		}
 	}
 }

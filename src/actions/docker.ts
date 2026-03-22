@@ -1,6 +1,7 @@
 'use server'
 
 import type { ContainerInfo, ImageInfo } from 'dockerode'
+import { revalidatePath } from 'next/cache'
 import docker from '@/lib/docker'
 import { evaluatePolicies } from '@/lib/policies/engine'
 import type {
@@ -324,6 +325,151 @@ export async function checkDockerConnection(): Promise<boolean> {
 	}
 }
 
+export async function updateContainerImage(
+	containerId: string,
+	newImageName: string
+): Promise<{
+	success: boolean
+	error?: string
+	newContainerId?: string
+}> {
+	try {
+		const container = docker.getContainer(containerId)
+		const containerInfo = await container.inspect()
+
+		const wasRunning = containerInfo.State.Running
+		const config = containerInfo.Config
+		const hostConfig = containerInfo.HostConfig
+		const networkingConfig = containerInfo.NetworkSettings
+		const name = containerInfo.Name.replace(/^\//, '')
+
+		console.log(
+			`[Image Update] Starting update for container ${containerId}: ${config.Image} -> ${newImageName}`
+		)
+
+		if (wasRunning) {
+			console.log(
+				`[Image Update] Container is running, will stop -> recreate -> start`
+			)
+		}
+
+		const pullStream = await docker.pull(newImageName)
+		await new Promise<void>((resolve, reject) => {
+			docker.modem.followProgress(pullStream, (err: Error | null) => {
+				if (err) reject(err)
+				else resolve()
+			})
+		})
+
+		console.log(`[Image Update] Image ${newImageName} pulled successfully`)
+
+		if (wasRunning) {
+			console.log(`[Image Update] Stopping container ${containerId}...`)
+			await container.stop()
+
+			console.log(`[Image Update] Removing old container ${containerId}...`)
+			await container.remove()
+
+			const exposedPorts: Record<string, object> = {}
+			if (config.ExposedPorts) {
+				for (const port of Object.keys(config.ExposedPorts)) {
+					exposedPorts[port] = {}
+				}
+			}
+
+			const binds: string[] = hostConfig.Binds || []
+
+			const restartPolicy: { Name: string; MaximumRetryCount?: number } = {
+				Name: hostConfig.RestartPolicy?.Name || 'no'
+			}
+			if (hostConfig.RestartPolicy?.MaximumRetryCount !== undefined) {
+				restartPolicy.MaximumRetryCount =
+					hostConfig.RestartPolicy.MaximumRetryCount
+			}
+
+			const portBindings: Record<
+				string,
+				Array<{ HostIp: string; HostPort: string }> | undefined
+			> = {}
+			if (hostConfig.PortBindings) {
+				for (const [containerPort, hostPorts] of Object.entries(
+					hostConfig.PortBindings
+				)) {
+					portBindings[containerPort] = hostPorts as Array<{
+						HostIp: string
+						HostPort: string
+					}>
+				}
+			}
+
+			const networks: Record<string, object> = {}
+			if (networkingConfig.Networks) {
+				for (const networkName of Object.keys(networkingConfig.Networks)) {
+					networks[networkName] = {}
+				}
+			}
+
+			const env: string[] = []
+			if (config.Env) {
+				for (const envVar of config.Env) {
+					if (!envVar.startsWith('PORT=') && !envVar.startsWith('HOST_PORT=')) {
+						env.push(envVar)
+					}
+				}
+			}
+
+			console.log(
+				`[Image Update] Creating new container with image ${newImageName}...`
+			)
+			const newContainer = await docker.createContainer({
+				name,
+				Image: newImageName,
+				Cmd: config.Cmd,
+				Env: env.length > 0 ? env : undefined,
+				WorkingDir: config.WorkingDir || undefined,
+				Labels: config.Labels,
+				ExposedPorts:
+					Object.keys(exposedPorts).length > 0 ? exposedPorts : undefined,
+				HostConfig: {
+					Binds: binds.length > 0 ? binds : undefined,
+					PortBindings:
+						Object.keys(portBindings).length > 0 ? portBindings : undefined,
+					RestartPolicy: restartPolicy,
+					NetworkMode: hostConfig.NetworkMode || undefined
+				},
+				NetworkingConfig:
+					Object.keys(networks).length > 0
+						? { EndpointsConfig: networks }
+						: undefined
+			})
+
+			console.log(`[Image Update] Starting new container ${newContainer.id}...`)
+			await newContainer.start()
+
+			console.log(
+				`[Image Update] Successfully updated container ${containerId} -> ${newContainer.id}`
+			)
+
+			return {
+				success: true,
+				newContainerId: newContainer.id.substring(0, 12)
+			}
+		}
+
+		console.log(`[Image Update] Container was stopped, image updated locally`)
+		return { success: true }
+	} catch (error) {
+		console.error(
+			`[Image Update] Failed to update container ${containerId}:`,
+			error
+		)
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : 'Unknown error occurred'
+		}
+	}
+}
+
 export async function checkImagesUpdatesBatch(
 	items: Array<{
 		containerId: string
@@ -360,4 +506,9 @@ export async function checkImagesUpdatesBatch(
 			}
 		})
 	)
+}
+
+export async function refreshDashboard(): Promise<void> {
+	'use server'
+	revalidatePath('/')
 }

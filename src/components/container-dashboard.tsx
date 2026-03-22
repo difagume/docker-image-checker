@@ -8,6 +8,7 @@ import {
 	Bell,
 	BellOff,
 	Clock,
+	Download,
 	ExternalLink,
 	Eye,
 	EyeOff,
@@ -23,20 +24,26 @@ import { useEffect, useMemo, useState } from 'react'
 import {
 	getHiddenContainerIdsAction,
 	getIgnoredNotificationContainerIdsAction,
-	setHiddenContainerIdsAction,
 	setDashboardSettingsAction,
+	setHiddenContainerIdsAction,
 	setIgnoredNotificationContainerIdsAction,
 	setPreferredLanguageAction
 } from '@/actions/app-state'
 import { saveAllContainersCacheAction } from '@/actions/container-cache'
-import { checkImagesUpdatesBatch } from '@/actions/docker'
+import { checkImagesUpdatesBatch, refreshDashboard } from '@/actions/docker'
 import {
 	getReferenceUrlsAction,
 	saveReferenceUrlAction
 } from '@/actions/reference-url'
 import { dispatchLoading } from '@/components/loading-events'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+	Alert,
+	AlertAction,
+	AlertDescription,
+	AlertTitle
+} from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
@@ -45,6 +52,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
+import { UpdateConfirmationDialog } from '@/components/update-confirmation-dialog'
 import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
@@ -189,7 +197,9 @@ export function ContainerDashboard({
 		activeFilters: FilterStatus[]
 		showHiddenMode: boolean
 	} | null>(null)
-	const [lastSyncedLanguage, setLastSyncedLanguage] = useState<Locale | null>(null)
+	const [lastSyncedLanguage, setLastSyncedLanguage] = useState<Locale | null>(
+		null
+	)
 
 	const [containers, setContainers] =
 		useState<ContainerData[]>(processedContainers)
@@ -198,6 +208,16 @@ export function ContainerDashboard({
 		current: number
 		total: number
 	}>({ current: 0, total: 0 })
+
+	const [updateDialogState, setUpdateDialogState] = useState<{
+		isOpen: boolean
+		containerId: string
+		containerName: string
+		currentImage: string
+		currentVersion: string
+		newVersion: string
+		isRunning: boolean
+	} | null>(null)
 
 	// Sync loading state with event for the refresh button
 	const isLoading = checkProgress.total > 0
@@ -360,7 +380,11 @@ export function ContainerDashboard({
 						? `${containerData.container.Image}::${containerData.localDigest}`
 						: null
 
-					if (cacheKey && containerData.localDigest && updateStatus !== 'local') {
+					if (
+						cacheKey &&
+						containerData.localDigest &&
+						updateStatus !== 'local'
+					) {
 						finalCache[cacheKey] = {
 							imageName: containerData.container.Image,
 							localDigest: containerData.localDigest,
@@ -555,7 +579,10 @@ export function ContainerDashboard({
 				setPreferredLanguageAction(locale)
 					.then(() => setLastSyncedLanguage(locale))
 					.catch((error) => {
-						console.warn('Failed to sync preferred language with server:', error)
+						console.warn(
+							'Failed to sync preferred language with server:',
+							error
+						)
 					})
 			}, 300)
 
@@ -739,8 +766,10 @@ export function ContainerDashboard({
 						const hasUpdateAvailable = updateStatus === 'available'
 						const isNewMajor = policyState === 'NEW_MAJOR_VERSION_AVAILABLE'
 
-						const displayLatestVersion =
-							latestVersion !== 'latest' && latestVersion !== 'Unknown'
+						const displayLatestVersion: string =
+							latestVersion !== 'latest' &&
+							latestVersion !== 'Unknown' &&
+							latestVersion !== undefined
 								? latestVersion
 								: 'latest'
 
@@ -840,6 +869,29 @@ export function ContainerDashboard({
 											</Tooltip>
 										</TooltipProvider>
 									)}
+									<AlertAction className='w-full flex justify-center -ml-3'>
+										<Button
+											size='xs'
+											onClick={() => {
+												setUpdateDialogState({
+													isOpen: true,
+													containerId: container.Id,
+													containerName,
+													currentImage: container.Image,
+													currentVersion: displayCurrentVersion,
+													newVersion: displayLatestVersion,
+													isRunning
+												})
+											}}
+											className={`rounded-[3.5px] mt-2 transition-colors ${
+												isNewMajor
+													? 'text-violet-400 focus:ring-violet-400'
+													: 'text-amber-400 focus:ring-amber-400'
+											}`}
+										>
+											<Download className='mr-1' /> {dict.container.update}
+										</Button>
+									</AlertAction>
 								</Alert>
 							)
 						} else if (updateStatus === 'local') {
@@ -973,7 +1025,7 @@ export function ContainerDashboard({
 														{dict.common.ports}
 													</span>
 												</div>
-												<span className='text-xs text-neutral-400 truncate max-w-[150px]'>
+												<span className='text-xs text-neutral-400 truncate max-w-37.5'>
 													{ports || '---'}
 												</span>
 											</div>
@@ -1096,6 +1148,23 @@ export function ContainerDashboard({
 					</motion.div>
 				)}
 			</AnimatePresence>
+
+			{updateDialogState && (
+				<UpdateConfirmationDialog
+					isOpen={updateDialogState.isOpen}
+					onClose={() => setUpdateDialogState(null)}
+					containerId={updateDialogState.containerId}
+					containerName={updateDialogState.containerName}
+					currentImage={updateDialogState.currentImage}
+					currentVersion={updateDialogState.currentVersion}
+					newVersion={updateDialogState.newVersion}
+					isRunning={updateDialogState.isRunning}
+					dict={dict}
+					onUpdateSuccess={() => {
+						refreshDashboard()
+					}}
+				/>
+			)}
 		</>
 	)
 }

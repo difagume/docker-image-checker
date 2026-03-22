@@ -3,7 +3,8 @@
 		"ports": "Portas",
 		"status": "Status",
 		"latest": "latest",
-		"unknown": "Desconhecido"
+		"unknown": "Desconhecido",
+		"cancel": "Cancelar"
 	},
 	"alerts": {
 		"ghcrTokenInvalid": {
@@ -40,6 +41,7 @@
 		"newVersion": "Nova versão",
 		"newBuild": "Nova compilação",
 		"debugJson": "Depurar JSON",
+		"update": "Atualizar",
 		"states": {
 			"running": "Em execução",
 			"stopped": "Parado",
@@ -109,5 +111,25 @@
 		"updated": "Atualizado",
 		"viewReference": "Ver referência",
 		"viewOnRegistry": "Ver no registro"
+	},
+	"updateDialog": {
+		"title": "Atualizar Imagem do Contêiner",
+		"currentImage": "Atual",
+		"newImage": "Nova",
+		"confirm": "Atualizar",
+		"tryAgain": "Tentar novamente",
+		"pulling": "Baixando imagem...",
+		"recreating": "Recriando contêiner...",
+		"stoppingRecreating": "Parando, removendo e iniciando novo contêiner",
+		"success": "Atualização bem-sucedida!",
+		"error": "Atualização falhou",
+		"unknownError": "Ocorreu um erro desconhecido",
+		"closing": "Fechando...",
+		"processing": "Processando...",
+		"pullingImage": "A nova imagem será baixada do registro antes da atualização.",
+		"downtimeWarning": {
+			"title": "Tempo de inatividade do serviço",
+			"description": "Este contêiner está em execução. O processo de atualização irá parar, recriar e iniciar o contêiner, causando tempo de inatividade temporário."
+		}
 	}
 }
