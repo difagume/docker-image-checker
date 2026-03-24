@@ -7,6 +7,7 @@ import { evaluatePolicies } from '@/lib/policies/engine'
 import type {
 	ImageContext,
 	PolicyResult,
+	PolicyState,
 	RemoteTag
 } from '@/lib/policies/types'
 
@@ -511,4 +512,35 @@ export async function checkImagesUpdatesBatch(
 export async function refreshDashboard(): Promise<void> {
 	'use server'
 	revalidatePath('/')
+}
+
+export async function verifyContainerUpdate(imageName: string): Promise<{
+	hasUpdate: boolean
+	latestVersion?: string
+	dockerHubUrl?: string
+	policyState?: PolicyState
+	localDigest?: string
+}> {
+	'use server'
+
+	try {
+		// Get the new digest from the updated image
+		const image = docker.getImage(imageName)
+		const imageInfo = await image.inspect()
+		const localDigest = imageInfo.Id
+
+		// Check for updates with the new image
+		const updateInfo = await checkImageUpdate(imageName, localDigest)
+
+		return {
+			hasUpdate: updateInfo.hasUpdate,
+			latestVersion: updateInfo.latestVersion,
+			dockerHubUrl: updateInfo.dockerHubUrl,
+			policyState: updateInfo.policyResult?.state,
+			localDigest
+		}
+	} catch (error) {
+		console.error(`[Docker] Failed to verify update for ${imageName}:`, error)
+		return { hasUpdate: false }
+	}
 }

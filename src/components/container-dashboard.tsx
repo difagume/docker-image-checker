@@ -30,8 +30,15 @@ import {
 	setIgnoredNotificationContainerIdsAction,
 	setPreferredLanguageAction
 } from '@/actions/app-state'
-import { saveAllContainersCacheAction } from '@/actions/container-cache'
-import { checkImagesUpdatesBatch, updateContainerImage } from '@/actions/docker'
+import {
+	saveAllContainersCacheAction,
+	updateContainerCacheAction
+} from '@/actions/container-cache'
+import {
+	checkImagesUpdatesBatch,
+	updateContainerImage,
+	verifyContainerUpdate
+} from '@/actions/docker'
 import {
 	getReferenceUrlsAction,
 	saveReferenceUrlAction
@@ -648,6 +655,16 @@ export function ContainerDashboard({
 			const result = await updateContainerImage(containerId, imageName)
 
 			if (result.success) {
+				// Verify if there's still an update available after the upgrade
+				const updateInfo = await verifyContainerUpdate(imageName)
+
+				// Determine update status based on verification result
+				const newStatus = updateInfo.hasUpdate ? 'available' : 'updated'
+				const latestVersion = updateInfo.latestVersion || newVersion
+
+				// Use the new container ID if available (container was recreated)
+				const updatedContainerId = result.newContainerId || containerId
+
 				setContainers((prev) =>
 					prev.map((c) =>
 						c.container.Id === containerId
@@ -655,17 +672,37 @@ export function ContainerDashboard({
 									...c,
 									displayCurrentVersion: newVersion,
 									currentVersion: newVersion,
-									latestVersion: newVersion,
-									isUpToDate: true,
-									updateStatus: 'updated' as const,
+									latestVersion: latestVersion,
+									isUpToDate: !updateInfo.hasUpdate,
+									updateStatus: newStatus as FilterStatus,
+									dockerHubUrl: updateInfo.dockerHubUrl,
+									policyState: updateInfo.policyState,
 									container: {
 										...c.container,
+										Id: updatedContainerId,
 										Image: imageName
 									}
 								}
 							: c
 					)
 				)
+
+				// Update the cache with the new container info
+				if (updateInfo.localDigest) {
+					updateContainerCacheAction(imageName, updateInfo.localDigest, {
+						displayCurrentVersion: newVersion,
+						currentVersion: newVersion,
+						latestVersion: latestVersion,
+						isUpToDate: !updateInfo.hasUpdate,
+						updateStatus: newStatus,
+						dockerHubUrl: updateInfo.dockerHubUrl,
+						policyState: updateInfo.policyState,
+						lastUpdated: new Date().toISOString()
+					}).catch((err) => {
+						console.error('[Cache] Failed to update container cache:', err)
+					})
+				}
+
 				toast.success(
 					dict.toast.updateSuccess
 						.replace('{container}', containerName)
