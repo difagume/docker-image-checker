@@ -42,6 +42,7 @@
 		"newBuild": "New Build",
 		"debugJson": "Debug JSON",
 		"update": "Update",
+		"updating": "Updating...",
 		"states": {
 			"running": "Running",
 			"stopped": "Stopped",
@@ -129,7 +130,11 @@
 		"pullingImage": "The new image will be pulled from the registry before updating.",
 		"downtimeWarning": {
 			"title": "Service Downtime",
-			"description": "This container is currently running. The update process will stop, recreate, and restart the container, causing temporary downtime."
+			"description": "The update will restart the container and cause a brief interruption."
 		}
+	},
+	"toast": {
+		"updateSuccess": "{container} updated to {version}",
+		"updateError": "Failed to update {container}"
 	}
 }

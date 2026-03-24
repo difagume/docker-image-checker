@@ -43,13 +43,13 @@ export default async function Dashboard() {
 									<Button
 										variant='outline'
 										size='icon'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 flex items-center gap-2 md:hidden'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700 flex items-center gap-2 md:hidden'
 									>
 										<LogOut className='h-4 w-4' />
 									</Button>
 									<Button
 										variant='outline'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white rounded-[3.5px] border-neutral-700 items-center gap-2 hidden md:flex'
+										className='bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700 items-center gap-2 hidden md:flex'
 									>
 										<LogOut className='h-4 w-4' />
 										{dict.login.logout}

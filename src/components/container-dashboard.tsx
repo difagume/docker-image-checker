@@ -21,6 +21,7 @@ import {
 	Zap
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import {
 	getHiddenContainerIdsAction,
 	getIgnoredNotificationContainerIdsAction,
@@ -30,7 +31,7 @@ import {
 	setPreferredLanguageAction
 } from '@/actions/app-state'
 import { saveAllContainersCacheAction } from '@/actions/container-cache'
-import { checkImagesUpdatesBatch, refreshDashboard } from '@/actions/docker'
+import { checkImagesUpdatesBatch, updateContainerImage } from '@/actions/docker'
 import {
 	getReferenceUrlsAction,
 	saveReferenceUrlAction
@@ -52,13 +53,13 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
-import { UpdateConfirmationDialog } from '@/components/update-confirmation-dialog'
 import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
 import type { FilterStatus } from '@/types/app-state'
 import { ReferenceUrlPopover } from './reference-url-popover'
 import { StatsSummary } from './stats-summary'
+import { UpdateConfirmDialog } from './update-confirm-dialog'
 
 interface ReferenceUrlData {
 	image: string
@@ -209,12 +210,15 @@ export function ContainerDashboard({
 		total: number
 	}>({ current: 0, total: 0 })
 
-	const [updateDialogState, setUpdateDialogState] = useState<{
-		isOpen: boolean
+	const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(
+		null
+	)
+	const [updateError, setUpdateError] = useState<string | null>(null)
+	const [confirmUpdateState, setConfirmUpdateState] = useState<{
 		containerId: string
 		containerName: string
-		currentImage: string
-		currentVersion: string
+		containerImage: string
+		containerVersion: string
 		newVersion: string
 		isRunning: boolean
 	} | null>(null)
@@ -624,6 +628,65 @@ export function ContainerDashboard({
 		)
 	}
 
+	const handleUpdateClick = async (
+		containerId: string,
+		containerImage: string,
+		newVersion: string
+	) => {
+		setUpdatingContainerId(containerId)
+		setUpdateError(null)
+
+		const imageName = containerImage.includes(':')
+			? `${containerImage.split(':')[0]}:${newVersion}`
+			: `${containerImage}:${newVersion}`
+
+		const containerName =
+			containers.find((c) => c.container.Id === containerId)?.containerName ||
+			containerId.substring(0, 12)
+
+		try {
+			const result = await updateContainerImage(containerId, imageName)
+
+			if (result.success) {
+				setContainers((prev) =>
+					prev.map((c) =>
+						c.container.Id === containerId
+							? {
+									...c,
+									displayCurrentVersion: newVersion,
+									currentVersion: newVersion,
+									latestVersion: newVersion,
+									isUpToDate: true,
+									updateStatus: 'updated' as const,
+									container: {
+										...c.container,
+										Image: imageName
+									}
+								}
+							: c
+					)
+				)
+				toast.success(
+					dict.toast.updateSuccess
+						.replace('{container}', containerName)
+						.replace('{version}', newVersion)
+				)
+			} else {
+				setUpdateError(result.error || 'Unknown error')
+				setTimeout(() => setUpdateError(null), 5000)
+				toast.error(
+					dict.toast.updateError.replace('{container}', containerName)
+				)
+			}
+		} catch (err) {
+			setUpdateError(err instanceof Error ? err.message : 'Unknown error')
+			setTimeout(() => setUpdateError(null), 5000)
+			toast.error(dict.toast.updateError.replace('{container}', containerName))
+		} finally {
+			setUpdatingContainerId(null)
+		}
+	}
+
 	const filteredContainers = useMemo(() => {
 		return containers.filter((item) => {
 			const statusForFilter =
@@ -869,27 +932,42 @@ export function ContainerDashboard({
 											</Tooltip>
 										</TooltipProvider>
 									)}
-									<AlertAction className='w-full flex justify-center -ml-3'>
+									<AlertAction className='w-full flex flex-col items-center -ml-3 gap-2'>
+										{updateError && updatingContainerId === container.Id ? (
+											<span className='text-xs text-red-400 text-center'>
+												{updateError}
+											</span>
+										) : null}
 										<Button
 											size='xs'
+											disabled={updatingContainerId === container.Id}
 											onClick={() => {
-												setUpdateDialogState({
-													isOpen: true,
+												setConfirmUpdateState({
 													containerId: container.Id,
 													containerName,
-													currentImage: container.Image,
-													currentVersion: displayCurrentVersion,
+													containerImage: container.Image,
+													containerVersion: displayCurrentVersion,
 													newVersion: displayLatestVersion,
 													isRunning
 												})
 											}}
-											className={`rounded-[3.5px] mt-2 transition-colors ${
+											className={`rounded-[3.5px] transition-colors ${
 												isNewMajor
 													? 'text-violet-400 focus:ring-violet-400'
 													: 'text-amber-400 focus:ring-amber-400'
-											}`}
+											} ${updatingContainerId === container.Id ? 'opacity-50' : ''}`}
 										>
-											<Download className='mr-1' /> {dict.container.update}
+											{updatingContainerId === container.Id ? (
+												<>
+													<Loader2 className='mr-1 h-3 w-3 animate-spin' />
+													{dict.container.updating || 'Updating...'}
+												</>
+											) : (
+												<>
+													<Download className='mr-1 h-3 w-3' />
+													{dict.container.update}
+												</>
+											)}
 										</Button>
 									</AlertAction>
 								</Alert>
@@ -1149,22 +1227,12 @@ export function ContainerDashboard({
 				)}
 			</AnimatePresence>
 
-			{updateDialogState && (
-				<UpdateConfirmationDialog
-					isOpen={updateDialogState.isOpen}
-					onClose={() => setUpdateDialogState(null)}
-					containerId={updateDialogState.containerId}
-					containerName={updateDialogState.containerName}
-					currentImage={updateDialogState.currentImage}
-					currentVersion={updateDialogState.currentVersion}
-					newVersion={updateDialogState.newVersion}
-					isRunning={updateDialogState.isRunning}
-					dict={dict}
-					onUpdateSuccess={() => {
-						refreshDashboard()
-					}}
-				/>
-			)}
+			<UpdateConfirmDialog
+				confirmState={confirmUpdateState}
+				onClose={() => setConfirmUpdateState(null)}
+				onConfirm={handleUpdateClick}
+				dict={dict}
+			/>
 		</>
 	)
 }

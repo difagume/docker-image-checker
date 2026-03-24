@@ -42,6 +42,7 @@
 		"newBuild": "Nueva Compilación",
 		"debugJson": "Depurar JSON",
 		"update": "Actualizar",
+		"updating": "Actualizando...",
 		"states": {
 			"running": "En ejecución",
 			"stopped": "Detenido",
@@ -129,7 +130,11 @@
 		"pullingImage": "La nueva imagen se descargará del registro antes de actualizar.",
 		"downtimeWarning": {
 			"title": "Tiempo de inactividad del servicio",
-			"description": "Este contenedor está en ejecución. El proceso de actualización detendrá, recreará e iniciarán el contenedor, causando tiempo de inactividad temporal."
+			"description": "La actualización reiniciará el contenedor y causará una breve interrupción."
 		}
+	},
+	"toast": {
+		"updateSuccess": "{container} actualizado a {version}",
+		"updateError": "Error al actualizar {container}"
 	}
 }
