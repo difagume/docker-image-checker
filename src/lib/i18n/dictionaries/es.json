@@ -115,21 +115,8 @@
 	},
 	"updateDialog": {
 		"title": "Actualizar Imagen del Contenedor",
-		"currentImage": "Actual",
-		"newImage": "Nueva",
 		"confirm": "Actualizar",
-		"tryAgain": "Intentar de nuevo",
-		"pulling": "Descargando imagen...",
-		"recreating": "Recreando contenedor...",
-		"stoppingRecreating": "Deteniendo, eliminando e iniciando nuevo contenedor",
-		"success": "¡Actualización exitosa!",
-		"error": "Actualización fallida",
-		"unknownError": "Ocurrió un error desconocido",
-		"closing": "Cerrando...",
-		"processing": "Procesando...",
-		"pullingImage": "La nueva imagen se descargará del registro antes de actualizar.",
 		"downtimeWarning": {
-			"title": "Tiempo de inactividad del servicio",
 			"description": "La actualización reiniciará el contenedor y causará una breve interrupción."
 		}
 	},

@@ -115,21 +115,8 @@
 	},
 	"updateDialog": {
 		"title": "Update Container Image",
-		"currentImage": "Current",
-		"newImage": "New",
 		"confirm": "Update",
-		"tryAgain": "Try Again",
-		"pulling": "Pulling image...",
-		"recreating": "Recreating container...",
-		"stoppingRecreating": "Stopping, removing, and starting new container",
-		"success": "Update successful!",
-		"error": "Update failed",
-		"unknownError": "An unknown error occurred",
-		"closing": "Closing...",
-		"processing": "Processing...",
-		"pullingImage": "The new image will be pulled from the registry before updating.",
 		"downtimeWarning": {
-			"title": "Service Downtime",
 			"description": "The update will restart the container and cause a brief interruption."
 		}
 	},
