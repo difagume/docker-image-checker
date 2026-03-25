@@ -2,6 +2,7 @@ import { IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Footer } from '@/components/footer'
+import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -56,11 +57,18 @@ export default function RootLayout({
 	return (
 		<html lang='en' suppressHydrationWarning>
 			<body
-				className={`${ibmPlexMono.variable} font-sans antialiased min-h-dvh flex flex-col bg-neutral-950 text-neutral-50`}
+				className={`${ibmPlexMono.variable} font-sans antialiased min-h-dvh flex flex-col`}
 			>
-				{children}
-				<Footer />
-				<Toaster richColors />
+				<ThemeProvider
+					attribute='class'
+					defaultTheme='dark'
+					enableSystem={false}
+					disableTransitionOnChange
+				>
+					{children}
+					<Footer />
+					<Toaster richColors />
+				</ThemeProvider>
 			</body>
 		</html>
 	)
