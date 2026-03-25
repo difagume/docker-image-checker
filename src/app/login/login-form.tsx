@@ -68,21 +68,19 @@ export default function LoginForm({ dict }: LoginFormProps) {
 					priority
 				/>
 			</div>
-			<Card className='w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-[3.5px] shadow-lg'>
+			<Card className='w-full max-w-md rounded-[3.5px] shadow-lg'>
 				<CardHeader className='text-center space-y-2'>
-					<CardTitle className='text-2xl font-semibold tracking-tight text-white'>
+					<CardTitle className='text-2xl tracking-tight'>
 						{dict.title}
 					</CardTitle>
-					<CardDescription className='text-sm text-neutral-400'>
-						{dict.description}
-					</CardDescription>
-					<div className='h-px bg-neutral-800 mt-2' />
+					<CardDescription>{dict.description}</CardDescription>
+					<div className='h-px bg-border mt-2' />
 				</CardHeader>
 
 				<CardContent>
 					<form onSubmit={handleSubmit} className='space-y-4'>
 						<div className='space-y-2'>
-							<Label htmlFor='username' className='text-sm text-neutral-300'>
+							<Label htmlFor='username' className='text-sm'>
 								{dict.username}
 							</Label>
 							<Input
@@ -94,12 +92,11 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								placeholder={dict.usernamePlaceholder}
 								required
 								maxLength={40}
-								className='bg-neutral-800 border-neutral-700 text-white rounded-[3.5px] placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-0'
 							/>
 						</div>
 
 						<div className='space-y-2'>
-							<Label htmlFor='password' className='text-sm text-neutral-300'>
+							<Label htmlFor='password' className='text-sm'>
 								{dict.password}
 							</Label>
 							<Input
@@ -110,7 +107,6 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								placeholder={dict.passwordPlaceholder}
 								required
 								maxLength={40}
-								className='bg-neutral-800 border-neutral-700 text-white rounded-[3.5px] placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-0'
 							/>
 						</div>
 
