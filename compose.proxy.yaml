@@ -9,7 +9,7 @@ services:
     environment:
       - CONTAINERS=1 # Permite listar y ver info de contenedores
       - IMAGES=1     # Permite listar imágenes
-      - POST=0       # No permitir acciones de escritura (seguridad extra)
+      - POST=1       # Permite hacer pull de imágenes
     networks:
       - docker-internal
 

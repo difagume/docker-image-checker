@@ -254,6 +254,16 @@ Esta opción es más segura ya que no expone el socket de Docker directamente a 
 docker compose -f compose.proxy.yaml up -d
 ```
 
+#### Parámetros del Proxy (docker-socket-proxy)
+
+El archivo `compose.proxy.yaml` usa variables de entorno para configurar los permisos del proxy:
+
+| Variable | Valor | Descripción |
+|----------|-------|-------------|
+| `CONTAINERS=1` | ✅ | Permite listar y ver información de contenedores |
+| `IMAGES=1` | ✅ | Permite listar imágenes |
+| `POST=1` | ✅ | Permite hacer pull de imágenes (necesario para actualizar) |
+
 ## 📝 Notas de Permisos
 Si usas la **Opción A (Directa)** y recibes un error `EACCES`:
 1. Revisa los IDs de tu sistema con el comando `id`.
