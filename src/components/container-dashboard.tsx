@@ -828,7 +828,7 @@ export function ContainerDashboard({
 								setDebouncedQuery('')
 							}}
 							className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted'
-							aria-label={dict.filter?.clearFilter || 'Clear'}
+							aria-label={dict.filter.clearFilter}
 						>
 							<X className='h-4 w-4' />
 						</button>
@@ -1000,7 +1000,7 @@ export function ContainerDashboard({
 											{updatingContainerId === container.Id ? (
 												<>
 													<Loader2 className='mr-1 h-3 w-3 animate-spin' />
-													{dict.container.updating || 'Updating...'}
+													{dict.container.updating}
 												</>
 											) : (
 												<>
@@ -1025,9 +1025,7 @@ export function ContainerDashboard({
 								</span>
 							)
 						} else if (updateStatus === 'checking') {
-							const checkingLabel =
-								(dict.container as { checking?: string }).checking ??
-								'Checking...'
+							const checkingLabel = dict.container.checking
 							updateStatusInfo = (
 								<span className='text-muted-foreground font-medium flex items-center gap-1.5'>
 									<Loader2 className='h-3.5 w-3.5 animate-spin' />

@@ -46,17 +46,17 @@ export function UpdateConfirmDialog({
 				className='max-w-sm'
 			>
 				<AlertDialogHeader>
-					<AlertDialogTitle>{dict.updateDialog?.title}</AlertDialogTitle>
+					<AlertDialogTitle>{dict.updateDialog.title}</AlertDialogTitle>
 					{confirmState?.isRunning && (
 						<AlertDialogDescription className='text-destructive'>
-							{dict.updateDialog?.downtimeWarning?.description}
+							{dict.updateDialog.downtimeWarning.description}
 						</AlertDialogDescription>
 					)}
 				</AlertDialogHeader>
 
 				<AlertDialogFooter>
 					<AlertDialogCancel className='hidden md:flex'>
-						{dict.common?.cancel}
+						{dict.common.cancel}
 					</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={() => {
@@ -70,7 +70,7 @@ export function UpdateConfirmDialog({
 							}
 						}}
 					>
-						{dict.updateDialog?.confirm}
+						{dict.updateDialog.confirm}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>
