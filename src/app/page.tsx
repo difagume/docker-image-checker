@@ -32,7 +32,7 @@ export default async function Dashboard() {
 				<div className='flex flex-col gap-2'>
 					{/* Fila superior: título + acciones */}
 					<div className='flex items-start justify-between'>
-						<h1 className='text-4xl font-bold tracking-tight text-white'>
+						<h1 className='text-4xl font-bold tracking-tight text-foreground'>
 							{dict.dashboard.title}
 						</h1>
 
@@ -43,13 +43,13 @@ export default async function Dashboard() {
 									<Button
 										variant='outline'
 										size='icon'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700 flex items-center gap-2 md:hidden'
+										className='hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
 									>
 										<LogOut className='h-4 w-4' />
 									</Button>
 									<Button
 										variant='outline'
-										className='bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700 items-center gap-2 hidden md:flex'
+										className='hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! items-center gap-2 hidden md:flex'
 									>
 										<LogOut className='h-4 w-4' />
 										{dict.login.logout}
@@ -64,7 +64,7 @@ export default async function Dashboard() {
 					</div>
 
 					{/* Fila inferior: descripción */}
-					<p className='text-neutral-400'>{dict.dashboard.description}</p>
+					<p className='text-muted-foreground'>{dict.dashboard.description}</p>
 				</div>
 
 				<Suspense
@@ -73,15 +73,15 @@ export default async function Dashboard() {
 							{Array.from({ length: 6 }).map((_, index) => (
 								<div
 									key={index.toString()}
-									className='rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 animate-pulse'
+									className='rounded-lg border border-border bg-muted/50 p-6 animate-pulse'
 								>
 									<div className='flex items-center justify-between mb-4'>
-										<div className='h-5 w-32 bg-neutral-800 rounded' />
-										<div className='h-5 w-16 bg-neutral-800 rounded' />
+										<div className='h-5 w-32 bg-muted rounded' />
+										<div className='h-5 w-16 bg-muted rounded' />
 									</div>
 									<div className='space-y-2'>
-										<div className='h-4 w-full bg-neutral-800/50 rounded' />
-										<div className='h-4 w-3/4 bg-neutral-800/50 rounded' />
+										<div className='h-4 w-full bg-muted/50 rounded' />
+										<div className='h-4 w-3/4 bg-muted/50 rounded' />
 									</div>
 								</div>
 							))}

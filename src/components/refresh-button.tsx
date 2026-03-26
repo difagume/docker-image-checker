@@ -28,10 +28,10 @@ export function RefreshButton() {
 			aria-busy={isLoading}
 			aria-label={isLoading ? 'Refreshing containers' : 'Refresh dashboard'}
 			className={cn(
-				'relative rounded-[3.5px] transition-all duration-300',
+				'relative',
 				isLoading
 					? 'border-blue-500/50 bg-blue-500/15 text-blue-100 shadow-[0_0_4px_rgba(59,130,246,0.45)] ring-1 ring-blue-500/30 animate-pulse disabled:opacity-100 hover:bg-blue-500/20'
-					: 'border-neutral-700 bg-neutral-800 text-white hover:bg-neutral-700 disabled:opacity-80'
+					: 'border-border bg-muted hover:bg-neutral-700! hover:text-neutral-950! hover:border-neutral-700! disabled:opacity-80'
 			)}
 		>
 			<RefreshCcw

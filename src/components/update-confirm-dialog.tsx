@@ -11,7 +11,6 @@ import {
 	AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
-import { cn } from '@/lib/utils'
 
 interface UpdateConfirmDialogProps {
 	confirmState: {
@@ -44,24 +43,19 @@ export function UpdateConfirmDialog({
 		>
 			<AlertDialogContent
 				aria-describedby='update-confir-dialog'
-				className='bg-neutral-900 border-neutral-800 text-neutral-50 max-w-sm'
+				className='max-w-sm'
 			>
 				<AlertDialogHeader>
-					<AlertDialogTitle className='text-white text-base'>
-						{dict.updateDialog?.title}
-					</AlertDialogTitle>
+					<AlertDialogTitle>{dict.updateDialog?.title}</AlertDialogTitle>
 					{confirmState?.isRunning && (
-						<AlertDialogDescription className='text-red-400'>
+						<AlertDialogDescription className='text-destructive'>
 							{dict.updateDialog?.downtimeWarning?.description}
 						</AlertDialogDescription>
 					)}
 				</AlertDialogHeader>
 
 				<AlertDialogFooter>
-					<AlertDialogCancel
-						variant='outline'
-						className='bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700 items-center gap-2 hidden md:flex'
-					>
+					<AlertDialogCancel className='hidden md:flex'>
 						{dict.common?.cancel}
 					</AlertDialogCancel>
 					<AlertDialogAction
@@ -75,11 +69,6 @@ export function UpdateConfirmDialog({
 								onClose()
 							}
 						}}
-						className={cn(
-							confirmState?.isRunning
-								? 'bg-amber-600 hover:bg-amber-700 text-white'
-								: 'bg-blue-600 hover:bg-blue-700 text-white'
-						)}
 					>
 						{dict.updateDialog?.confirm}
 					</AlertDialogAction>

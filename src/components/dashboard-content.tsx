@@ -122,7 +122,7 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 			/>
 
 			{containers.length === 0 && (
-				<div className='text-center py-20 text-neutral-500'>
+				<div className='text-center py-20 text-muted-foreground'>
 					{dict.dashboard.noContainers}
 				</div>
 			)}

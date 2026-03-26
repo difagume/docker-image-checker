@@ -63,6 +63,7 @@ import {
 import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
+import { cn } from '@/lib/utils'
 import type { FilterStatus } from '@/types/app-state'
 import { ReferenceUrlPopover } from './reference-url-popover'
 import { StatsSummary } from './stats-summary'
@@ -800,18 +801,18 @@ export function ContainerDashboard({
 
 			<div className='flex flex-col md:flex-row gap-4 items-center justify-between mb-8 md:mb-6'>
 				<div className='relative w-full shadow-sm'>
-					<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none' />
+					<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' />
 					<Input
 						placeholder={placeholder}
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						maxLength={70}
-						className={`pl-10 bg-neutral-900 border-neutral-800 text-neutral-200 placeholder:text-neutral-500 focus-visible:ring-1 focus-visible:ring-neutral-700 h-11 md:h-10 transition-all hover:border-neutral-700 rounded-[3.5px] ${
+						className={`pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-all hover:border-border rounded-[3.5px] ${
 							debouncedQuery ? 'pr-10 md:pr-48' : 'pr-10'
 						}`}
 					/>
 					{debouncedQuery && (
-						<span className='absolute right-9 top-1/2 -translate-y-1/2 text-xs text-neutral-500 font-medium hidden md:block pointer-events-none'>
+						<span className='absolute right-9 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium hidden md:block pointer-events-none'>
 							{dict.filter.showing.split('{count}')[0]}
 							<NumberFlow value={filteredContainers.length} />
 							{dict.filter.showing.split('{count}')[1].split('{total}')[0]}
@@ -826,7 +827,7 @@ export function ContainerDashboard({
 								setSearchQuery('')
 								setDebouncedQuery('')
 							}}
-							className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-neutral-500 hover:text-neutral-300 transition-colors rounded-full hover:bg-neutral-800/50'
+							className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted'
 							aria-label={dict.filter?.clearFilter || 'Clear'}
 						>
 							<X className='h-4 w-4' />
@@ -836,7 +837,7 @@ export function ContainerDashboard({
 
 				{debouncedQuery && (
 					<div className='w-full md:hidden text-center'>
-						<span className='text-sm text-neutral-500 font-medium'>
+						<span className='text-sm text-muted-foreground font-medium'>
 							{dict.filter.showing.split('{count}')[0]}
 							<NumberFlow value={filteredContainers.length} />
 							{dict.filter.showing.split('{count}')[1].split('{total}')[0]}
@@ -877,7 +878,7 @@ export function ContainerDashboard({
 
 						if (updateStatus === 'updated') {
 							updateStatusInfo = (
-								<span className='text-green-500 font-medium'>
+								<span className='text-primary font-medium'>
 									{dict.container.updated}
 								</span>
 							)
@@ -947,7 +948,7 @@ export function ContainerDashboard({
 												</TooltipTrigger>
 												<TooltipContent
 													side='left'
-													className='bg-neutral-800 border-neutral-700 text-neutral-200'
+													className='bg-popover text-popover-foreground border-border'
 												>
 													<p>
 														{new Date(lastUpdated).toLocaleString(
@@ -969,9 +970,9 @@ export function ContainerDashboard({
 											</Tooltip>
 										</TooltipProvider>
 									)}
-									<AlertAction className='w-full flex flex-col items-center -ml-3 gap-2'>
+									<AlertAction className='w-full flex flex-col items-center pt-1 -ml-3 gap-2'>
 										{updateError && updatingContainerId === container.Id ? (
-											<span className='text-xs text-red-400 text-center'>
+											<span className='text-xs text-destructive text-center'>
 												{updateError}
 											</span>
 										) : null}
@@ -988,11 +989,13 @@ export function ContainerDashboard({
 													isRunning
 												})
 											}}
-											className={`rounded-[3.5px] transition-colors ${
+											className={cn(
+												'transition-colors',
 												isNewMajor
-													? 'text-violet-400 focus:ring-violet-400'
-													: 'text-amber-400 focus:ring-amber-400'
-											} ${updatingContainerId === container.Id ? 'opacity-50' : ''}`}
+													? 'bg-transparent text-violet-400 border border-violet-500/50 hover:bg-violet-500/10'
+													: 'bg-transparent text-amber-400 border border-amber-500/50 hover:bg-amber-500/10',
+												updatingContainerId === container.Id ? 'opacity-50' : ''
+											)}
 										>
 											{updatingContainerId === container.Id ? (
 												<>
@@ -1017,7 +1020,7 @@ export function ContainerDashboard({
 							)
 						} else if (updateStatus === 'unknown') {
 							updateStatusInfo = (
-								<span className='text-neutral-500 font-medium'>
+								<span className='text-muted-foreground font-medium'>
 									{dict.container.unknown}
 								</span>
 							)
@@ -1026,7 +1029,7 @@ export function ContainerDashboard({
 								(dict.container as { checking?: string }).checking ??
 								'Checking...'
 							updateStatusInfo = (
-								<span className='text-neutral-400 font-medium flex items-center gap-1.5'>
+								<span className='text-muted-foreground font-medium flex items-center gap-1.5'>
 									<Loader2 className='h-3.5 w-3.5 animate-spin' />
 									{checkingLabel}
 								</span>
@@ -1045,7 +1048,7 @@ export function ContainerDashboard({
 								className='min-w-0'
 							>
 								<Card
-									className={`bg-neutral-900 rounded-[3.5px] border-neutral-800 text-neutral-50 h-full transition-all duration-300 overflow-hidden ${
+									className={`bg-card border-border text-card-foreground rounded-[3.5px] h-full transition-all duration-300 overflow-hidden ${
 										hasUpdateAvailable
 											? isNewMajor
 												? 'border-l-violet-500'
@@ -1055,7 +1058,7 @@ export function ContainerDashboard({
 								>
 									<CardHeader>
 										<div className='flex justify-between items-start gap-4'>
-											<CardTitle className='text-lg font-medium text-white wrap-anywhere break-normal flex items-start gap-2'>
+											<CardTitle className='text-lg font-medium text-foreground wrap-anywhere break-normal flex items-start gap-2'>
 												<span className='flex-1 line-clamp-3'>
 													{containerName}
 												</span>
@@ -1066,9 +1069,9 @@ export function ContainerDashboard({
 															onClick={() =>
 																toggleIgnoreNotification(container.Id)
 															}
-															className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 shrink-0 ${
+															className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
 																ignoredNotificationIds.includes(container.Id)
-																	? 'text-neutral-600 hover:text-neutral-400'
+																	? 'text-muted-foreground hover:text-foreground'
 																	: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
 															}`}
 															title={
@@ -1087,10 +1090,10 @@ export function ContainerDashboard({
 													<button
 														type='button'
 														onClick={() => toggleHideContainer(container.Id)}
-														className={`transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded p-0.5 shrink-0 ${
+														className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
 															hiddenContainerIds.includes(container.Id)
 																? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-																: 'text-neutral-600 hover:text-neutral-400'
+																: 'text-muted-foreground hover:text-foreground'
 														}`}
 														title={
 															hiddenContainerIds.includes(container.Id)
@@ -1121,45 +1124,45 @@ export function ContainerDashboard({
 										</div>
 									</CardHeader>
 									<CardContent>
-										<div className='space-y-2 text-sm text-neutral-300'>
+										<div className='space-y-2 text-sm text-foreground'>
 											<div className='flex justify-between items-center'>
-												<div className='flex items-center gap-1.5 text-neutral-500'>
+												<div className='flex items-center gap-1.5 text-muted-foreground'>
 													<Fingerprint className='h-3 w-3' />
 													<span className='font-medium text-xs'>
 														{dict.container.containerId}
 													</span>
 												</div>
-												<span className='text-xs text-neutral-400'>
+												<span className='text-xs text-muted-foreground'>
 													{container.Id.substring(0, 12)}
 												</span>
 											</div>
 											<div className='flex justify-between items-center'>
-												<div className='flex items-center gap-1.5 text-neutral-500'>
+												<div className='flex items-center gap-1.5 text-muted-foreground'>
 													<Server className='h-3 w-3' />
 													<span className='font-medium text-xs'>
 														{dict.common.ports}
 													</span>
 												</div>
-												<span className='text-xs text-neutral-400 truncate max-w-37.5'>
+												<span className='text-xs text-muted-foreground truncate max-w-37.5'>
 													{ports || '---'}
 												</span>
 											</div>
 											<div className='flex justify-between items-center'>
-												<div className='flex items-center gap-1.5 text-neutral-500'>
+												<div className='flex items-center gap-1.5 text-muted-foreground'>
 													<Activity className='h-3 w-3' />
 													<span className='font-medium text-xs'>
 														{dict.common.status}
 													</span>
 												</div>
-												<span className='text-xs text-neutral-400'>
+												<span className='text-xs text-muted-foreground'>
 													{container.Status}
 												</span>
 											</div>
-											<div className='pt-2 border-t border-neutral-800 mt-2 space-y-2'>
+											<div className='pt-2 border-t border-border mt-2 space-y-2'>
 												<div className='flex items-center justify-between'>
 													<div className='flex items-center gap-2'>
-														<Package className='h-4 w-4 text-neutral-500' />
-														<span className='text-white font-bold text-sm'>
+														<Package className='h-4 w-4 text-muted-foreground' />
+														<span className='text-foreground font-bold text-sm'>
 															{dict.container.image}:
 														</span>
 														<ReferenceUrlPopover
@@ -1184,22 +1187,22 @@ export function ContainerDashboard({
 															dict={dict.container}
 														/>
 													</div>
-													<span className='text-xs text-neutral-400'>
+													<span className='text-xs text-muted-foreground'>
 														{container.ImageID.substring(7, 19)}
 													</span>
 												</div>
 
 												<div className='space-y-1 pl-6 pt-1'>
-													<div className='text-neutral-300 pb-1'>
+													<div className='text-foreground pb-1'>
 														{container.Image.split(':')[0]}
 													</div>
 													<div className='flex items-center justify-between'>
-														<span className='text-neutral-500 font-medium text-xs'>
+														<span className='text-muted-foreground font-medium text-xs'>
 															{dict.container.currentVersion}
 														</span>
 														<Badge
 															variant='outline'
-															className='bg-neutral-800/80 text-neutral-400 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px]'
+															className='bg-muted text-muted-foreground border-border rounded-[3.5px] cursor-default max-w-[170px]'
 														>
 															<span className='truncate'>
 																{displayCurrentVersion}
@@ -1209,7 +1212,7 @@ export function ContainerDashboard({
 
 													{hasUpdateAvailable && (
 														<div className='flex items-center justify-between'>
-															<span className='text-neutral-500 font-medium text-xs'>
+															<span className='text-muted-foreground font-medium text-xs'>
 																{isNewMajor
 																	? dict.container.newMajorAvailable
 																	: displayCurrentVersion ===
@@ -1220,7 +1223,7 @@ export function ContainerDashboard({
 
 															<Badge
 																variant='outline'
-																className={`bg-neutral-800/80 border-neutral-700/50 rounded-[3.5px] cursor-default max-w-[170px] ${
+																className={`bg-muted border-border rounded-[3.5px] cursor-default max-w-[170px] ${
 																	isNewMajor
 																		? 'text-violet-500'
 																		: 'text-amber-500'
@@ -1253,7 +1256,7 @@ export function ContainerDashboard({
 						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: 10 }}
-						className='text-center py-20 text-neutral-500'
+						className='text-center py-20 text-muted-foreground'
 					>
 						{activeFilters.length === 0
 							? dict.dashboard.selectCategory

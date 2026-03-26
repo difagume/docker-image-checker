@@ -38,8 +38,8 @@ export function StatsSummary({
 				className={`flex items-center justify-between p-3 rounded-[3.5px] border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('updated')
-							? 'bg-neutral-800 border-green-500/50 ring-1 ring-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
-							: 'bg-neutral-900/40 border-neutral-800/60 opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:bg-neutral-900/60'
+							? 'bg-muted border-green-500/50 ring-1 ring-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
+							: 'bg-muted/40 border-border/60 opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:bg-muted/60'
 					}`}
 			>
 				<div className='flex items-center gap-3'>
@@ -47,14 +47,14 @@ export function StatsSummary({
 						<Check className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
-						className={`font-semibold text-sm ${isFilterActive('updated') ? 'text-white' : 'text-neutral-400'}`}
+						className={`font-semibold text-sm ${isFilterActive('updated') ? 'text-foreground' : 'text-muted-foreground'}`}
 					>
 						<NumberFlow value={updatedCount} />{' '}
 						{updatedCount === 1 ? dict.updatedImage : dict.updatedImages}
 					</span>
 				</div>
 				<div
-					className={`transition-all duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-neutral-600 group-hover:text-neutral-400'}`}
+					className={`transition-all duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('updated') ? (
 						<Eye className='h-4 w-4' />
@@ -71,8 +71,8 @@ export function StatsSummary({
 				className={`relative overflow-hidden flex items-center justify-between p-3 rounded-[3.5px] border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('available')
-							? 'bg-neutral-800 border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
-							: 'bg-neutral-900/40 border-neutral-800/60 opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:bg-neutral-900/60'
+							? 'bg-muted border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+							: 'bg-muted/40 border-border/60 opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:bg-muted/60'
 					}`}
 			>
 				{isFilterActive('available') && (
@@ -83,7 +83,7 @@ export function StatsSummary({
 						<ArrowUp className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
-						className={`font-semibold text-sm ${isFilterActive('available') ? 'text-amber-400' : 'text-neutral-400'}`}
+						className={`font-semibold text-sm ${isFilterActive('available') ? 'text-amber-400' : 'text-muted-foreground'}`}
 					>
 						<NumberFlow value={availableCount} />{' '}
 						{availableCount === 1
@@ -92,7 +92,7 @@ export function StatsSummary({
 					</span>
 				</div>
 				<div
-					className={`relative z-10 transition-all duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-neutral-600 group-hover:text-neutral-400'}`}
+					className={`relative z-10 transition-all duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('available') ? (
 						<Eye className='h-4 w-4' />
@@ -109,23 +109,23 @@ export function StatsSummary({
 				className={`flex items-center justify-between p-3 rounded-[3.5px] border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('unknown')
-							? 'bg-neutral-800 border-neutral-500/50 ring-1 ring-neutral-500/20 shadow-[0_0_15px_rgba(115,115,115,0.1)]'
-							: 'bg-neutral-900/40 border-neutral-800/60 opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:bg-neutral-900/60'
+							? 'bg-muted border-muted-foreground/50 ring-1 ring-muted-foreground/20 shadow-[0_0_15px_rgba(115,115,115,0.1)]'
+							: 'bg-muted/40 border-border/60 opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:bg-muted/60'
 					}`}
 			>
 				<div className='flex items-center gap-3'>
-					<div className='bg-neutral-800 text-neutral-400 p-2 rounded-[3.5px] border border-neutral-700/50 shrink-0'>
+					<div className='bg-muted text-muted-foreground p-2 rounded-[3.5px] border border-border/50 shrink-0'>
 						<HelpCircle className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
-						className={`font-semibold text-sm ${isFilterActive('unknown') ? 'text-neutral-200' : 'text-neutral-500'}`}
+						className={`font-semibold text-sm ${isFilterActive('unknown') ? 'text-foreground' : 'text-muted-foreground'}`}
 					>
 						<NumberFlow value={unknownCount} />{' '}
 						{unknownCount === 1 ? dict.unknownImage : dict.unknownImages}
 					</span>
 				</div>
 				<div
-					className={`transition-all duration-300 ${isFilterActive('unknown') ? 'text-neutral-400' : 'text-neutral-600 group-hover:text-neutral-400'}`}
+					className={`transition-all duration-300 ${isFilterActive('unknown') ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('unknown') ? (
 						<Eye className='h-4 w-4' />
@@ -142,7 +142,7 @@ export function StatsSummary({
 					className={`flex items-center gap-2 px-3 py-1.5 rounded-[3.5px] text-xs font-medium transition-all ${
 						showHiddenMode
 							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
-							: 'text-neutral-500 hover:text-neutral-400 border border-transparent'
+							: 'text-muted-foreground hover:text-foreground border border-transparent'
 					}`}
 					title={
 						showHiddenMode
