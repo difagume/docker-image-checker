@@ -21,7 +21,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DOCKER_HOST=http://docker-proxy:2375
+      - DOCKER_HOST=tcp://docker-proxy:2375
       - TZ=America/Guayaquil
     depends_on:
       - docker-proxy

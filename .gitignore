@@ -40,6 +40,7 @@ yarn-error.log*
 .agent
 .qoder
 .roo
+.atl
 
 # typescript
 *.tsbuildinfo

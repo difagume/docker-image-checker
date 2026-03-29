@@ -2,8 +2,6 @@
 	"common": {
 		"ports": "Portas",
 		"status": "Status",
-		"latest": "latest",
-		"unknown": "Desconhecido",
 		"cancel": "Cancelar"
 	},
 	"alerts": {
@@ -40,7 +38,6 @@
 		"currentVersion": "Versão atual",
 		"newVersion": "Nova versão",
 		"newBuild": "Nova compilação",
-		"debugJson": "Depurar JSON",
 		"update": "Atualizar",
 		"updating": "Atualizando...",
 		"states": {
@@ -68,7 +65,6 @@
 		"updatedImages": "Imagens atualizadas",
 		"updateAvailable": "Atualização disponível",
 		"updatesAvailable": "Atualizações disponíveis",
-		"newMajorAvailable": "Nova versão major disponível",
 		"unknownImage": "Imagem desconhecida/local",
 		"unknownImages": "Imagens desconhecidas/locais",
 		"hideMarkedContainers": "Ocultar contêineres marcados",
