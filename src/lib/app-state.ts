@@ -54,7 +54,6 @@ export async function saveState(state: NotificationState): Promise<void> {
 
 		// Write state to file
 		await fs.writeFile(STATE_FILE_PATH, JSON.stringify(state, null, 2), 'utf-8')
-		console.log('App state saved successfully')
 	} catch (error) {
 		const err = error as NodeJS.ErrnoException
 		if (err.code === 'EACCES') {

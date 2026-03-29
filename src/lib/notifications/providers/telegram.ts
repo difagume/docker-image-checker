@@ -3,6 +3,7 @@ import type {
 	NotificationMessage,
 	NotificationTranslations
 } from '@/types/app-state'
+import { storeCallbackData } from '../notification-callbacks'
 import { BaseNotificationProvider } from './base'
 
 export class TelegramNotificationProvider extends BaseNotificationProvider {
@@ -46,9 +47,28 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 			if (!this.chatId) {
 				throw new Error('Chat ID not configured')
 			}
+
+			const t = message.translations as NotificationTranslations
+			// Store callback data in memory and use a short ID to fit Telegram's 64-byte limit
+			const shortId = storeCallbackData(
+				message.containerId,
+				message.fullImageName,
+				message.locale || 'en'
+			)
+			const callbackData = `u:${shortId}`
+			const inlineKeyboard = [
+				[
+					{
+						text: t.update,
+						callback_data: callbackData
+					}
+				]
+			]
+
 			await this.bot.sendMessage(this.chatId, text, {
 				parse_mode: 'Markdown',
-				disable_web_page_preview: false
+				disable_web_page_preview: true,
+				reply_markup: { inline_keyboard: inlineKeyboard }
 			})
 			console.log(`📨 Telegram notification sent for ${message.containerName}`)
 		} catch (error) {

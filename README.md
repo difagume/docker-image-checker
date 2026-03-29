@@ -172,6 +172,7 @@ La aplicación incluye un sistema de notificaciones configurable para alertar so
 - **Sincronización de idioma**: Notificaciones en el idioma de tu navegador o configurables por variable de entorno.
 - **Exclusión inteligente**: No notifica sobre contenedores que hayas marcado como ocultos en el dashboard.
 - **Deduplicación**: Evita alertas repetitivas para la misma actualización.
+- **Actualización desde Telegram**: Botones interactivos para actualizar contenedores directamente desde las notificaciones.
 
 ### Variables de Entorno
 
@@ -185,6 +186,8 @@ La aplicación incluye un sistema de notificaciones configurable para alertar so
 - `TELEGRAM_ENABLED`: Habilitar notificaciones Telegram
 - `TELEGRAM_BOT_TOKEN`: Token del bot de Telegram (@BotFather)
 - `TELEGRAM_CHAT_ID`: Chat ID para notificaciones
+- `TELEGRAM_WEBHOOK_SECRET`: (Opcional) Token secreto para validar webhooks
+- `TELEGRAM_WEBHOOK_URL`: (Opcional) URL pública del webhook para botones de actualización
 
 #### ntfy
 - `NTFY_ENABLED`: Habilitar notificaciones ntfy
@@ -195,6 +198,109 @@ La aplicación incluye un sistema de notificaciones configurable para alertar so
 #### Discord
 - `DISCORD_ENABLED`: Habilitar notificaciones Discord
 - `DISCORD_WEBHOOK_URL`: URL del webhook de Discord
+
+### Botones de Actualización en Telegram
+
+Las notificaciones de Telegram incluyen un botón **"Actualizar"** que permite actualizar el contenedor directamente desde la notificación, sin necesidad de acceder al dashboard.
+
+#### Requisitos
+- **HTTPS**: El webhook de Telegram requiere una URL pública con SSL (no funciona con HTTP local)
+- **Variables de entorno requeridas**:
+  - `TELEGRAM_WEBHOOK_SECRET`: Genera una cadena segura (ej: `openssl rand -hex 32`)
+  - `TELEGRAM_WEBHOOK_URL`: Tu URL pública (ej: `https://tu-dominio.com`)
+
+#### Configuración del Webhook de Telegram
+
+Telegram necesita saber a qué URL enviar los eventos del bot (por ejemplo, cuando un usuario presiona el botón de actualización). Esto se configura **una sola vez** usando la API de Telegram.
+
+##### Requisitos previos
+
+Antes de configurar el webhook, asegúrate de tener:
+- `TELEGRAM_WEBHOOK_SECRET`: Una cadena segura (generala con `openssl rand -hex 32`)
+- La variable debe estar configurada en tu entorno de producción
+
+##### Instrucciones para configurar el webhook con curl
+
+**Importante**: Debes incluir el `secret` como parámetro de query en la URL del webhook:
+
+```bash
+curl -X POST https://api.telegram.org/bot<BOT_TOKEN>/setWebhook \
+-d "url=https://YOUR_DOMAIN/api/telegram/webhook?secret=YOUR_SECRET"
+```
+
+Ejemplo:
+
+```
+curl -X POST https://api.telegram.org/bot123456:ABCDEF/setWebhook \
+-d "url=https://myapp.com/api/telegram/webhook?secret=mi_secret_seguro"
+```
+
+##### Configuración alternativa usando el navegador
+
+También puedes configurar el webhook abriendo esta URL en el navegador. **Nota**: Debes codificar la URL (el `?` se convierte en `%3F`):
+
+```
+https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://YOUR_DOMAIN/api/telegram/webhook%3Fsecret=YOUR_SECRET
+https://api.telegram.org/bot8428896046:AAERqoogblzXTz-nWREb-twoblRVcrpbjKM/setWebhook?url=https://owsye-201-183-59-20.a.free.pinggy.link/api/telegram/webhook%3Fsecret=2c2cb8adc0762fa8045993fed1a99c9755eb049d4e6297f00b416b3c5ffc4e7c
+```
+
+Si todo funciona correctamente Telegram responderá con:
+
+```json
+{
+  "ok": true,
+  "result": true,
+  "description": "Webhook was set"
+}
+```
+
+##### Verificar que el webhook quedó configurado
+
+Para verificar la configuración, abre en tu navegador o ejecuta:
+
+```
+https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo
+```
+
+La respuesta debería incluir:
+
+```json
+{
+  "ok": true,
+  "result": {
+    "url": "https://YOUR_DOMAIN/api/telegram/webhook?secret=YOUR_SECRET",
+    "pending_update_count": 0
+  }
+}
+```
+
+Confirma que:
+- El campo `url` incluye el parámetro `secret`
+- `ok` es `true`
+
+##### Solución de problemas
+
+Si en los logs ves el error **"Invalid or missing secret"**:
+1. Verifica que `TELEGRAM_WEBHOOK_SECRET` esté configurado en tus variables de entorno
+2. Asegúrate de que el secret en la URL del webhook coincida exactamente (sin espacios ni caracteres extra)
+3. Confirma que la URL del webhook tenga el formato `?secret=TU_SECRET` al final
+
+> [!IMPORTANT]
+> El webhook solo necesita configurarse una vez. Solo será necesario configurarlo nuevamente si:
+> - Cambia el dominio de la aplicación
+> - Cambia la ruta del webhook
+> - Cambia el secret
+> - Se elimina el webhook desde Telegram
+> - Se crea un bot nuevo
+
+#### Uso
+
+1. Cuando se detecta una actualización disponible, recibirás una notificación de Telegram con un botón **"Actualizar"**
+2. Haz clic en el botón
+3. El bot mostrará el estado de la actualización:
+   - ⏳ "Actualizando..." mientras procesa
+   - ✅ "Actualizado" si fue exitoso
+   - ❌ "Error" si falló (sin detalles técnicos)
 
 Para detalles adicionales sobre configuración y despliegue, consulta la [Documentación de Notificaciones](NOTIFICATIONS.md).
 

@@ -36,6 +36,7 @@ import {
 } from '@/actions/container-cache'
 import {
 	checkImagesUpdatesBatch,
+	clearContainerCallbacks,
 	updateContainerImage,
 	verifyContainerUpdate
 } from '@/actions/docker'
@@ -656,6 +657,10 @@ export function ContainerDashboard({
 			const result = await updateContainerImage(containerId, imageName)
 
 			if (result.success) {
+				// Clear any pending Telegram callback buttons for this container
+				// to avoid confusion if user tries to update again from an old notification
+				await clearContainerCallbacks(containerId)
+
 				// Verify if there's still an update available after the upgrade
 				const updateInfo = await verifyContainerUpdate(imageName)
 

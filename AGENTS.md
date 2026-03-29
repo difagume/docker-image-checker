@@ -135,6 +135,8 @@ This project currently does not have a test suite configured. When adding tests,
 - `TELEGRAM_ENABLED`: Enable Telegram notifications
 - `TELEGRAM_BOT_TOKEN`: Telegram bot token from @BotFather
 - `TELEGRAM_CHAT_ID`: Chat ID for notifications
+- `TELEGRAM_WEBHOOK_SECRET`: Secret token for webhook validation (generate a random string)
+- `TELEGRAM_WEBHOOK_URL`: Public HTTPS URL for the webhook (e.g., https://yourdomain.com/api/telegram/webhook)
 - `NTFY_ENABLED`: Enable ntfy notifications
 - `NTFY_TOPIC`: ntfy topic name
 - `NTFY_SERVER`: Optional custom ntfy server (default: https://ntfy.sh)
@@ -178,6 +180,33 @@ The application includes a configurable notification system for Docker image upd
 ### Health Check
 - Check notification system status at `/api/notifications/health`
 - Trigger manual check with POST to `/api/notifications/check`
+
+## Telegram Inline Update Buttons
+
+To enable update buttons in Telegram notifications:
+
+1. Set environment variables:
+   - `TELEGRAM_WEBHOOK_SECRET` (generate a random secure string)
+   - `TELEGRAM_WEBHOOK_URL` (your public HTTPS URL - optional, for reference only)
+
+2. Register the webhook using the Telegram API. **Important**: You MUST include the secret as a query parameter in the webhook URL:
+   ```bash
+   curl -X POST https://api.telegram.org/bot<BOT_TOKEN>/setWebhook \
+   -d "url=https://YOUR_DOMAIN/api/telegram/webhook?secret=YOUR_SECRET"
+   ```
+
+   Or open in browser (note: URL-encode the `?` as `%3F`):
+   ```
+   https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://YOUR_DOMAIN/api/telegram/webhook%3Fsecret=YOUR_SECRET
+   ```
+
+3. When users receive update notifications, they'll see an "Actualizar" button.
+   Clicking it will update the container and send a confirmation message.
+
+**Troubleshooting**: If you see "Invalid or missing secret" in logs:
+- Verify `TELEGRAM_WEBHOOK_SECRET` is set in your environment variables
+- Make sure the secret in the webhook URL matches exactly (no extra spaces or characters)
+- Check that the URL format includes `?secret=YOUR_SECRET` at the end
 
 ## Docker Deployment
 

@@ -2,8 +2,6 @@
 	"common": {
 		"ports": "Puertos",
 		"status": "Estado",
-		"latest": "latest",
-		"unknown": "Desconocido",
 		"cancel": "Cancelar"
 	},
 	"alerts": {
@@ -40,7 +38,6 @@
 		"currentVersion": "Versión Actual",
 		"newVersion": "Nueva Versión",
 		"newBuild": "Nueva Compilación",
-		"debugJson": "Depurar JSON",
 		"update": "Actualizar",
 		"updating": "Actualizando...",
 		"states": {
@@ -111,7 +108,11 @@
 		"latest": "Última",
 		"updated": "Actualizado",
 		"viewReference": "Ver referencia",
-		"viewOnRegistry": "Ver en el registro"
+		"viewOnRegistry": "Ver en el registro",
+		"update": "Actualizar",
+		"updating": "🔄 Actualizando...",
+		"updateStatusSuccess": "Estado: ✅ Actualizado correctamente",
+		"updateStatusError": "Estado: ❌ Error al actualizar"
 	},
 	"updateDialog": {
 		"title": "Actualizar Imagen del Contenedor",
@@ -123,5 +124,9 @@
 	"toast": {
 		"updateSuccess": "{container} actualizado a {version}",
 		"updateError": "Error al actualizar {container}"
+	},
+	"webhook": {
+		"updateAlreadyUpToDate": "ℹ️ La imagen ya está actualizada",
+		"updateInProgress": "⏳ Actualización en progreso. Por favor espera."
 	}
 }

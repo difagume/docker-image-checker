@@ -19,7 +19,7 @@ function fetchWithTimeout(
 	timeout = FETCH_TIMEOUT
 ): Promise<Response> {
 	const startTime = Date.now()
-	console.log(`[Docker API] Starting fetch: ${url}`)
+	// console.log(`[Docker API] Starting fetch: ${url}`)
 
 	let timeoutId: NodeJS.Timeout | null = null
 
@@ -333,6 +333,7 @@ export async function updateContainerImage(
 	success: boolean
 	error?: string
 	newContainerId?: string
+	alreadyUpToDate?: boolean
 }> {
 	try {
 		const container = docker.getContainer(containerId)
@@ -344,9 +345,31 @@ export async function updateContainerImage(
 		const networkingConfig = containerInfo.NetworkSettings
 		const name = containerInfo.Name.replace(/^\//, '')
 
+		const currentImage = config.Image
+
+		// Normalize image names for comparison (handle sha256 digests)
+		const normalizeImageName = (img: string) => {
+			// Remove sha256 prefix if present
+			return img.replace(/^sha256:/, '').toLowerCase()
+		}
+
+		const currentNormalized = normalizeImageName(currentImage)
+		const newNormalized = normalizeImageName(newImageName)
+
 		console.log(
-			`[Image Update] Starting update for container ${containerId}: ${config.Image} -> ${newImageName}`
+			`[Image Update] Starting update for container ${containerId}: ${currentImage} -> ${newImageName}`
 		)
+
+		// Check if already up to date (comparing normalized names)
+		if (currentNormalized === newNormalized) {
+			console.log(
+				`[Image Update] Container ${containerId} already uses image ${newImageName}`
+			)
+			return {
+				success: true,
+				alreadyUpToDate: true
+			}
+		}
 
 		if (wasRunning) {
 			console.log(
@@ -542,5 +565,27 @@ export async function verifyContainerUpdate(imageName: string): Promise<{
 	} catch (error) {
 		console.error(`[Docker] Failed to verify update for ${imageName}:`, error)
 		return { hasUpdate: false }
+	}
+}
+
+/**
+ * Clear notification callbacks for a container
+ * Call this after updating a container from the web UI
+ * to invalidate any pending Telegram update buttons
+ */
+export async function clearContainerCallbacks(
+	containerId: string
+): Promise<number> {
+	try {
+		const { removeCallbacksByContainerId } = await import(
+			'@/lib/notifications/notification-callbacks'
+		)
+		return removeCallbacksByContainerId(containerId)
+	} catch (error) {
+		console.error(
+			`[Docker] Failed to clear callbacks for container ${containerId}:`,
+			error
+		)
+		return 0
 	}
 }

@@ -2,8 +2,6 @@
 	"common": {
 		"ports": "Ports",
 		"status": "Status",
-		"latest": "latest",
-		"unknown": "Unknown",
 		"cancel": "Cancel"
 	},
 	"alerts": {
@@ -40,7 +38,6 @@
 		"currentVersion": "Current Version",
 		"newVersion": "New Version",
 		"newBuild": "New Build",
-		"debugJson": "Debug JSON",
 		"update": "Update",
 		"updating": "Updating...",
 		"states": {
@@ -111,7 +108,11 @@
 		"latest": "Latest",
 		"updated": "Updated",
 		"viewReference": "View reference",
-		"viewOnRegistry": "View on Registry"
+		"viewOnRegistry": "View on Registry",
+		"update": "Update",
+		"updating": "🔄 Updating...",
+		"updateStatusSuccess": "Status: ✅ Updated successfully",
+		"updateStatusError": "Status: ❌ Update failed"
 	},
 	"updateDialog": {
 		"title": "Update Container Image",
@@ -123,5 +124,9 @@
 	"toast": {
 		"updateSuccess": "{container} updated to {version}",
 		"updateError": "Failed to update {container}"
+	},
+	"webhook": {
+		"updateAlreadyUpToDate": "ℹ️ Image is already up to date",
+		"updateInProgress": "⏳ Update already in progress. Please wait."
 	}
 }
