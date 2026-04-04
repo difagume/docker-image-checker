@@ -1,6 +1,31 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
 
-export function proxy(request: NextRequest) {
+async function checkAuth() {
+	const htpasswd = process.env.AUTH_HTPASSWD
+	if (!htpasswd) return { authenticated: true, required: false }
+
+	const session = await getSession()
+	return {
+		authenticated: session.isLoggedIn,
+		required: true
+	}
+}
+
+export async function proxy(request: NextRequest) {
+	const { authenticated, required } = await checkAuth()
+	const pathname = request.nextUrl.pathname
+
+	if (!required) return NextResponse.next()
+
+	if (!authenticated && pathname !== '/login') {
+		return NextResponse.redirect(new URL('/login', request.url))
+	}
+
+	if (authenticated && pathname === '/login') {
+		return NextResponse.redirect(new URL('/', request.url))
+	}
+
 	const isDev = process.env.NODE_ENV !== 'production'
 	const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
 	const cspHeader = `
@@ -16,7 +41,6 @@ export function proxy(request: NextRequest) {
 	    frame-ancestors 'none';
 	    upgrade-insecure-requests;
 	  `
-	// Replace newline characters and spaces
 	const contentSecurityPolicyHeaderValue = cspHeader
 		.replace(/\s{2,}/g, ' ')
 		.trim()
@@ -43,15 +67,9 @@ export function proxy(request: NextRequest) {
 
 export const config = {
 	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - api (API routes)
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 */
 		{
-			source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+			source:
+				'/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)',
 			missing: [
 				{ type: 'header', key: 'next-router-prefetch' },
 				{ type: 'header', key: 'purpose', value: 'prefetch' }
