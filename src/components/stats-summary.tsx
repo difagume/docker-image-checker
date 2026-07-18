@@ -35,6 +35,7 @@ export function StatsSummary({
 			<button
 				type='button'
 				onClick={() => onToggleFilter('updated')}
+				aria-pressed={isFilterActive('updated')}
 				className={`flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('updated')
@@ -44,7 +45,7 @@ export function StatsSummary({
 			>
 				<div className='flex items-center gap-3'>
 					<div className='bg-green-950/30 text-green-500 p-2 rounded-md border border-green-500/20 shrink-0'>
-						<Check className='h-4 w-4' strokeWidth={3} />
+						<Check className='h-4 w-4' strokeWidth={3} aria-hidden='true' />
 					</div>
 					<span
 						className={`font-semibold text-sm ${isFilterActive('updated') ? 'text-foreground' : 'text-muted-foreground'}`}
@@ -57,17 +58,18 @@ export function StatsSummary({
 					className={`transition-all duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('updated') ? (
-						<Eye className='h-4 w-4' />
-					) : (
-						<EyeOff className='h-4 w-4' />
-					)}
-				</div>
-			</button>
+<Eye className='h-4 w-4' aria-hidden='true' />
+		) : (
+			<EyeOff className='h-4 w-4' aria-hidden='true' />
+		)}
+	</div>
+</button>
 
-			{/* Available Card with Gradient */}
+{/* Available Card with Gradient */}
 			<button
 				type='button'
 				onClick={() => onToggleFilter('available')}
+				aria-pressed={isFilterActive('available')}
 				className={`relative overflow-hidden flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('available')
@@ -80,7 +82,7 @@ export function StatsSummary({
 				)}
 				<div className='flex items-center gap-3 relative z-10'>
 					<div className='bg-amber-950/40 text-amber-500 p-2 rounded-md border border-amber-500/20 shrink-0'>
-						<ArrowUp className='h-4 w-4' strokeWidth={3} />
+						<ArrowUp className='h-4 w-4' strokeWidth={3} aria-hidden='true' />
 					</div>
 					<span
 						className={`font-semibold text-sm ${isFilterActive('available') ? 'text-amber-400' : 'text-muted-foreground'}`}
@@ -95,9 +97,9 @@ export function StatsSummary({
 					className={`relative z-10 transition-all duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('available') ? (
-						<Eye className='h-4 w-4' />
+						<Eye className='h-4 w-4' aria-hidden='true' />
 					) : (
-						<EyeOff className='h-4 w-4' />
+						<EyeOff className='h-4 w-4' aria-hidden='true' />
 					)}
 				</div>
 			</button>
@@ -106,6 +108,7 @@ export function StatsSummary({
 			<button
 				type='button'
 				onClick={() => onToggleFilter('unknown')}
+				aria-pressed={isFilterActive('unknown')}
 				className={`flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('unknown')
@@ -115,7 +118,7 @@ export function StatsSummary({
 			>
 				<div className='flex items-center gap-3'>
 					<div className='bg-muted text-muted-foreground p-2 rounded-md border border-border/50 shrink-0'>
-						<HelpCircle className='h-4 w-4' strokeWidth={3} />
+						<HelpCircle className='h-4 w-4' strokeWidth={3} aria-hidden='true' />
 					</div>
 					<span
 						className={`font-semibold text-sm ${isFilterActive('unknown') ? 'text-foreground' : 'text-muted-foreground'}`}
@@ -128,9 +131,9 @@ export function StatsSummary({
 					className={`transition-all duration-300 ${isFilterActive('unknown') ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('unknown') ? (
-						<Eye className='h-4 w-4' />
+						<Eye className='h-4 w-4' aria-hidden='true' />
 					) : (
-						<EyeOff className='h-4 w-4' />
+						<EyeOff className='h-4 w-4' aria-hidden='true' />
 					)}
 				</div>
 			</button>
@@ -139,6 +142,7 @@ export function StatsSummary({
 				<button
 					type='button'
 					onClick={onToggleShowHidden}
+					aria-pressed={showHiddenMode}
 					className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
 						showHiddenMode
 							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
@@ -151,9 +155,9 @@ export function StatsSummary({
 					}
 				>
 					{showHiddenMode ? (
-						<Eye className='h-3.5 w-3.5' />
+						<Eye className='h-3.5 w-3.5' aria-hidden='true' />
 					) : (
-						<EyeOff className='h-3.5 w-3.5' />
+						<EyeOff className='h-3.5 w-3.5' aria-hidden='true' />
 					)}
 					{showHiddenMode ? dict.viewingHidden : dict.hiddenManagement}
 				</button>

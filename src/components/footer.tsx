@@ -11,8 +11,9 @@ export function Footer() {
 				rel='noopener noreferrer'
 				className='text-muted-foreground opacity-60 hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95'
 				title='View project on GitHub'
+				aria-label='View project on GitHub (opens in new tab)'
 			>
-				<Github size={20} />
+				<Github size={20} aria-hidden='true' />
 			</a>
 		</footer>
 	)

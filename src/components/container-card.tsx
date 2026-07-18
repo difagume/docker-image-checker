@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
 	Activity,
 	ArrowUpCircle,
@@ -101,6 +101,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 		policyState
 	} = item
 
+	const prefersReducedMotion = useReducedMotion()
 	const hasUpdateAvailable = updateStatus === 'available'
 	const isNewMajor = policyState === 'NEW_MAJOR_VERSION_AVAILABLE'
 
@@ -127,9 +128,9 @@ export const ContainerCard = React.memo(function ContainerCard({
 				}`}
 			>
 				{isNewMajor ? (
-					<Zap className='h-4 w-4 text-violet-400!' />
+					<Zap className='h-4 w-4 text-violet-400!' aria-hidden='true' />
 				) : (
-					<ArrowUpCircle className='h-4 w-4 text-amber-400!' />
+					<ArrowUpCircle className='h-4 w-4 text-amber-400!' aria-hidden='true' />
 				)}
 				{dockerHubUrl ? (
 					<a
@@ -137,6 +138,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 						target='_blank'
 						rel='noopener noreferrer'
 						className='hover:underline'
+						aria-label={`${isNewMajor ? dict.container.newMajorAvailable : dict.container.updateAvailable} (opens in new tab)`}
 					>
 						<AlertTitle
 							className={`font-bold text-sm mb-0 flex items-center gap-1.5 ${
@@ -146,7 +148,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 							{isNewMajor
 								? dict.container.newMajorAvailable
 								: dict.container.updateAvailable}
-							<ExternalLink className='h-3.5 w-3.5' />
+							<ExternalLink className='h-3.5 w-3.5' aria-hidden='true' />
 						</AlertTitle>
 					</a>
 				) : (
@@ -169,7 +171,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 										isNewMajor ? 'text-violet-300/80' : 'text-amber-300/80'
 									}`}
 								>
-									<Clock className='h-3 w-3' />
+									<Clock className='h-3 w-3' aria-hidden='true' />
 									<span className='text-xs'>
 										{formatRelativeTime(new Date(lastUpdated), dict, locale)}
 									</span>
@@ -228,12 +230,12 @@ export const ContainerCard = React.memo(function ContainerCard({
 					>
 						{updatingContainerId === container.Id ? (
 							<>
-								<Loader2 className='mr-1 h-3 w-3 animate-spin' />
+								<Loader2 className='mr-1 h-3 w-3 animate-spin' aria-hidden='true' />
 								{dict.container.updating}
 							</>
 						) : (
 							<>
-								<Download className='mr-1 h-3 w-3' />
+								<Download className='mr-1 h-3 w-3' aria-hidden='true' />
 								{dict.container.update}
 							</>
 						)}
@@ -257,7 +259,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 		const checkingLabel = dict.container.checking
 		updateStatusInfo = (
 			<span className='text-muted-foreground font-medium flex items-center gap-1.5'>
-				<Loader2 className='h-3.5 w-3.5 animate-spin' />
+				<Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
 				{checkingLabel}
 			</span>
 		)
@@ -266,12 +268,12 @@ export const ContainerCard = React.memo(function ContainerCard({
 	return (
 		<motion.div
 			key={container.Id}
-			layout
-			variants={cardVariants}
-			initial='initial'
-			animate='animate'
-			exit='exit'
-			transition={{ duration: 0.25, ease: 'easeOut' }}
+			layout={prefersReducedMotion ? false : true}
+			variants={prefersReducedMotion ? undefined : cardVariants}
+			initial={prefersReducedMotion ? undefined : 'initial'}
+			animate={prefersReducedMotion ? undefined : 'animate'}
+			exit={prefersReducedMotion ? undefined : 'exit'}
+			transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
 			className='min-w-0'
 		>
 			<Card
@@ -289,24 +291,29 @@ export const ContainerCard = React.memo(function ContainerCard({
 							<span className='flex-1 line-clamp-3'>{containerName}</span>
 							<div className='flex items-center gap-1 mt-1'>
 								{notificationsEnabled && (
-									<button
-										type='button'
-										onClick={() => onToggleIgnoreNotification(container.Id)}
-										className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
-											ignoredNotificationIds.includes(container.Id)
-												? 'text-muted-foreground hover:text-foreground'
-												: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
-										}`}
-										title={
-											ignoredNotificationIds.includes(container.Id)
-												? dict.container.enableNotifications
-												: dict.container.disableNotifications
-										}
-									>
+								<button
+									type='button'
+									onClick={() => onToggleIgnoreNotification(container.Id)}
+									className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
+										ignoredNotificationIds.includes(container.Id)
+											? 'text-muted-foreground hover:text-foreground'
+											: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
+									}`}
+									title={
+										ignoredNotificationIds.includes(container.Id)
+											? dict.container.enableNotifications
+											: dict.container.disableNotifications
+									}
+									aria-label={
+										ignoredNotificationIds.includes(container.Id)
+											? dict.container.enableNotifications
+											: dict.container.disableNotifications
+									}
+								>
 										{ignoredNotificationIds.includes(container.Id) ? (
-											<BellOff className='h-3.5 w-3.5' />
+											<BellOff className='h-3.5 w-3.5' aria-hidden='true' />
 										) : (
-											<Bell className='h-3.5 w-3.5' />
+											<Bell className='h-3.5 w-3.5' aria-hidden='true' />
 										)}
 									</button>
 								)}
@@ -323,11 +330,16 @@ export const ContainerCard = React.memo(function ContainerCard({
 											? dict.container.showContainer
 											: dict.container.hideContainer
 									}
+									aria-label={
+										hiddenContainerIds.includes(container.Id)
+											? dict.container.showContainer
+											: dict.container.hideContainer
+									}
 								>
 									{hiddenContainerIds.includes(container.Id) ? (
-										<Eye className='h-3.5 w-3.5' />
+										<Eye className='h-3.5 w-3.5' aria-hidden='true' />
 									) : (
-										<EyeOff className='h-3.5 w-3.5' />
+										<EyeOff className='h-3.5 w-3.5' aria-hidden='true' />
 									)}
 								</button>
 							</div>
@@ -350,7 +362,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 					<div className='space-y-2 text-sm text-foreground'>
 						<div className='flex justify-between items-center'>
 							<div className='flex items-center gap-1.5 text-muted-foreground'>
-								<Fingerprint className='h-3 w-3' />
+								<Fingerprint className='h-3 w-3' aria-hidden='true' />
 								<span className='font-semibold tracking-wider text-[11px]'>
 									{dict.container.containerId}
 								</span>
@@ -361,7 +373,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 						</div>
 						<div className='flex justify-between items-center'>
 							<div className='flex items-center gap-1.5 text-muted-foreground'>
-								<Server className='h-3 w-3' />
+								<Server className='h-3 w-3' aria-hidden='true' />
 								<span className='font-semibold tracking-wider text-[11px]'>
 									{dict.common.ports}
 								</span>
@@ -372,7 +384,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 						</div>
 						<div className='flex justify-between items-center'>
 							<div className='flex items-center gap-1.5 text-muted-foreground'>
-								<Activity className='h-3 w-3' />
+								<Activity className='h-3 w-3' aria-hidden='true' />
 								<span className='font-semibold tracking-wider text-[11px]'>
 									{dict.common.status}
 								</span>
@@ -384,7 +396,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 						<div className='pt-2 border-t border-border mt-2 space-y-2'>
 							<div className='flex items-center justify-between'>
 								<div className='flex items-center gap-2'>
-									<Package className='h-4 w-4 text-muted-foreground' />
+									<Package className='h-4 w-4 text-muted-foreground' aria-hidden='true' />
 									<span className='text-foreground font-bold text-sm'>
 										{dict.container.image}:
 									</span>

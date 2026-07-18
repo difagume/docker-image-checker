@@ -111,7 +111,10 @@ export default function LoginForm({ dict }: LoginFormProps) {
 						</div>
 
 						{error && (
-							<div className='h-9 flex items-center rounded-md border border-red-800 bg-red-950/40 px-3 text-sm leading-none text-red-400'>
+							<div
+								role='alert'
+								className='h-9 flex items-center rounded-md border border-red-800 bg-red-950/40 px-3 text-sm leading-none text-red-400'
+							>
 								{error}
 							</div>
 						)}

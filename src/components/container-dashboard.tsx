@@ -1,6 +1,6 @@
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import {
 	getHiddenContainerIdsAction,
@@ -68,6 +68,8 @@ export function ContainerDashboard({
 		newVersion: string
 		isRunning: boolean
 	} | null>(null)
+
+	const prefersReducedMotion = useReducedMotion()
 
 	const { containers, updatingContainerId, updateError, handleUpdateClick } =
 		useContainerUpdates(processedContainers, dict)
@@ -241,7 +243,7 @@ export function ContainerDashboard({
 				dict={dict.filter}
 			/>
 
-			<motion.div layout className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
+			<motion.div layout={prefersReducedMotion ? false : true} className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
 				<AnimatePresence mode='popLayout'>
 					{filteredContainers.map((item) => (
 						<ContainerCard
@@ -267,9 +269,9 @@ export function ContainerDashboard({
 			<AnimatePresence>
 				{filteredContainers.length === 0 && (
 					<motion.div
-						initial={{ opacity: 0, y: 10 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={{ opacity: 0, y: 10 }}
+						initial={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
+						animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+						exit={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
 						className='text-center py-20 text-muted-foreground'
 					>
 						{activeFilters.length === 0

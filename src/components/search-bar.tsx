@@ -31,7 +31,7 @@ export function SearchBar({
 	return (
 		<div className='flex flex-col md:flex-row gap-4 items-center justify-between mb-8 md:mb-6'>
 			<div className='relative w-full shadow-sm'>
-				<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' />
+				<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' aria-hidden='true' />
 				{/* Mobile input */}
 				<Input
 					placeholder={dict.placeholderMobile}
@@ -64,7 +64,7 @@ export function SearchBar({
 						className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-muted'
 						aria-label={dict.clearFilter}
 					>
-						<X className='h-4 w-4' />
+						<X className='h-4 w-4' aria-hidden='true' />
 					</button>
 				)}
 			</div>

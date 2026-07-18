@@ -41,10 +41,7 @@ export function UpdateConfirmDialog({
 			open={!!confirmState}
 			onOpenChange={(open) => !open && onClose()}
 		>
-			<AlertDialogContent
-				aria-describedby='update-confir-dialog'
-				className='max-w-sm'
-			>
+			<AlertDialogContent className='max-w-sm'>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{dict.updateDialog.title}</AlertDialogTitle>
 					{confirmState?.isRunning && (

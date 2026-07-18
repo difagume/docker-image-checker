@@ -41,6 +41,12 @@ yarn-error.log*
 .qoder
 .roo
 .atl
+.cline
+.claude
+.codebuddy
+.continue
+.kiro
+.junie
 
 # typescript
 *.tsbuildinfo

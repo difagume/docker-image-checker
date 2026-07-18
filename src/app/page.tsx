@@ -40,12 +40,13 @@ export default async function Dashboard() {
 						<div className='flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-3'>
 							{authEnabled && (
 								<form action={logout}>
-									<Button
-										variant='outline'
-										size='icon'
-										className='hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
-									>
-										<LogOut className='h-4 w-4' />
+								<Button
+									variant='outline'
+									size='icon'
+									className='hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
+									aria-label={dict.login.logout}
+								>
+									<LogOut className='h-4 w-4' />
 									</Button>
 									<Button
 										variant='outline'
