@@ -6,20 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignoreUnknown": false,
-		"ignore": [
-			".engram/**",
-			"pnpm-lock.yaml",
-			"pnpm-workspace.yaml",
-			"package.json",
-			"compose*.yaml",
-			"Dockerfile*",
-			".dockerignore",
-			".env*",
-			".npmrc",
-			"*.md",
-			"NOTIFICATIONS.md"
-		]
+		"ignoreUnknown": false
 	},
 	"formatter": {
 		"enabled": true,
@@ -47,5 +34,31 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": [
+				".engram",
+				"pnpm-lock.yaml",
+				"pnpm-workspace.yaml",
+				"package.json",
+				"compose*.yaml",
+				"Dockerfile*",
+				".dockerignore",
+				".env*",
+				".npmrc",
+				"*.md",
+				"NOTIFICATIONS.md"
+			],
+			"formatter": {
+				"enabled": false
+			},
+			"linter": {
+				"enabled": false
+			},
+			"assist": {
+				"enabled": false
+			}
+		}
+	]
 }
