@@ -198,7 +198,6 @@ export function ContainerDashboard({
 	const [showHiddenMode, setShowHiddenMode] = useState(initialShowHiddenMode)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [debouncedQuery, setDebouncedQuery] = useState('')
-	const [placeholder, setPlaceholder] = useState(dict.filter.placeholder)
 	const [referenceUrls, setReferenceUrls] = useState<
 		Record<string, ReferenceUrlData>
 	>({})
@@ -545,43 +544,19 @@ export function ContainerDashboard({
 		return () => clearTimeout(handler)
 	}, [searchQuery])
 
-	// Handle responsive placeholder
-	useEffect(() => {
-		const handleResize = () => {
-			if (window.innerWidth < 768) {
-				setPlaceholder(dict.filter.placeholderMobile)
-			} else {
-				setPlaceholder(dict.filter.placeholder)
-			}
-		}
-
-		// Initial check
-		handleResize()
-
-		window.addEventListener('resize', handleResize)
-		return () => window.removeEventListener('resize', handleResize)
-	}, [dict])
-
 	// Sync dashboard settings with server
+	// La sincronización ya está protegida por el debounce de 300ms
+	// y el servidor es idempotente, así que no necesitamos la comparación
 	useEffect(() => {
-		const nextSettings = { activeFilters, showHiddenMode }
-		if (
-			lastSyncedSettings &&
-			JSON.stringify(lastSyncedSettings) === JSON.stringify(nextSettings)
-		) {
-			return
-		}
-
 		const timeoutId = setTimeout(() => {
-			setDashboardSettingsAction(nextSettings)
-				.then(() => setLastSyncedSettings(nextSettings))
+			setDashboardSettingsAction({ activeFilters, showHiddenMode })
+				.then(() => setLastSyncedSettings({ activeFilters, showHiddenMode }))
 				.catch((error) => {
 					console.error('Failed to sync dashboard settings:', error)
 				})
 		}, 300)
-
 		return () => clearTimeout(timeoutId)
-	}, [activeFilters, showHiddenMode, lastSyncedSettings])
+	}, [activeFilters, showHiddenMode])
 
 	// Sync preferred language for notifications
 	useEffect(() => {
@@ -802,15 +777,22 @@ export function ContainerDashboard({
 			<div className='flex flex-col md:flex-row gap-4 items-center justify-between mb-8 md:mb-6'>
 				<div className='relative w-full shadow-sm'>
 					<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' />
-					<Input
-						placeholder={placeholder}
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						maxLength={70}
-						className={`pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-all hover:border-border ${
-							debouncedQuery ? 'pr-10 md:pr-48' : 'pr-10'
-						}`}
-					/>
+				{/* Mobile input */}
+				<Input
+					placeholder={dict.filter.placeholderMobile}
+					value={searchQuery}
+					onChange={(e) => setSearchQuery(e.target.value)}
+					maxLength={70}
+					className="pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-all hover:border-border md:hidden"
+				/>
+				{/* Desktop input */}
+				<Input
+					placeholder={dict.filter.placeholder}
+					value={searchQuery}
+					onChange={(e) => setSearchQuery(e.target.value)}
+					maxLength={70}
+					className="pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-all hover:border-border hidden md:block"
+				/>
 					{debouncedQuery && (
 						<span className='absolute right-9 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium hidden md:block pointer-events-none'>
 							{dict.filter.showing.split('{count}')[0]}

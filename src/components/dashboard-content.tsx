@@ -1,5 +1,3 @@
-'use server'
-
 import { getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { GhcrTokenToast } from '@/components/ghcr-token-toast'
