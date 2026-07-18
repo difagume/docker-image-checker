@@ -807,7 +807,7 @@ export function ContainerDashboard({
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						maxLength={70}
-						className={`pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-all hover:border-border rounded-[3.5px] ${
+						className={`pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-all hover:border-border ${
 							debouncedQuery ? 'pr-10 md:pr-48' : 'pr-10'
 						}`}
 					/>
@@ -885,7 +885,7 @@ export function ContainerDashboard({
 						} else if (updateStatus === 'available') {
 							updateStatusInfo = (
 								<Alert
-									className={`rounded-[3.5px] p-3 ${
+									className={`p-3 ${
 										isNewMajor
 											? 'bg-violet-500/10 border-violet-500/50 text-violet-300'
 											: 'bg-amber-500/10 border-amber-500/50 text-amber-200'
@@ -1046,7 +1046,7 @@ export function ContainerDashboard({
 								className='min-w-0'
 							>
 								<Card
-									className={`bg-card border-border text-card-foreground rounded-[3.5px] h-full transition-all duration-300 overflow-hidden ${
+									className={`bg-card border-border text-card-foreground h-full transition-all duration-300 overflow-hidden ${
 										hasUpdateAvailable
 											? isNewMajor
 												? 'border-l-violet-500'
@@ -1056,7 +1056,7 @@ export function ContainerDashboard({
 								>
 									<CardHeader>
 										<div className='flex justify-between items-start gap-4'>
-											<CardTitle className='text-lg font-medium text-foreground wrap-anywhere break-normal flex items-start gap-2'>
+											<CardTitle className='text-lg font-semibold tracking-tight text-foreground wrap-anywhere break-normal flex items-start gap-2'>
 												<span className='flex-1 line-clamp-3'>
 													{containerName}
 												</span>
@@ -1111,8 +1111,8 @@ export function ContainerDashboard({
 												variant='outline'
 												className={`shrink-0 ${
 													isRunning
-														? 'bg-transparent text-green-500 border-green-500 rounded-[3.5px] cursor-default'
-														: 'bg-transparent text-red-500 border-red-500 rounded-[3.5px] cursor-default'
+														? 'bg-transparent text-green-500 border-green-500 rounded-md cursor-default'
+														: 'bg-transparent text-red-500 border-red-500 rounded-md cursor-default'
 												}`}
 											>
 												{dict.container.states[
@@ -1126,7 +1126,7 @@ export function ContainerDashboard({
 											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-muted-foreground'>
 													<Fingerprint className='h-3 w-3' />
-													<span className='font-medium text-xs'>
+													<span className='font-semibold tracking-wider text-[11px]'>
 														{dict.container.containerId}
 													</span>
 												</div>
@@ -1137,7 +1137,7 @@ export function ContainerDashboard({
 											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-muted-foreground'>
 													<Server className='h-3 w-3' />
-													<span className='font-medium text-xs'>
+													<span className='font-semibold tracking-wider text-[11px]'>
 														{dict.common.ports}
 													</span>
 												</div>
@@ -1148,7 +1148,7 @@ export function ContainerDashboard({
 											<div className='flex justify-between items-center'>
 												<div className='flex items-center gap-1.5 text-muted-foreground'>
 													<Activity className='h-3 w-3' />
-													<span className='font-medium text-xs'>
+													<span className='font-semibold tracking-wider text-[11px]'>
 														{dict.common.status}
 													</span>
 												</div>
@@ -1195,12 +1195,12 @@ export function ContainerDashboard({
 														{container.Image.split(':')[0]}
 													</div>
 													<div className='flex items-center justify-between'>
-														<span className='text-muted-foreground font-medium text-xs'>
+														<span className='text-muted-foreground font-semibold tracking-wider text-[11px]'>
 															{dict.container.currentVersion}
 														</span>
 														<Badge
 															variant='outline'
-															className='bg-muted text-muted-foreground border-border rounded-[3.5px] cursor-default max-w-[170px]'
+															className='bg-muted text-muted-foreground border-border rounded-md cursor-default max-w-[170px]'
 														>
 															<span className='truncate'>
 																{displayCurrentVersion}
@@ -1210,7 +1210,7 @@ export function ContainerDashboard({
 
 													{hasUpdateAvailable && (
 														<div className='flex items-center justify-between'>
-															<span className='text-muted-foreground font-medium text-xs'>
+															<span className='text-muted-foreground font-semibold tracking-wider text-[11px]'>
 																{isNewMajor
 																	? dict.container.newMajorAvailable
 																	: displayCurrentVersion ===
@@ -1221,7 +1221,7 @@ export function ContainerDashboard({
 
 															<Badge
 																variant='outline'
-																className={`bg-muted border-border rounded-[3.5px] cursor-default max-w-[170px] ${
+																className={`bg-muted border-border rounded-md cursor-default max-w-[170px] ${
 																	isNewMajor
 																		? 'text-violet-500'
 																		: 'text-amber-500'

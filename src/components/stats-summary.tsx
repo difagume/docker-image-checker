@@ -35,7 +35,7 @@ export function StatsSummary({
 			<button
 				type='button'
 				onClick={() => onToggleFilter('updated')}
-				className={`flex items-center justify-between p-3 rounded-[3.5px] border transition-all cursor-pointer text-left group
+				className={`flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('updated')
 							? 'bg-muted border-green-500/50 ring-1 ring-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
@@ -43,7 +43,7 @@ export function StatsSummary({
 					}`}
 			>
 				<div className='flex items-center gap-3'>
-					<div className='bg-green-950/30 text-green-500 p-2 rounded-[3.5px] border border-green-500/20 shrink-0'>
+					<div className='bg-green-950/30 text-green-500 p-2 rounded-md border border-green-500/20 shrink-0'>
 						<Check className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
@@ -68,7 +68,7 @@ export function StatsSummary({
 			<button
 				type='button'
 				onClick={() => onToggleFilter('available')}
-				className={`relative overflow-hidden flex items-center justify-between p-3 rounded-[3.5px] border transition-all cursor-pointer text-left group
+				className={`relative overflow-hidden flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('available')
 							? 'bg-muted border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
@@ -79,7 +79,7 @@ export function StatsSummary({
 					<div className='absolute inset-0 bg-linear-to-tr from-amber-500/10 via-amber-500/5 to-transparent opacity-80 pointer-events-none' />
 				)}
 				<div className='flex items-center gap-3 relative z-10'>
-					<div className='bg-amber-950/40 text-amber-500 p-2 rounded-[3.5px] border border-amber-500/20 shrink-0'>
+					<div className='bg-amber-950/40 text-amber-500 p-2 rounded-md border border-amber-500/20 shrink-0'>
 						<ArrowUp className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
@@ -106,7 +106,7 @@ export function StatsSummary({
 			<button
 				type='button'
 				onClick={() => onToggleFilter('unknown')}
-				className={`flex items-center justify-between p-3 rounded-[3.5px] border transition-all cursor-pointer text-left group
+				className={`flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
           ${
 						isFilterActive('unknown')
 							? 'bg-muted border-muted-foreground/50 ring-1 ring-muted-foreground/20 shadow-[0_0_15px_rgba(115,115,115,0.1)]'
@@ -114,7 +114,7 @@ export function StatsSummary({
 					}`}
 			>
 				<div className='flex items-center gap-3'>
-					<div className='bg-muted text-muted-foreground p-2 rounded-[3.5px] border border-border/50 shrink-0'>
+					<div className='bg-muted text-muted-foreground p-2 rounded-md border border-border/50 shrink-0'>
 						<HelpCircle className='h-4 w-4' strokeWidth={3} />
 					</div>
 					<span
@@ -139,7 +139,7 @@ export function StatsSummary({
 				<button
 					type='button'
 					onClick={onToggleShowHidden}
-					className={`flex items-center gap-2 px-3 py-1.5 rounded-[3.5px] text-xs font-medium transition-all ${
+					className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
 						showHiddenMode
 							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
 							: 'text-muted-foreground hover:text-foreground border border-transparent'
