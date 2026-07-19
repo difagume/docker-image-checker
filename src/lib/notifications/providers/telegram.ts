@@ -48,7 +48,7 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 			}
 			await this.bot.sendMessage(this.chatId, text, {
 				parse_mode: 'Markdown',
-				disable_web_page_preview: true
+				link_preview_options: { is_disabled: true }
 			})
 			console.log(`📨 Telegram notification sent for ${message.containerName}`)
 		} catch (error) {
