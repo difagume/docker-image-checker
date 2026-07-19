@@ -41,6 +41,11 @@ export function UpdateConfirmDialog({
 			open={!!confirmState}
 			onOpenChange={(open) => !open && onClose()}
 		>
+			<style>{`
+				[data-slot="alert-dialog-overlay"] {
+					backdrop-filter: blur(1px);
+				}
+			`}</style>
 			<AlertDialogContent className='max-w-sm'>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{dict.updateDialog.title}</AlertDialogTitle>

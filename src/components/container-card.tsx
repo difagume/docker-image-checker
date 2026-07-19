@@ -18,19 +18,13 @@ import {
 	Zap
 } from 'lucide-react'
 import React from 'react'
-import {
-	Alert,
-	AlertAction,
-	AlertDescription,
-	AlertTitle
-} from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useDashboard } from '@/contexts/dashboard-context'
@@ -85,7 +79,7 @@ function StatusAvailable({
 
 	return (
 		<Alert
-			className={`p-3 ${
+			className={`p-3 relative pb-10 ${
 				isNewMajor
 					? 'bg-violet-500/10 border-violet-500/50 text-violet-300'
 					: 'bg-amber-500/10 border-amber-500/50 text-amber-200'
@@ -123,45 +117,39 @@ function StatusAvailable({
 				</AlertTitle>
 			)}
 			{lastUpdated && (
-				<TooltipProvider>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<AlertDescription
-								className={`flex items-center gap-1 hover:text-opacity-100 transition-colors cursor-help ${
-									isNewMajor ? 'text-violet-300/80' : 'text-amber-300/80'
-								}`}
-							>
-								<Clock className='h-3 w-3' aria-hidden='true' />
-								<span className='text-xs'>
-									{formatRelativeTime(new Date(lastUpdated), dict, locale)}
-								</span>
-							</AlertDescription>
-						</TooltipTrigger>
-						<TooltipContent
-							side='left'
-							className='bg-popover text-popover-foreground border-border'
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<AlertDescription
+							className={`flex items-center gap-1 hover:text-opacity-100 transition-colors cursor-help ${
+								isNewMajor ? 'text-violet-300/80' : 'text-amber-300/80'
+							}`}
 						>
-							<p>
-								{new Date(lastUpdated).toLocaleString(
-									locale === 'es'
-										? 'es-ES'
-										: locale === 'pt'
-											? 'pt-BR'
-											: 'en-US',
-									{
-										day: '2-digit',
-										month: '2-digit',
-										year: 'numeric',
-										hour: '2-digit',
-										minute: '2-digit'
-									}
-								)}
-							</p>
-						</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
+							<Clock className='h-3 w-3' aria-hidden='true' />
+							<span className='text-xs'>
+								{formatRelativeTime(new Date(lastUpdated), dict, locale)}
+							</span>
+						</AlertDescription>
+					</TooltipTrigger>
+					<TooltipContent
+						side='left'
+						className='bg-popover text-popover-foreground border-border'
+					>
+						<p>
+							{new Date(lastUpdated).toLocaleString(
+								locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US',
+								{
+									day: '2-digit',
+									month: '2-digit',
+									year: 'numeric',
+									hour: '2-digit',
+									minute: '2-digit'
+								}
+							)}
+						</p>
+					</TooltipContent>
+				</Tooltip>
 			)}
-			<AlertAction className='w-full flex flex-col items-center pt-1 -ml-3 gap-2'>
+			<div className='absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2'>
 				{updateError && isUpdating ? (
 					<span className='text-xs text-destructive text-center'>
 						{updateError}
@@ -194,7 +182,7 @@ function StatusAvailable({
 						</>
 					)}
 				</Button>
-			</AlertAction>
+			</div>
 		</Alert>
 	)
 }
@@ -396,7 +384,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 	return (
 		<motion.div
 			key={container.Id}
-			layout={prefersReducedMotion ? false : true}
+			layout={!prefersReducedMotion}
 			variants={prefersReducedMotion ? undefined : cardVariants}
 			initial={prefersReducedMotion ? undefined : 'initial'}
 			animate={prefersReducedMotion ? undefined : 'animate'}
@@ -548,9 +536,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 						</div>
 					</div>
 				</CardContent>
-				<div className='flex justify-end px-6 pt-1 mt-auto'>
-					{updateStatusInfo}
-				</div>
+				<div className='flex px-6 pt-1 mt-auto'>{updateStatusInfo}</div>
 			</Card>
 		</motion.div>
 	)

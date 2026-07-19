@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next'
 import { Footer } from '@/components/footer'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { getLocale } from '@/lib/i18n/get-locale'
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -74,11 +75,13 @@ export default async function RootLayout({
 					enableSystem={false}
 					disableTransitionOnChange
 				>
-					<main id='main-content' className='flex-1 flex flex-col'>
-						{children}
-					</main>
-					<Footer />
-					<Toaster richColors />
+					<TooltipProvider>
+						<main id='main-content' className='flex-1 flex flex-col'>
+							{children}
+						</main>
+						<Footer />
+						<Toaster richColors />
+					</TooltipProvider>
 				</ThemeProvider>
 			</body>
 		</html>
