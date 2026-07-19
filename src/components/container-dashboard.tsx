@@ -1,28 +1,19 @@
 'use client'
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
-import {
-	getHiddenContainerIdsAction,
-	getIgnoredNotificationContainerIdsAction,
-	setHiddenContainerIdsAction,
-	setIgnoredNotificationContainerIdsAction
-} from '@/actions/app-state'
-import {
-	getReferenceUrlsAction,
-	saveReferenceUrlAction
-} from '@/actions/reference-url'
+import { useMemo, useState } from 'react'
 import { ContainerCard } from '@/components/container-card'
 import { SearchBar } from '@/components/search-bar'
 import type {
-	ContainerData,
-	ReferenceUrlData
+	ContainerData
 } from '@/hooks/use-container-updates'
 import { useContainerUpdates } from '@/hooks/use-container-updates'
+import { useDebounce } from '@/hooks/use-debounce'
 import { useLanguageSync } from '@/hooks/use-language-sync'
 import { useSettingsSync } from '@/hooks/use-settings-sync'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
+import { useDashboard } from '@/contexts/dashboard-context'
 import { StatsSummary } from './stats-summary'
 import { UpdateConfirmDialog } from './update-confirm-dialog'
 
@@ -30,7 +21,6 @@ interface ContainerDashboardProps {
 	processedContainers: ContainerData[]
 	dict: Dictionary
 	locale: Locale
-	notificationsEnabled?: boolean
 	initialActiveFilters?: FilterStatus[]
 	initialShowHiddenMode?: boolean
 }
@@ -39,22 +29,13 @@ export function ContainerDashboard({
 	processedContainers,
 	dict,
 	locale,
-	notificationsEnabled = false,
 	initialActiveFilters = ['updated', 'available', 'unknown'],
 	initialShowHiddenMode = false
 }: ContainerDashboardProps) {
 	const [activeFilters, setActiveFilters] =
 		useState<FilterStatus[]>(initialActiveFilters)
-	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>([])
-	const [ignoredNotificationIds, setIgnoredNotificationIds] = useState<
-		string[]
-	>([])
 	const [showHiddenMode, setShowHiddenMode] = useState(initialShowHiddenMode)
 	const [searchQuery, setSearchQuery] = useState('')
-	const [debouncedQuery, setDebouncedQuery] = useState('')
-	const [referenceUrls, setReferenceUrls] = useState<
-		Record<string, ReferenceUrlData>
-	>({})
 	const [confirmUpdateState, setConfirmUpdateState] = useState<{
 		containerId: string
 		containerName: string
@@ -65,9 +46,16 @@ export function ContainerDashboard({
 	} | null>(null)
 
 	const prefersReducedMotion = useReducedMotion()
+	const debouncedQuery = useDebounce(searchQuery, 300)
 
-	const { containers, updatingContainerId, updateError, handleUpdateClick } =
-		useContainerUpdates(processedContainers, dict)
+	const { state: { hiddenContainerIds, notificationsEnabled }, actions } = useDashboard()
+
+	const {
+		containers,
+		updatingContainerId,
+		updateError,
+		handleUpdateClick
+	} = useContainerUpdates(processedContainers, dict)
 
 	useSettingsSync(activeFilters, showHiddenMode)
 	useLanguageSync(locale, notificationsEnabled)
@@ -87,87 +75,12 @@ export function ContainerDashboard({
 		}
 	}, [containers])
 
-	// Load initial configuration and state from API
-	useEffect(() => {
-		let isCancelled = false
-		const loadInitialState = async () => {
-			try {
-				const [hiddenIds, ignoredIds, urls] = await Promise.all([
-					getHiddenContainerIdsAction(),
-					notificationsEnabled
-						? getIgnoredNotificationContainerIdsAction()
-						: Promise.resolve<string[]>([]),
-					getReferenceUrlsAction()
-				])
-
-				if (!isCancelled) {
-					setHiddenContainerIds(hiddenIds)
-					if (notificationsEnabled) {
-						setIgnoredNotificationIds(ignoredIds)
-					}
-					setReferenceUrls(urls)
-				}
-			} catch (error) {
-				console.error('Failed to load dashboard state:', error)
-			}
-		}
-
-		loadInitialState()
-
-		return () => {
-			isCancelled = true
-		}
-	}, [notificationsEnabled])
-
-	// Debounce search query
-	useEffect(() => {
-		const handler = setTimeout(() => {
-			setDebouncedQuery(searchQuery)
-		}, 400)
-		return () => clearTimeout(handler)
-	}, [searchQuery])
-
-	const toggleHideContainer = (id: string) => {
-		setHiddenContainerIds((prev) => {
-			const newHiddenIds = prev.includes(id)
-				? prev.filter((i) => i !== id)
-				: [...prev, id]
-			setHiddenContainerIdsAction(newHiddenIds).catch((error) => {
-				console.error('Failed to sync hidden containers:', error)
-			})
-			return newHiddenIds
-		})
-	}
-
-	const toggleIgnoreNotification = (id: string) => {
-		setIgnoredNotificationIds((prev) => {
-			const newIgnoredIds = prev.includes(id)
-				? prev.filter((i) => i !== id)
-				: [...prev, id]
-			setIgnoredNotificationContainerIdsAction(newIgnoredIds).catch((error) => {
-				console.error('Failed to sync ignored containers:', error)
-			})
-			return newIgnoredIds
-		})
-	}
-
 	const toggleFilter = (status: FilterStatus) => {
 		setActiveFilters((prev) =>
 			prev.includes(status)
 				? prev.filter((s) => s !== status)
 				: [...prev, status]
 		)
-	}
-
-	const handleSaveReferenceUrl = (imageName: string, url: string) => {
-		setReferenceUrls((prev: Record<string, ReferenceUrlData>) => ({
-			...prev,
-			[imageName]: {
-				image: imageName,
-				referenceUrl: url
-			}
-		}))
-		saveReferenceUrlAction(imageName, url)
 	}
 
 	const filteredContainers = useMemo(() => {
@@ -229,7 +142,6 @@ export function ContainerDashboard({
 				onSearchChange={setSearchQuery}
 				onClear={() => {
 					setSearchQuery('')
-					setDebouncedQuery('')
 				}}
 				filteredCount={filteredContainers.length}
 				totalCount={containers.length}
@@ -244,16 +156,10 @@ export function ContainerDashboard({
 							item={item}
 							dict={dict}
 							locale={locale}
-							notificationsEnabled={notificationsEnabled}
-							hiddenContainerIds={hiddenContainerIds}
-							ignoredNotificationIds={ignoredNotificationIds}
-							referenceUrls={referenceUrls}
 							updatingContainerId={updatingContainerId}
 							updateError={updateError}
-							onToggleHide={toggleHideContainer}
-							onToggleIgnoreNotification={toggleIgnoreNotification}
 							onSetConfirmUpdate={setConfirmUpdateState}
-							onSaveReferenceUrl={handleSaveReferenceUrl}
+							onSaveReferenceUrl={actions.saveReferenceUrl}
 						/>
 					))}
 				</AnimatePresence>

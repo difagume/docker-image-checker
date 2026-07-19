@@ -33,14 +33,12 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
-import type {
-	ContainerData,
-	ReferenceUrlData
-} from '@/hooks/use-container-updates'
+import type { ContainerData } from '@/hooks/use-container-updates'
 import { formatRelativeTime } from '@/lib/format-relative-time'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import { cn } from '@/lib/utils'
 import { ReferenceUrlPopover } from './reference-url-popover'
+import { useDashboard } from '@/contexts/dashboard-context'
 
 const cardVariants = {
 	initial: { opacity: 0, scale: 0.96, y: 10 },
@@ -48,28 +46,297 @@ const cardVariants = {
 	exit: { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }
 }
 
+// ─── Subcomponentes de estado ───────────────────────────────────────────────
+
+interface StatusUpdatedProps {
+	label: string
+}
+
+function StatusUpdated({ label }: StatusUpdatedProps) {
+	return <span className='text-primary font-medium'>{label}</span>
+}
+
+interface StatusAvailableProps {
+	isNewMajor: boolean
+	dockerHubUrl?: string
+	lastUpdated?: string
+	dict: Dictionary
+	locale: Locale
+	onUpdate: () => void
+	isUpdating: boolean
+	updateError?: string | null
+	updatingLabel: string
+	updateButtonLabel: string
+}
+
+function StatusAvailable({
+	isNewMajor,
+	dockerHubUrl,
+	lastUpdated,
+	dict,
+	locale,
+	onUpdate,
+	isUpdating,
+	updateError,
+	updatingLabel,
+	updateButtonLabel
+}: StatusAvailableProps) {
+	const c = dict.container
+
+	return (
+		<Alert
+			className={`p-3 ${
+				isNewMajor
+					? 'bg-violet-500/10 border-violet-500/50 text-violet-300'
+					: 'bg-amber-500/10 border-amber-500/50 text-amber-200'
+			}`}
+		>
+			{isNewMajor ? (
+				<Zap className='h-4 w-4 text-violet-400!' aria-hidden='true' />
+			) : (
+				<ArrowUpCircle className='h-4 w-4 text-amber-400!' aria-hidden='true' />
+			)}
+			{dockerHubUrl ? (
+				<a
+					href={dockerHubUrl}
+					target='_blank'
+					rel='noopener noreferrer'
+					className='hover:underline'
+					aria-label={`${isNewMajor ? c.newMajorAvailable : c.updateAvailable} (opens in new tab)`}
+				>
+					<AlertTitle
+						className={`font-bold text-sm mb-0 flex items-center gap-1.5 ${
+							isNewMajor ? 'text-violet-400' : 'text-amber-400'
+						}`}
+					>
+						{isNewMajor
+							? c.newMajorAvailable
+							: c.updateAvailable}
+						<ExternalLink className='h-3.5 w-3.5' aria-hidden='true' />
+					</AlertTitle>
+				</a>
+			) : (
+				<AlertTitle
+					className={`font-bold text-sm mb-0 ${
+						isNewMajor ? 'text-violet-400' : 'text-amber-400'
+					}`}
+				>
+					{isNewMajor
+						? c.newMajorAvailable
+						: c.updateAvailable}
+				</AlertTitle>
+			)}
+			{lastUpdated && (
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<AlertDescription
+								className={`flex items-center gap-1 hover:text-opacity-100 transition-colors cursor-help ${
+									isNewMajor ? 'text-violet-300/80' : 'text-amber-300/80'
+								}`}
+							>
+								<Clock className='h-3 w-3' aria-hidden='true' />
+								<span className='text-xs'>
+									{formatRelativeTime(new Date(lastUpdated), dict, locale)}
+								</span>
+							</AlertDescription>
+						</TooltipTrigger>
+						<TooltipContent
+							side='left'
+							className='bg-popover text-popover-foreground border-border'
+						>
+							<p>
+								{new Date(lastUpdated).toLocaleString(
+									locale === 'es'
+										? 'es-ES'
+										: locale === 'pt'
+											? 'pt-BR'
+											: 'en-US',
+									{
+										day: '2-digit',
+										month: '2-digit',
+										year: 'numeric',
+										hour: '2-digit',
+										minute: '2-digit'
+									}
+								)}
+							</p>
+						</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
+			)}
+			<AlertAction className='w-full flex flex-col items-center pt-1 -ml-3 gap-2'>
+				{updateError && isUpdating ? (
+					<span className='text-xs text-destructive text-center'>
+						{updateError}
+					</span>
+				) : null}
+				<Button
+					size='xs'
+					disabled={isUpdating}
+					onClick={onUpdate}
+					className={cn(
+						'transition-colors',
+						isNewMajor
+							? 'bg-transparent text-violet-400 border border-violet-500/50 hover:bg-violet-500/10'
+							: 'bg-transparent text-amber-400 border border-amber-500/50 hover:bg-amber-500/10',
+						isUpdating ? 'opacity-50' : ''
+					)}
+				>
+					{isUpdating ? (
+						<>
+							<Loader2 className='mr-1 h-3 w-3 animate-spin' aria-hidden='true' />
+							{updatingLabel}
+						</>
+					) : (
+						<>
+							<Download className='mr-1 h-3 w-3' aria-hidden='true' />
+							{updateButtonLabel}
+						</>
+					)}
+				</Button>
+			</AlertAction>
+		</Alert>
+	)
+}
+
+interface StatusLocalProps {
+	label: string
+}
+
+function StatusLocal({ label }: StatusLocalProps) {
+	return (
+		<span className='text-blue-500/70 font-medium'>
+			{label}
+		</span>
+	)
+}
+
+interface StatusUnknownProps {
+	label: string
+}
+
+function StatusUnknown({ label }: StatusUnknownProps) {
+	return (
+		<span className='text-muted-foreground font-medium'>
+			{label}
+		</span>
+	)
+}
+
+interface StatusCheckingProps {
+	label: string
+}
+
+function StatusChecking({ label }: StatusCheckingProps) {
+	return (
+		<span className='text-muted-foreground font-medium flex items-center gap-1.5'>
+			<Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
+			{label}
+		</span>
+	)
+}
+
+// ─── Subcomponentes de toggle ───────────────────────────────────────────────
+
+interface NotificationToggleProps {
+	containerId: string
+	dict: Dictionary['container']
+}
+
+function NotificationToggle({ containerId, dict }: NotificationToggleProps) {
+	const { state, actions } = useDashboard()
+	const isIgnored = state.ignoredNotificationIds.includes(containerId)
+
+	if (!state.notificationsEnabled) return null
+
+	return (
+		<button
+			type='button'
+			onClick={() => actions.toggleIgnoreNotification(containerId)}
+			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
+				isIgnored
+					? 'text-muted-foreground hover:text-foreground'
+					: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
+			}`}
+			title={
+				isIgnored
+					? dict.enableNotifications
+					: dict.disableNotifications
+			}
+			aria-label={
+				isIgnored
+					? dict.enableNotifications
+					: dict.disableNotifications
+			}
+		>
+			{isIgnored ? (
+				<BellOff className='h-3.5 w-3.5' aria-hidden='true' />
+			) : (
+				<Bell className='h-3.5 w-3.5' aria-hidden='true' />
+			)}
+		</button>
+	)
+}
+
+interface HideToggleProps {
+	containerId: string
+	dict: Dictionary['container']
+}
+
+function HideToggle({ containerId, dict }: HideToggleProps) {
+	const { state, actions } = useDashboard()
+	const isHidden = state.hiddenContainerIds.includes(containerId)
+
+	return (
+		<button
+			type='button'
+			onClick={() => actions.toggleHideContainer(containerId)}
+			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
+				isHidden
+					? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+					: 'text-muted-foreground hover:text-foreground'
+			}`}
+			title={
+				isHidden
+					? dict.showContainer
+					: dict.hideContainer
+			}
+			aria-label={
+				isHidden
+					? dict.showContainer
+					: dict.hideContainer
+			}
+		>
+			{isHidden ? (
+				<Eye className='h-3.5 w-3.5' aria-hidden='true' />
+			) : (
+				<EyeOff className='h-3.5 w-3.5' aria-hidden='true' />
+			)}
+		</button>
+	)
+}
+
+// ─── ConfirmState type ─────────────────────────────────────────────────────
+
+type ConfirmState = {
+	containerId: string
+	containerName: string
+	containerImage: string
+	containerVersion: string
+	newVersion: string
+	isRunning: boolean
+}
+
+// ─── ContainerCard ──────────────────────────────────────────────────────────
+
 interface ContainerCardProps {
 	item: ContainerData
 	dict: Dictionary
 	locale: Locale
-	notificationsEnabled: boolean
-	hiddenContainerIds: string[]
-	ignoredNotificationIds: string[]
-	referenceUrls: Record<string, ReferenceUrlData>
 	updatingContainerId: string | null
 	updateError: string | null
-	onToggleHide: (id: string) => void
-	onToggleIgnoreNotification: (id: string) => void
-	onSetConfirmUpdate: (
-		state: {
-			containerId: string
-			containerName: string
-			containerImage: string
-			containerVersion: string
-			newVersion: string
-			isRunning: boolean
-		} | null
-	) => void
+	onSetConfirmUpdate: (state: ConfirmState | null) => void
 	onSaveReferenceUrl: (imageName: string, url: string) => void
 }
 
@@ -77,14 +344,8 @@ export const ContainerCard = React.memo(function ContainerCard({
 	item,
 	dict,
 	locale,
-	notificationsEnabled,
-	hiddenContainerIds,
-	ignoredNotificationIds,
-	referenceUrls,
 	updatingContainerId,
 	updateError,
-	onToggleHide,
-	onToggleIgnoreNotification,
 	onSetConfirmUpdate,
 	onSaveReferenceUrl
 }: ContainerCardProps) {
@@ -101,6 +362,8 @@ export const ContainerCard = React.memo(function ContainerCard({
 		policyState
 	} = item
 
+	const { state: { referenceUrls, hiddenContainerIds } } = useDashboard()
+
 	const prefersReducedMotion = useReducedMotion()
 	const hasUpdateAvailable = updateStatus === 'available'
 	const isNewMajor = policyState === 'NEW_MAJOR_VERSION_AVAILABLE'
@@ -112,105 +375,19 @@ export const ContainerCard = React.memo(function ContainerCard({
 			? latestVersion
 			: 'latest'
 
-	let updateStatusInfo = null
-
-	if (updateStatus === 'updated') {
-		updateStatusInfo = (
-			<span className='text-primary font-medium'>{dict.container.updated}</span>
-		)
-	} else if (updateStatus === 'available') {
-		updateStatusInfo = (
-			<Alert
-				className={`p-3 ${
-					isNewMajor
-						? 'bg-violet-500/10 border-violet-500/50 text-violet-300'
-						: 'bg-amber-500/10 border-amber-500/50 text-amber-200'
-				}`}
-			>
-				{isNewMajor ? (
-					<Zap className='h-4 w-4 text-violet-400!' aria-hidden='true' />
-				) : (
-					<ArrowUpCircle className='h-4 w-4 text-amber-400!' aria-hidden='true' />
-				)}
-				{dockerHubUrl ? (
-					<a
-						href={dockerHubUrl}
-						target='_blank'
-						rel='noopener noreferrer'
-						className='hover:underline'
-						aria-label={`${isNewMajor ? dict.container.newMajorAvailable : dict.container.updateAvailable} (opens in new tab)`}
-					>
-						<AlertTitle
-							className={`font-bold text-sm mb-0 flex items-center gap-1.5 ${
-								isNewMajor ? 'text-violet-400' : 'text-amber-400'
-							}`}
-						>
-							{isNewMajor
-								? dict.container.newMajorAvailable
-								: dict.container.updateAvailable}
-							<ExternalLink className='h-3.5 w-3.5' aria-hidden='true' />
-						</AlertTitle>
-					</a>
-				) : (
-					<AlertTitle
-						className={`font-bold text-sm mb-0 ${
-							isNewMajor ? 'text-violet-400' : 'text-amber-400'
-						}`}
-					>
-						{isNewMajor
-							? dict.container.newMajorAvailable
-							: dict.container.updateAvailable}
-					</AlertTitle>
-				)}
-				{lastUpdated && (
-					<TooltipProvider>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<AlertDescription
-									className={`flex items-center gap-1 hover:text-opacity-100 transition-colors cursor-help ${
-										isNewMajor ? 'text-violet-300/80' : 'text-amber-300/80'
-									}`}
-								>
-									<Clock className='h-3 w-3' aria-hidden='true' />
-									<span className='text-xs'>
-										{formatRelativeTime(new Date(lastUpdated), dict, locale)}
-									</span>
-								</AlertDescription>
-							</TooltipTrigger>
-							<TooltipContent
-								side='left'
-								className='bg-popover text-popover-foreground border-border'
-							>
-								<p>
-									{new Date(lastUpdated).toLocaleString(
-										locale === 'es'
-											? 'es-ES'
-											: locale === 'pt'
-												? 'pt-BR'
-												: 'en-US',
-										{
-											day: '2-digit',
-											month: '2-digit',
-											year: 'numeric',
-											hour: '2-digit',
-											minute: '2-digit'
-										}
-									)}
-								</p>
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
-				)}
-				<AlertAction className='w-full flex flex-col items-center pt-1 -ml-3 gap-2'>
-					{updateError && updatingContainerId === container.Id ? (
-						<span className='text-xs text-destructive text-center'>
-							{updateError}
-						</span>
-					) : null}
-					<Button
-						size='xs'
-						disabled={updatingContainerId === container.Id}
-						onClick={() => {
+	const updateStatusInfo = (() => {
+		switch (updateStatus) {
+			case 'updated':
+				return <StatusUpdated label={dict.container.updated} />
+			case 'available':
+				return (
+					<StatusAvailable
+						isNewMajor={isNewMajor}
+						dockerHubUrl={dockerHubUrl}
+						lastUpdated={lastUpdated}
+						dict={dict}
+						locale={locale}
+						onUpdate={() => {
 							onSetConfirmUpdate({
 								containerId: container.Id,
 								containerName,
@@ -220,50 +397,22 @@ export const ContainerCard = React.memo(function ContainerCard({
 								isRunning
 							})
 						}}
-						className={cn(
-							'transition-colors',
-							isNewMajor
-								? 'bg-transparent text-violet-400 border border-violet-500/50 hover:bg-violet-500/10'
-								: 'bg-transparent text-amber-400 border border-amber-500/50 hover:bg-amber-500/10',
-							updatingContainerId === container.Id ? 'opacity-50' : ''
-						)}
-					>
-						{updatingContainerId === container.Id ? (
-							<>
-								<Loader2 className='mr-1 h-3 w-3 animate-spin' aria-hidden='true' />
-								{dict.container.updating}
-							</>
-						) : (
-							<>
-								<Download className='mr-1 h-3 w-3' aria-hidden='true' />
-								{dict.container.update}
-							</>
-						)}
-					</Button>
-				</AlertAction>
-			</Alert>
-		)
-	} else if (updateStatus === 'local') {
-		updateStatusInfo = (
-			<span className='text-blue-500/70 font-medium'>
-				{dict.container.local}
-			</span>
-		)
-	} else if (updateStatus === 'unknown') {
-		updateStatusInfo = (
-			<span className='text-muted-foreground font-medium'>
-				{dict.container.unknown}
-			</span>
-		)
-	} else if (updateStatus === 'checking') {
-		const checkingLabel = dict.container.checking
-		updateStatusInfo = (
-			<span className='text-muted-foreground font-medium flex items-center gap-1.5'>
-				<Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
-				{checkingLabel}
-			</span>
-		)
-	}
+						isUpdating={updatingContainerId === container.Id}
+						updateError={updateError}
+						updatingLabel={dict.container.updating}
+						updateButtonLabel={dict.container.update}
+					/>
+				)
+			case 'local':
+				return <StatusLocal label={dict.container.local} />
+			case 'unknown':
+				return <StatusUnknown label={dict.container.unknown} />
+			case 'checking':
+				return <StatusChecking label={dict.container.checking} />
+			default:
+				return null
+		}
+	})()
 
 	return (
 		<motion.div
@@ -290,58 +439,14 @@ export const ContainerCard = React.memo(function ContainerCard({
 						<CardTitle className='text-lg font-semibold tracking-tight text-foreground wrap-anywhere break-normal flex items-start gap-2'>
 							<span className='flex-1 line-clamp-3'>{containerName}</span>
 							<div className='flex items-center gap-1 mt-1'>
-								{notificationsEnabled && (
-								<button
-									type='button'
-									onClick={() => onToggleIgnoreNotification(container.Id)}
-									className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
-										ignoredNotificationIds.includes(container.Id)
-											? 'text-muted-foreground hover:text-foreground'
-											: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
-									}`}
-									title={
-										ignoredNotificationIds.includes(container.Id)
-											? dict.container.enableNotifications
-											: dict.container.disableNotifications
-									}
-									aria-label={
-										ignoredNotificationIds.includes(container.Id)
-											? dict.container.enableNotifications
-											: dict.container.disableNotifications
-									}
-								>
-										{ignoredNotificationIds.includes(container.Id) ? (
-											<BellOff className='h-3.5 w-3.5' aria-hidden='true' />
-										) : (
-											<Bell className='h-3.5 w-3.5' aria-hidden='true' />
-										)}
-									</button>
-								)}
-								<button
-									type='button'
-									onClick={() => onToggleHide(container.Id)}
-									className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
-										hiddenContainerIds.includes(container.Id)
-											? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
-											: 'text-muted-foreground hover:text-foreground'
-									}`}
-									title={
-										hiddenContainerIds.includes(container.Id)
-											? dict.container.showContainer
-											: dict.container.hideContainer
-									}
-									aria-label={
-										hiddenContainerIds.includes(container.Id)
-											? dict.container.showContainer
-											: dict.container.hideContainer
-									}
-								>
-									{hiddenContainerIds.includes(container.Id) ? (
-										<Eye className='h-3.5 w-3.5' aria-hidden='true' />
-									) : (
-										<EyeOff className='h-3.5 w-3.5' aria-hidden='true' />
-									)}
-								</button>
+								<NotificationToggle
+									containerId={container.Id}
+									dict={dict.container}
+								/>
+								<HideToggle
+									containerId={container.Id}
+									dict={dict.container}
+								/>
 							</div>
 						</CardTitle>
 						<Badge
@@ -400,17 +505,17 @@ export const ContainerCard = React.memo(function ContainerCard({
 									<span className='text-foreground font-bold text-sm'>
 										{dict.container.image}:
 									</span>
-							<ReferenceUrlPopover
-									key={referenceUrls[container.Image.split(':')[0]]?.referenceUrl ?? ''}
-									imageName={container.Image.split(':')[0]}
-									currentUrl={
-										referenceUrls[container.Image.split(':')[0]]?.referenceUrl
-									}
-									onSave={(url: string) => {
-										onSaveReferenceUrl(container.Image.split(':')[0], url)
-									}}
-									dict={dict.container}
-								/>
+									<ReferenceUrlPopover
+										key={referenceUrls[container.Image.split(':')[0]]?.referenceUrl ?? ''}
+										imageName={container.Image.split(':')[0]}
+										currentUrl={
+											referenceUrls[container.Image.split(':')[0]]?.referenceUrl
+										}
+										onSave={(url: string) => {
+											onSaveReferenceUrl(container.Image.split(':')[0], url)
+										}}
+										dict={dict.container}
+									/>
 								</div>
 								<span className='text-xs text-muted-foreground'>
 									{container.ImageID.substring(7, 19)}
@@ -463,3 +568,5 @@ export const ContainerCard = React.memo(function ContainerCard({
 		</motion.div>
 	)
 })
+
+export type { ConfirmState }

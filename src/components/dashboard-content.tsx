@@ -1,5 +1,6 @@
 import { getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
+import { DashboardProvider } from '@/contexts/dashboard-context'
 import { getDashboardSettings } from '@/lib/app-state'
 import { getCacheKey, loadContainersCache } from '@/lib/cache/containers'
 import type { Locale } from '@/lib/i18n/dictionaries'
@@ -87,12 +88,13 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 	)
 
 	return (
-		<>
+		<DashboardProvider
+			notificationsEnabled={process.env.NOTIFICATIONS_ENABLED === 'true'}
+		>
 			<ContainerDashboard
 				processedContainers={processedContainers}
 				dict={dict}
 				locale={locale}
-				notificationsEnabled={process.env.NOTIFICATIONS_ENABLED === 'true'}
 				initialActiveFilters={settings.activeFilters as FilterStatus[]}
 				initialShowHiddenMode={settings.showHiddenMode}
 			/>
@@ -102,6 +104,6 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 					{dict.dashboard.noContainers}
 				</div>
 			)}
-		</>
+		</DashboardProvider>
 	)
 }
