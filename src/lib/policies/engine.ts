@@ -148,6 +148,21 @@ function evaluateSemverPolicy(context: ImageContext): PolicyResult | null {
 		}
 	}
 
+	// Check if the current tag was re-pushed with new content (same tag, different digest)
+	const currentRemoteTag = context.remoteTags.find(
+		(t) => t.tag === context.currentTag
+	)
+	if (currentRemoteTag && context.currentDigest !== currentRemoteTag.digest) {
+		return {
+			policy: 'SemverPolicy',
+			track: `semver:${currentVer.major}`,
+			state: 'CONTENT_UPDATED',
+			currentTag: context.currentTag,
+			currentDigest: context.currentDigest,
+			details: { latestCompatible: currentRemoteTag.tag }
+		}
+	}
+
 	return {
 		policy: 'SemverPolicy',
 		track: `semver:${currentVer.major}`,
