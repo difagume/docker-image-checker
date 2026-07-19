@@ -48,7 +48,7 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 			}
 			await this.bot.sendMessage(this.chatId, text, {
 				parse_mode: 'Markdown',
-				disable_web_page_preview: true
+				link_preview_options: { is_disabled: true }
 			})
 			console.log(`📨 Telegram notification sent for ${message.containerName}`)
 		} catch (error) {
@@ -71,9 +71,9 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 		]
 
 		if (message.lastUpdated) {
-			const date = new Date(message.lastUpdated)
+			const instant = Temporal.Instant.from(message.lastUpdated)
 			lines.push(
-				`*${t.updated}:* ${date.toLocaleString(message.locale, {
+				`*${t.updated}:* ${instant.toLocaleString(message.locale, {
 					year: 'numeric',
 					month: '2-digit',
 					day: '2-digit',

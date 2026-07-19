@@ -37,7 +37,7 @@ export async function updateContainerCacheAction(
 		displayCurrentVersion:
 			updateInfo.displayCurrentVersion || imageName.split(':')[1] || 'latest',
 		isUpToDate: true,
-		cachedAt: new Date().toISOString(),
+		cachedAt: Temporal.Now.instant().toString(),
 		...updateInfo
 	}
 

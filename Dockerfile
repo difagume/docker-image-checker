@@ -1,12 +1,12 @@
-FROM node:20.20.1-alpine AS base
+FROM node:26-alpine AS base
+
+# Corepack was decoupled from Node.js starting with v25 — install it manually
+RUN npm install -g corepack@latest --force && corepack enable pnpm
 
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-
-# Install pnpm
-RUN corepack enable pnpm
 
 # Install dependencies
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* pnpm-workspace.yaml .npmrc* ./

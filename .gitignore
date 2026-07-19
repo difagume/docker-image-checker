@@ -41,6 +41,12 @@ yarn-error.log*
 .qoder
 .roo
 .atl
+.cline
+.claude
+.codebuddy
+.continue
+.kiro
+.junie
 
 # typescript
 *.tsbuildinfo
@@ -48,3 +54,4 @@ next-env.d.ts
 
 data
 skills-lock.json
+openspec/

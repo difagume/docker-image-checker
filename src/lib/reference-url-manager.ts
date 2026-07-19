@@ -87,7 +87,7 @@ export async function saveReferenceUrl(
 		state.referenceUrls[imageName] = {
 			image: imageName,
 			referenceUrl: url,
-			updatedAt: new Date().toISOString()
+			updatedAt: Temporal.Now.instant().toString()
 		}
 	}
 

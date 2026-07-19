@@ -18,21 +18,21 @@ function fetchWithTimeout(
 	options: RequestInit = {},
 	timeout = FETCH_TIMEOUT
 ): Promise<Response> {
-	const startTime = Date.now()
+	const startTime = Temporal.Now.instant().epochMilliseconds
 	console.log(`[Docker API] Starting fetch: ${url}`)
 
 	let timeoutId: NodeJS.Timeout | null = null
 
 	const fetchPromise = fetch(url, options).then((response) => {
 		if (timeoutId) clearTimeout(timeoutId)
-		const elapsed = Date.now() - startTime
+		const elapsed = Temporal.Now.instant().epochMilliseconds - startTime
 		console.log(`[Docker API] Success: ${url} (${elapsed}ms)`)
 		return response
 	})
 
 	const timeoutPromise = new Promise<Response>((_, reject) => {
 		timeoutId = setTimeout(() => {
-			const elapsed = Date.now() - startTime
+			const elapsed = Temporal.Now.instant().epochMilliseconds - startTime
 			console.warn(`[Docker API] Timeout: ${url} after ${elapsed}ms`)
 			reject(new Error(`Timeout after ${timeout}ms`))
 		}, timeout)

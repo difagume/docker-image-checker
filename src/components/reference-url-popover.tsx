@@ -1,7 +1,7 @@
 'use client'
 
 import { ExternalLink, Link as LinkIcon, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,7 +27,7 @@ export function ReferenceUrlPopover({
 	const [url, setUrl] = useState(currentUrl || '')
 	const [isOpen, setIsOpen] = useState(false)
 
-	const isValidUrl = useMemo(() => {
+	const isValidUrl = (() => {
 		try {
 			if (!url) return false
 			new URL(url)
@@ -35,11 +35,7 @@ export function ReferenceUrlPopover({
 		} catch {
 			return false
 		}
-	}, [url])
-
-	useEffect(() => {
-		setUrl(currentUrl || '')
-	}, [currentUrl])
+	})()
 
 	const handleSave = () => {
 		if (!url.trim()) {
@@ -72,13 +68,14 @@ export function ReferenceUrlPopover({
 				<button
 					type='button'
 					title={currentUrl ? dict.editReference : dict.addReference}
+					aria-label={currentUrl ? dict.editReference : dict.addReference}
 					className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ml-1 ${
 						currentUrl
 							? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
 							: 'text-muted-foreground hover:text-foreground'
 					}`}
 				>
-					<LinkIcon className='h-3.5 w-3.5' />
+					<LinkIcon className='h-3.5 w-3.5' aria-hidden='true' />
 				</button>
 			</PopoverTrigger>
 			<PopoverContent className='w-80 bg-popover border-border text-popover-foreground rounded-[3.5px] shadow-2xl p-4'>
@@ -97,21 +94,25 @@ export function ReferenceUrlPopover({
 								type='button'
 								onClick={handleDelete}
 								title={dict.delete}
+								aria-label={dict.delete}
 								className='text-muted-foreground hover:text-destructive transition-colors p-1 hover:bg-destructive/10 rounded shrink-0'
 							>
-								<Trash2 className='h-4 w-4' />
+								<Trash2 className='h-4 w-4' aria-hidden='true' />
 							</button>
 						)}
 					</div>
 
-					<div className='grid gap-3'>
-						<Input
-							id='url'
-							value={url}
-							onChange={(e) => setUrl(e.target.value)}
-							placeholder={dict.referenceUrlPlaceholder}
-							className='h-9 bg-muted border-border text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 rounded-[3.5px] text-sm'
-						/>
+				<div className='grid gap-3'>
+					<label htmlFor='url' className='sr-only'>
+						{dict.referenceUrlPlaceholder}
+					</label>
+					<Input
+						id='url'
+						value={url}
+						onChange={(e) => setUrl(e.target.value)}
+						placeholder={dict.referenceUrlPlaceholder}
+						className='h-9 bg-muted border-border text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 rounded-[3.5px] text-sm'
+					/>
 
 						<div className='flex gap-2'>
 							<Button
@@ -129,7 +130,7 @@ export function ReferenceUrlPopover({
 								disabled={!isValidUrl}
 								onClick={handleOpen}
 							>
-								<ExternalLink className='h-3 w-3' />
+								<ExternalLink className='h-3 w-3' aria-hidden='true' />
 								{dict.open}
 							</Button>
 						</div>

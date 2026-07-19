@@ -21,8 +21,8 @@ export abstract class BaseNotificationProvider implements NotificationProvider {
 		]
 
 		if (message.lastUpdated) {
-			const date = new Date(message.lastUpdated)
-			lines.push(`Updated: ${date.toLocaleString()}`)
+			const instant = Temporal.Instant.from(message.lastUpdated)
+			lines.push(`Updated: ${instant.toLocaleString()}`)
 		}
 
 		if (message.dockerHubUrl) {

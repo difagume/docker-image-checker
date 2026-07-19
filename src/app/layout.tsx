@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from 'next'
 import { Footer } from '@/components/footer'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
+import { getLocale } from '@/lib/i18n/get-locale'
 
 const ibmPlexMono = IBM_Plex_Mono({
 	variable: '--font-ibm-plex-mono',
@@ -49,23 +50,33 @@ export const viewport: Viewport = {
 	themeColor: '#09090b'
 }
 
-export default function RootLayout({
+export default async function RootLayout({
 	children
 }: Readonly<{
 	children: React.ReactNode
 }>) {
+	const locale = await getLocale()
+
 	return (
-		<html lang='en' suppressHydrationWarning>
+		<html lang={locale} suppressHydrationWarning>
 			<body
 				className={`${ibmPlexMono.variable} font-sans antialiased min-h-dvh flex flex-col`}
 			>
+				<a
+					href='#main-content'
+					className='sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:rounded-md'
+				>
+					Skip to main content
+				</a>
 				<ThemeProvider
 					attribute='class'
 					defaultTheme='dark'
 					enableSystem={false}
 					disableTransitionOnChange
 				>
-					{children}
+					<main id='main-content' className='flex-1 flex flex-col'>
+						{children}
+					</main>
 					<Footer />
 					<Toaster richColors />
 				</ThemeProvider>

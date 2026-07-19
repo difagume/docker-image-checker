@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import docker from '@/lib/docker'
 
 export async function GET() {
-	const timestamp = new Date().toISOString()
+	const timestamp = Temporal.Now.instant().toString()
 	
 	try {
 		// Ping Docker daemon to ensure connection is alive

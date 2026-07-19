@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import en from '@/lib/i18n/dictionaries/en.json'
 import es from '@/lib/i18n/dictionaries/es.json'
 import pt from '@/lib/i18n/dictionaries/pt-BR.json'
@@ -13,6 +14,6 @@ export const dictionaries = {
 
 export type Dictionary = typeof dictionaries.en
 
-export function getDictionary(locale: Locale): Dictionary {
+export const getDictionary = cache((locale: Locale): Dictionary => {
 	return dictionaries[locale] || dictionaries[defaultLocale]
-}
+})

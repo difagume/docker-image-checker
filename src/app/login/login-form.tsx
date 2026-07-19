@@ -68,7 +68,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 					priority
 				/>
 			</div>
-			<Card className='w-full max-w-md rounded-[3.5px] shadow-lg'>
+			<Card className='w-full max-w-md shadow-lg'>
 				<CardHeader className='text-center space-y-2'>
 					<CardTitle className='text-2xl tracking-tight'>
 						{dict.title}
@@ -111,7 +111,10 @@ export default function LoginForm({ dict }: LoginFormProps) {
 						</div>
 
 						{error && (
-							<div className='h-9 flex items-center rounded-[3.5px] border border-red-800 bg-red-950/40 px-3 text-sm leading-none text-red-400'>
+							<div
+								role='alert'
+								className='h-9 flex items-center rounded-md border border-red-800 bg-red-950/40 px-3 text-sm leading-none text-red-400'
+							>
 								{error}
 							</div>
 						)}
@@ -119,7 +122,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 						<Button
 							type='submit'
 							disabled={loading}
-							className='w-full bg-green-500/20 hover:bg-[#BECC73]/20 text-green-400 hover:text-[#BECC73] border border-green-500/50 hover:border-[#BECC73] hover:shadow-[0_0_15px_rgba(190,204,115,0.3)] rounded-[3.5px] flex items-center justify-center gap-2 transition-all duration-300'
+							className='w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 border border-green-500/50 hover:border-green-500 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] rounded-md flex items-center justify-center gap-2 transition-[background-color,border-color,color,box-shadow] duration-300'
 						>
 							{loading ? (
 								<>

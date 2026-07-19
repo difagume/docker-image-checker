@@ -74,7 +74,7 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 						inline: false
 					}
 				],
-				timestamp: new Date().toISOString(),
+				timestamp: Temporal.Now.instant().toString(),
 				footer: {
 					text: 'Docker Image Checker'
 				}
@@ -87,7 +87,7 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 			if (message.lastUpdated) {
 				embed.fields.push({
 					name: t.updated,
-					value: new Date(message.lastUpdated).toLocaleString(message.locale, {
+					value: Temporal.Instant.from(message.lastUpdated).toLocaleString(message.locale, {
 						year: 'numeric',
 						month: '2-digit',
 						day: '2-digit',
