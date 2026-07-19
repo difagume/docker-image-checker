@@ -122,7 +122,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 						<Button
 							type='submit'
 							disabled={loading}
-							className='w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 border border-green-500/50 hover:border-green-500 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] rounded-md flex items-center justify-center gap-2 transition-all duration-300'
+							className='w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-green-300 border border-green-500/50 hover:border-green-500 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] rounded-md flex items-center justify-center gap-2 transition-[background-color,border-color,color,box-shadow] duration-300'
 						>
 							{loading ? (
 								<>

@@ -1,7 +1,7 @@
 'use client'
 
 import { ExternalLink, Link as LinkIcon, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -27,7 +27,7 @@ export function ReferenceUrlPopover({
 	const [url, setUrl] = useState(currentUrl || '')
 	const [isOpen, setIsOpen] = useState(false)
 
-	const isValidUrl = useMemo(() => {
+	const isValidUrl = (() => {
 		try {
 			if (!url) return false
 			new URL(url)
@@ -35,11 +35,7 @@ export function ReferenceUrlPopover({
 		} catch {
 			return false
 		}
-	}, [url])
-
-	useEffect(() => {
-		setUrl(currentUrl || '')
-	}, [currentUrl])
+	})()
 
 	const handleSave = () => {
 		if (!url.trim()) {

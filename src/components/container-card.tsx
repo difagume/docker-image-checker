@@ -277,7 +277,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 			className='min-w-0'
 		>
 			<Card
-				className={`bg-card border-border text-card-foreground h-full transition-all duration-300 overflow-hidden ${
+				className={`bg-card border-border text-card-foreground h-full transition-[border-color,opacity,filter] duration-300 overflow-hidden ${
 					hasUpdateAvailable
 						? isNewMajor
 							? 'border-l-violet-500'
@@ -400,16 +400,17 @@ export const ContainerCard = React.memo(function ContainerCard({
 									<span className='text-foreground font-bold text-sm'>
 										{dict.container.image}:
 									</span>
-									<ReferenceUrlPopover
-										imageName={container.Image.split(':')[0]}
-										currentUrl={
-											referenceUrls[container.Image.split(':')[0]]?.referenceUrl
-										}
-										onSave={(url: string) => {
-											onSaveReferenceUrl(container.Image.split(':')[0], url)
-										}}
-										dict={dict.container}
-									/>
+							<ReferenceUrlPopover
+									key={referenceUrls[container.Image.split(':')[0]]?.referenceUrl ?? ''}
+									imageName={container.Image.split(':')[0]}
+									currentUrl={
+										referenceUrls[container.Image.split(':')[0]]?.referenceUrl
+									}
+									onSave={(url: string) => {
+										onSaveReferenceUrl(container.Image.split(':')[0], url)
+									}}
+									dict={dict.container}
+								/>
 								</div>
 								<span className='text-xs text-muted-foreground'>
 									{container.ImageID.substring(7, 19)}

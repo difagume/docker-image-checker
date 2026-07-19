@@ -1,5 +1,3 @@
-'use client'
-
 import { Github } from 'lucide-react'
 
 export function Footer() {
@@ -9,7 +7,7 @@ export function Footer() {
 				href='https://github.com/difagume/docker-image-checker'
 				target='_blank'
 				rel='noopener noreferrer'
-				className='text-muted-foreground opacity-60 hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95'
+				className='text-muted-foreground opacity-60 hover:opacity-100 transition-[opacity,transform] duration-200 hover:scale-110 active:scale-95'
 				title='View project on GitHub'
 				aria-label='View project on GitHub (opens in new tab)'
 			>

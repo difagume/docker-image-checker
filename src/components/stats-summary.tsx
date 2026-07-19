@@ -36,7 +36,7 @@ export function StatsSummary({
 				type='button'
 				onClick={() => onToggleFilter('updated')}
 				aria-pressed={isFilterActive('updated')}
-				className={`flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
+				className={`flex items-center justify-between p-3 rounded-md border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
           ${
 						isFilterActive('updated')
 							? 'bg-muted border-green-500/50 ring-1 ring-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
@@ -55,7 +55,7 @@ export function StatsSummary({
 					</span>
 				</div>
 				<div
-					className={`transition-all duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-muted-foreground group-hover:text-foreground'}`}
+					className={`transition-colors duration-300 ${isFilterActive('updated') ? 'text-green-500' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('updated') ? (
 <Eye className='h-4 w-4' aria-hidden='true' />
@@ -70,7 +70,7 @@ export function StatsSummary({
 				type='button'
 				onClick={() => onToggleFilter('available')}
 				aria-pressed={isFilterActive('available')}
-				className={`relative overflow-hidden flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
+				className={`relative overflow-hidden flex items-center justify-between p-3 rounded-md border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
           ${
 						isFilterActive('available')
 							? 'bg-muted border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
@@ -94,7 +94,7 @@ export function StatsSummary({
 					</span>
 				</div>
 				<div
-					className={`relative z-10 transition-all duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-muted-foreground group-hover:text-foreground'}`}
+					className={`relative z-10 transition-colors duration-300 ${isFilterActive('available') ? 'text-amber-500' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('available') ? (
 						<Eye className='h-4 w-4' aria-hidden='true' />
@@ -109,7 +109,7 @@ export function StatsSummary({
 				type='button'
 				onClick={() => onToggleFilter('unknown')}
 				aria-pressed={isFilterActive('unknown')}
-				className={`flex items-center justify-between p-3 rounded-md border transition-all cursor-pointer text-left group
+				className={`flex items-center justify-between p-3 rounded-md border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
           ${
 						isFilterActive('unknown')
 							? 'bg-muted border-muted-foreground/50 ring-1 ring-muted-foreground/20 shadow-[0_0_15px_rgba(115,115,115,0.1)]'
@@ -128,7 +128,7 @@ export function StatsSummary({
 					</span>
 				</div>
 				<div
-					className={`transition-all duration-300 ${isFilterActive('unknown') ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}
+					className={`transition-colors duration-300 ${isFilterActive('unknown') ? 'text-muted-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}
 				>
 					{isFilterActive('unknown') ? (
 						<Eye className='h-4 w-4' aria-hidden='true' />
@@ -143,7 +143,7 @@ export function StatsSummary({
 					type='button'
 					onClick={onToggleShowHidden}
 					aria-pressed={showHiddenMode}
-					className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+					className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
 						showHiddenMode
 							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
 							: 'text-muted-foreground hover:text-foreground border border-transparent'

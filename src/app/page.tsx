@@ -12,12 +12,11 @@ import { getLocale } from '@/lib/i18n/get-locale'
 export const dynamic = 'force-dynamic'
 
 export default async function Dashboard() {
-	if (process.env.AUTH_HTPASSWD) {
-		const auth = await checkAuth()
-		if (!auth.authenticated) redirect('/login')
-	}
+	const [auth, locale] = process.env.AUTH_HTPASSWD
+		? await Promise.all([checkAuth(), getLocale()])
+		: [null, await getLocale()]
 
-	const locale = await getLocale()
+	if (auth && !auth.authenticated) redirect('/login')
 	const dict = getDictionary(locale)
 	const authEnabled = !!process.env.AUTH_HTPASSWD
 

@@ -28,11 +28,6 @@ import { UpdateConfirmDialog } from './update-confirm-dialog'
 
 interface ContainerDashboardProps {
 	processedContainers: ContainerData[]
-	stats: {
-		updated: number
-		available: number
-		unknown: number
-	}
 	dict: Dictionary
 	locale: Locale
 	notificationsEnabled?: boolean
@@ -133,28 +128,26 @@ export function ContainerDashboard({
 	}, [searchQuery])
 
 	const toggleHideContainer = (id: string) => {
-		const newHiddenIds = hiddenContainerIds.includes(id)
-			? hiddenContainerIds.filter((i) => i !== id)
-			: [...hiddenContainerIds, id]
-
-		setHiddenContainerIds(newHiddenIds)
-
-		// Sync with server
-		setHiddenContainerIdsAction(newHiddenIds).catch((error) => {
-			console.error('Failed to sync hidden containers:', error)
+		setHiddenContainerIds((prev) => {
+			const newHiddenIds = prev.includes(id)
+				? prev.filter((i) => i !== id)
+				: [...prev, id]
+			setHiddenContainerIdsAction(newHiddenIds).catch((error) => {
+				console.error('Failed to sync hidden containers:', error)
+			})
+			return newHiddenIds
 		})
 	}
 
 	const toggleIgnoreNotification = (id: string) => {
-		const newIgnoredIds = ignoredNotificationIds.includes(id)
-			? ignoredNotificationIds.filter((i) => i !== id)
-			: [...ignoredNotificationIds, id]
-
-		setIgnoredNotificationIds(newIgnoredIds)
-
-		// Sync with server
-		setIgnoredNotificationContainerIdsAction(newIgnoredIds).catch((error) => {
-			console.error('Failed to sync ignored containers:', error)
+		setIgnoredNotificationIds((prev) => {
+			const newIgnoredIds = prev.includes(id)
+				? prev.filter((i) => i !== id)
+				: [...prev, id]
+			setIgnoredNotificationContainerIdsAction(newIgnoredIds).catch((error) => {
+				console.error('Failed to sync ignored containers:', error)
+			})
+			return newIgnoredIds
 		})
 	}
 

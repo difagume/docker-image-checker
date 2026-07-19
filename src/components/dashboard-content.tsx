@@ -1,6 +1,5 @@
 import { getContainers, getImages } from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
-import { GhcrTokenToast } from '@/components/ghcr-token-toast'
 import { getDashboardSettings } from '@/lib/app-state'
 import { getCacheKey, loadContainersCache } from '@/lib/cache/containers'
 import type { Locale } from '@/lib/i18n/dictionaries'
@@ -87,31 +86,10 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 		`[Dashboard] Finished loading initial container data in ${elapsed}ms`
 	)
 
-	// Compute stats from cached values (containers with 'checking' count as unknown)
-	const stats = {
-		updated: processedContainers.filter((c) => c.updateStatus === 'updated')
-			.length,
-		available: processedContainers.filter((c) => c.updateStatus === 'available')
-			.length,
-		unknown: processedContainers.filter(
-			(c) =>
-				c.updateStatus === 'unknown' ||
-				c.updateStatus === 'local' ||
-				c.updateStatus === 'checking'
-		).length
-	}
-
-	const ghcrTokenErrors: string[] = []
-
 	return (
 		<>
-			{ghcrTokenErrors.length > 0 && (
-				<GhcrTokenToast imageNames={ghcrTokenErrors} dict={dict} />
-			)}
-
 			<ContainerDashboard
 				processedContainers={processedContainers}
-				stats={stats}
 				dict={dict}
 				locale={locale}
 				notificationsEnabled={process.env.NOTIFICATIONS_ENABLED === 'true'}
