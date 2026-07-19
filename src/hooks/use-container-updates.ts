@@ -121,7 +121,7 @@ export function useContainerUpdates(
 						dockerHubUrl: containerData.dockerHubUrl,
 						isUpToDate: containerData.isUpToDate,
 						policyState: containerData.policyState,
-						cachedAt: new Date().toISOString()
+						cachedAt: Temporal.Now.instant().toString()
 					}
 				}
 			}
@@ -193,7 +193,7 @@ export function useContainerUpdates(
 							dockerHubUrl,
 							isUpToDate: !hasUpdate,
 							policyState: policyResult?.state,
-							cachedAt: new Date().toISOString()
+							cachedAt: Temporal.Now.instant().toString()
 						}
 					}
 				} catch (error) {
@@ -384,7 +384,7 @@ export function useContainerUpdates(
 						updateStatus: newStatus,
 						dockerHubUrl: updateInfo.dockerHubUrl,
 						policyState: updateInfo.policyState,
-						lastUpdated: new Date().toISOString()
+						lastUpdated: Temporal.Now.instant().toString()
 					}).catch((err) => {
 						console.error('[Cache] Failed to update container cache:', err)
 					})

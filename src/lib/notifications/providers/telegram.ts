@@ -71,9 +71,9 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 		]
 
 		if (message.lastUpdated) {
-			const date = new Date(message.lastUpdated)
+			const instant = Temporal.Instant.from(message.lastUpdated)
 			lines.push(
-				`*${t.updated}:* ${date.toLocaleString(message.locale, {
+				`*${t.updated}:* ${instant.toLocaleString(message.locale, {
 					year: 'numeric',
 					month: '2-digit',
 					day: '2-digit',

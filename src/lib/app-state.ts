@@ -90,7 +90,7 @@ export async function markAsNotified(update: ContainerUpdate): Promise<void> {
 	const containerId = generateContainerId(update)
 
 	const notifiedUpdate: NotifiedUpdate = {
-		notifiedAt: new Date().toISOString(),
+		notifiedAt: Temporal.Now.instant().toString(),
 		containerName: update.containerName,
 		imageName: update.imageName,
 		latestVersion: update.latestVersion,
@@ -98,7 +98,7 @@ export async function markAsNotified(update: ContainerUpdate): Promise<void> {
 	}
 
 	state.notifiedUpdates[containerId] = notifiedUpdate
-	state.lastCheck = new Date().toISOString()
+	state.lastCheck = Temporal.Now.instant().toString()
 
 	await saveState(state)
 }
@@ -126,14 +126,15 @@ export async function getLastCheck(): Promise<string | undefined> {
  */
 export async function clearOldNotifications(daysOld = 30): Promise<void> {
 	const state = await loadState()
-	const cutoffDate = new Date()
-	cutoffDate.setDate(cutoffDate.getDate() - daysOld)
+	const cutoffInstant = Temporal.Now.instant().toZonedDateTimeISO('UTC')
+		.subtract({ days: daysOld })
+		.toInstant()
 
 	const filteredUpdates: Record<string, NotifiedUpdate> = {}
 
 	for (const [key, value] of Object.entries(state.notifiedUpdates)) {
-		const notifiedDate = new Date(value.notifiedAt)
-		if (notifiedDate > cutoffDate) {
+		const notifiedInstant = Temporal.Instant.from(value.notifiedAt)
+		if (Temporal.Instant.compare(notifiedInstant, cutoffInstant) > 0) {
 			filteredUpdates[key] = value
 		}
 	}

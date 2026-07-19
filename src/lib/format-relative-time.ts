@@ -1,25 +1,19 @@
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 
 export function formatRelativeTime(
-	date: Date,
+	date: Date | Temporal.PlainDate,
 	dict: Dictionary,
 	locale: Locale
 ) {
-	const now = new Date()
+	const plainDate = date instanceof Temporal.PlainDate
+		? date
+		: Temporal.PlainDate.from(date.toISOString().split('T')[0])
+	const now = Temporal.Now.plainDateISO()
+	const duration = now.since(plainDate, { largestUnit: 'year' })
 
-	let years = now.getFullYear() - date.getFullYear()
-	let months = now.getMonth() - date.getMonth()
-	let days = now.getDate() - date.getDate()
-
-	if (days < 0) {
-		months -= 1
-		const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate()
-		days += prevMonth
-	}
-	if (months < 0) {
-		years -= 1
-		months += 12
-	}
+	const years = duration.years
+	const months = duration.months
+	const days = duration.days
 
 	const parts: string[] = []
 	if (years > 0)
@@ -46,7 +40,22 @@ export function formatRelativeTime(
 		return `${parts[0]} ${dict.time.ago}`
 	}
 
-	const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+	// Small time differences — use epoch milliseconds for precision
+	const nowInstant = Temporal.Now.instant()
+	let diffInSeconds: number
+
+	if (date instanceof Temporal.PlainDate) {
+		const dateInstant = date.toZonedDateTime('UTC').toInstant()
+		diffInSeconds = Math.floor(
+			(nowInstant.epochMilliseconds - dateInstant.epochMilliseconds) / 1000
+		)
+	} else {
+		const dateInstant = Temporal.Instant.from(date.toISOString())
+		diffInSeconds = Math.floor(
+			(nowInstant.epochMilliseconds - dateInstant.epochMilliseconds) / 1000
+		)
+	}
+
 	if (diffInSeconds < 60) return dict.time.momentAgo
 
 	const minutes = Math.floor(diffInSeconds / 60)
