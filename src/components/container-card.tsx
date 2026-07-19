@@ -33,12 +33,12 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
+import { useDashboard } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
 import { formatRelativeTime } from '@/lib/format-relative-time'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import { cn } from '@/lib/utils'
 import { ReferenceUrlPopover } from './reference-url-popover'
-import { useDashboard } from '@/contexts/dashboard-context'
 
 const cardVariants = {
 	initial: { opacity: 0, scale: 0.96, y: 10 },
@@ -109,9 +109,7 @@ function StatusAvailable({
 							isNewMajor ? 'text-violet-400' : 'text-amber-400'
 						}`}
 					>
-						{isNewMajor
-							? c.newMajorAvailable
-							: c.updateAvailable}
+						{isNewMajor ? c.newMajorAvailable : c.updateAvailable}
 						<ExternalLink className='h-3.5 w-3.5' aria-hidden='true' />
 					</AlertTitle>
 				</a>
@@ -121,9 +119,7 @@ function StatusAvailable({
 						isNewMajor ? 'text-violet-400' : 'text-amber-400'
 					}`}
 				>
-					{isNewMajor
-						? c.newMajorAvailable
-						: c.updateAvailable}
+					{isNewMajor ? c.newMajorAvailable : c.updateAvailable}
 				</AlertTitle>
 			)}
 			{lastUpdated && (
@@ -185,7 +181,10 @@ function StatusAvailable({
 				>
 					{isUpdating ? (
 						<>
-							<Loader2 className='mr-1 h-3 w-3 animate-spin' aria-hidden='true' />
+							<Loader2
+								className='mr-1 h-3 w-3 animate-spin'
+								aria-hidden='true'
+							/>
 							{updatingLabel}
 						</>
 					) : (
@@ -205,11 +204,7 @@ interface StatusLocalProps {
 }
 
 function StatusLocal({ label }: StatusLocalProps) {
-	return (
-		<span className='text-blue-500/70 font-medium'>
-			{label}
-		</span>
-	)
+	return <span className='text-blue-500/70 font-medium'>{label}</span>
 }
 
 interface StatusUnknownProps {
@@ -217,11 +212,7 @@ interface StatusUnknownProps {
 }
 
 function StatusUnknown({ label }: StatusUnknownProps) {
-	return (
-		<span className='text-muted-foreground font-medium'>
-			{label}
-		</span>
-	)
+	return <span className='text-muted-foreground font-medium'>{label}</span>
 }
 
 interface StatusCheckingProps {
@@ -259,15 +250,9 @@ function NotificationToggle({ containerId, dict }: NotificationToggleProps) {
 					? 'text-muted-foreground hover:text-foreground'
 					: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
 			}`}
-			title={
-				isIgnored
-					? dict.enableNotifications
-					: dict.disableNotifications
-			}
+			title={isIgnored ? dict.enableNotifications : dict.disableNotifications}
 			aria-label={
-				isIgnored
-					? dict.enableNotifications
-					: dict.disableNotifications
+				isIgnored ? dict.enableNotifications : dict.disableNotifications
 			}
 		>
 			{isIgnored ? (
@@ -297,16 +282,8 @@ function HideToggle({ containerId, dict }: HideToggleProps) {
 					? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
 					: 'text-muted-foreground hover:text-foreground'
 			}`}
-			title={
-				isHidden
-					? dict.showContainer
-					: dict.hideContainer
-			}
-			aria-label={
-				isHidden
-					? dict.showContainer
-					: dict.hideContainer
-			}
+			title={isHidden ? dict.showContainer : dict.hideContainer}
+			aria-label={isHidden ? dict.showContainer : dict.hideContainer}
 		>
 			{isHidden ? (
 				<Eye className='h-3.5 w-3.5' aria-hidden='true' />
@@ -362,7 +339,9 @@ export const ContainerCard = React.memo(function ContainerCard({
 		policyState
 	} = item
 
-	const { state: { referenceUrls, hiddenContainerIds } } = useDashboard()
+	const {
+		state: { referenceUrls, hiddenContainerIds }
+	} = useDashboard()
 
 	const prefersReducedMotion = useReducedMotion()
 	const hasUpdateAvailable = updateStatus === 'available'
@@ -422,7 +401,11 @@ export const ContainerCard = React.memo(function ContainerCard({
 			initial={prefersReducedMotion ? undefined : 'initial'}
 			animate={prefersReducedMotion ? undefined : 'animate'}
 			exit={prefersReducedMotion ? undefined : 'exit'}
-			transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
+			transition={
+				prefersReducedMotion
+					? { duration: 0 }
+					: { duration: 0.25, ease: 'easeOut' }
+			}
 			className='min-w-0'
 		>
 			<Card
@@ -443,10 +426,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 									containerId={container.Id}
 									dict={dict.container}
 								/>
-								<HideToggle
-									containerId={container.Id}
-									dict={dict.container}
-								/>
+								<HideToggle containerId={container.Id} dict={dict.container} />
 							</div>
 						</CardTitle>
 						<Badge
@@ -501,12 +481,18 @@ export const ContainerCard = React.memo(function ContainerCard({
 						<div className='pt-2 border-t border-border mt-2 space-y-2'>
 							<div className='flex items-center justify-between'>
 								<div className='flex items-center gap-2'>
-									<Package className='h-4 w-4 text-muted-foreground' aria-hidden='true' />
+									<Package
+										className='h-4 w-4 text-muted-foreground'
+										aria-hidden='true'
+									/>
 									<span className='text-foreground font-bold text-sm'>
 										{dict.container.image}:
 									</span>
 									<ReferenceUrlPopover
-										key={referenceUrls[container.Image.split(':')[0]]?.referenceUrl ?? ''}
+										key={
+											referenceUrls[container.Image.split(':')[0]]
+												?.referenceUrl ?? ''
+										}
 										imageName={container.Image.split(':')[0]}
 										currentUrl={
 											referenceUrls[container.Image.split(':')[0]]?.referenceUrl
@@ -559,11 +545,12 @@ export const ContainerCard = React.memo(function ContainerCard({
 									</div>
 								)}
 							</div>
-
-							<div className='flex justify-end pt-1'>{updateStatusInfo}</div>
 						</div>
 					</div>
 				</CardContent>
+				<div className='flex justify-end px-6 pt-1 mt-auto'>
+					{updateStatusInfo}
+				</div>
 			</Card>
 		</motion.div>
 	)
