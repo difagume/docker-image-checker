@@ -4,6 +4,9 @@ allowBuilds:
   protobufjs: true
   sharp: true
   ssh2: true
+minimumReleaseAgeExclude:
+  - '@number-flow/react@0.6.2'
+  - number-flow@0.6.2
 overrides:
   ajv@<6.14.0: '>=6.14.0'
   form-data@<2.5.4: '>=2.5.4'
