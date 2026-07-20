@@ -333,6 +333,7 @@ export async function updateContainerImage(
 	success: boolean
 	error?: string
 	newContainerId?: string
+	newImageId?: string
 }> {
 	try {
 		const container = docker.getContainer(containerId)
@@ -447,13 +448,17 @@ export async function updateContainerImage(
 			console.log(`[Image Update] Starting new container ${newContainer.id}...`)
 			await newContainer.start()
 
+			// Inspect the new container to get fresh ImageID
+			const newContainerInfo = await newContainer.inspect()
+
 			console.log(
 				`[Image Update] Successfully updated container ${containerId} -> ${newContainer.id}`
 			)
 
 			return {
 				success: true,
-				newContainerId: newContainer.id.substring(0, 12)
+				newContainerId: newContainer.id.substring(0, 12),
+				newImageId: newContainerInfo.Image
 			}
 		}
 

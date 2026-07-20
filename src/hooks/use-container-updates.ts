@@ -342,16 +342,11 @@ export function useContainerUpdates(
 			const result = await updateContainerImage(containerId, imageName)
 
 			if (result.success) {
-				// Verify if there's still an update available after the upgrade
-				const updateInfo = await verifyContainerUpdate(imageName)
-
-				// Determine update status based on verification result
-				const newStatus = updateInfo.hasUpdate ? 'available' : 'updated'
-				const latestVersion = updateInfo.latestVersion || newVersion
-
 				// Use the new container ID if available (container was recreated)
 				const updatedContainerId = result.newContainerId || containerId
 
+				// Refresh the card IMMEDIATELY with optimistic data
+				// Don't wait for verification — the container IS updated on Docker
 				setContainers((prev) =>
 					prev.map((c) =>
 						c.container.Id === containerId
@@ -359,35 +354,75 @@ export function useContainerUpdates(
 									...c,
 									displayCurrentVersion: newVersion,
 									currentVersion: newVersion,
-									latestVersion: latestVersion,
-									isUpToDate: !updateInfo.hasUpdate,
-									updateStatus: newStatus as FilterStatus,
-									dockerHubUrl: updateInfo.dockerHubUrl,
-									policyState: updateInfo.policyState,
+									latestVersion: newVersion,
+									isUpToDate: true,
+									updateStatus: 'updated' as FilterStatus,
 									container: {
 										...c.container,
 										Id: updatedContainerId,
-										Image: imageName
+										Image: imageName,
+										// Only update runtime state when container was recreated
+										...(result.newContainerId
+											? {
+													State: 'running' as const,
+													Status:
+														c.container.State === 'running'
+															? c.container.Status
+															: 'Up 0 seconds'
+												}
+											: {}),
+										ImageID: result.newImageId || c.container.ImageID
 									}
 								}
 							: c
 					)
 				)
 
-				// Update the cache with the new container info
-				if (updateInfo.localDigest) {
-					updateContainerCacheAction(imageName, updateInfo.localDigest, {
-						displayCurrentVersion: newVersion,
-						currentVersion: newVersion,
-						latestVersion: latestVersion,
-						isUpToDate: !updateInfo.hasUpdate,
-						updateStatus: newStatus,
-						dockerHubUrl: updateInfo.dockerHubUrl,
-						policyState: updateInfo.policyState,
-						lastUpdated: Temporal.Now.instant().toString()
-					}).catch((err) => {
-						console.error('[Cache] Failed to update container cache:', err)
-					})
+				// Verify in background if there's still a newer version available
+				// This is non-blocking — if it fails, the card already shows 'updated'
+				try {
+					const updateInfo = await verifyContainerUpdate(imageName)
+
+					if (updateInfo.hasUpdate) {
+						// There's a newer version than what we just installed
+						setContainers((prev) =>
+							prev.map((c) =>
+								c.container.Id === updatedContainerId
+									? {
+											...c,
+											latestVersion: updateInfo.latestVersion || newVersion,
+											isUpToDate: false,
+											updateStatus: 'available' as FilterStatus,
+											dockerHubUrl: updateInfo.dockerHubUrl,
+											policyState: updateInfo.policyState
+										}
+									: c
+							)
+						)
+					}
+
+					// Update the cache with the verification result
+					if (updateInfo.localDigest) {
+						updateContainerCacheAction(imageName, updateInfo.localDigest, {
+							displayCurrentVersion: newVersion,
+							currentVersion: newVersion,
+							latestVersion: updateInfo.latestVersion || newVersion,
+							isUpToDate: !updateInfo.hasUpdate,
+							updateStatus: updateInfo.hasUpdate ? 'available' : 'updated',
+							dockerHubUrl: updateInfo.dockerHubUrl,
+							policyState: updateInfo.policyState,
+							lastUpdated: Temporal.Now.instant().toString()
+						}).catch((err) => {
+							console.error('[Cache] Failed to update container cache:', err)
+						})
+					}
+				} catch (verifyErr) {
+					// Verification failed, but the container WAS updated successfully.
+					// The card already shows 'updated' — no need to show an error.
+					console.warn(
+						'[Update] Post-update verification failed, but container was updated:',
+						verifyErr
+					)
 				}
 
 				toast.success(

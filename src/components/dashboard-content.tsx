@@ -27,7 +27,8 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 	const processedContainers = containers.map((container) => {
 		const isRunning = container.State === 'running'
 		const ports = (container.Ports || [])
-			.map((p) => `${p.PrivatePort}:${p.PublicPort}`)
+			.filter((p) => p.PublicPort > 0)
+			.map((p) => `${p.PublicPort}:${p.PrivatePort}`)
 			.join(', ')
 
 		const imageTag = container.Image.split(':')[1] || 'latest'
