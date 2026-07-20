@@ -118,26 +118,32 @@ export function DashboardProvider({
 			const newHiddenIds = prev.includes(id)
 				? prev.filter((i) => i !== id)
 				: [...prev, id]
-			setHiddenContainerIdsAction(newHiddenIds).catch((error) => {
-				console.error('Failed to sync hidden containers:', error)
-			})
 			return newHiddenIds
 		})
-	}, [])
+		setHiddenContainerIdsAction(
+			hiddenContainerIds.includes(id)
+				? hiddenContainerIds.filter((i) => i !== id)
+				: [...hiddenContainerIds, id]
+		).catch((error) => {
+			console.error('Failed to sync hidden containers:', error)
+		})
+	}, [hiddenContainerIds])
 
 	const toggleIgnoreNotification = useCallback((id: string) => {
 		setIgnoredNotificationIds((prev) => {
 			const newIgnoredIds = prev.includes(id)
 				? prev.filter((i) => i !== id)
 				: [...prev, id]
-			setIgnoredNotificationContainerIdsAction(newIgnoredIds).catch(
-				(error) => {
-					console.error('Failed to sync ignored containers:', error)
-				}
-			)
 			return newIgnoredIds
 		})
-	}, [])
+		setIgnoredNotificationContainerIdsAction(
+			ignoredNotificationIds.includes(id)
+				? ignoredNotificationIds.filter((i) => i !== id)
+				: [...ignoredNotificationIds, id]
+		).catch((error) => {
+			console.error('Failed to sync ignored containers:', error)
+		})
+	}, [ignoredNotificationIds])
 
 	const saveReferenceUrl = useCallback(
 		(imageName: string, url: string) => {
