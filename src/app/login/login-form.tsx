@@ -92,6 +92,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								placeholder={dict.usernamePlaceholder}
 								required
 								maxLength={40}
+								className='rounded-sm'
 							/>
 						</div>
 
@@ -107,6 +108,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								placeholder={dict.passwordPlaceholder}
 								required
 								maxLength={40}
+								className='rounded-sm'
 							/>
 						</div>
 

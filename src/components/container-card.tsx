@@ -443,8 +443,8 @@ export const ContainerCard = React.memo(function ContainerCard({
 							variant='outline'
 							className={`shrink-0 ${
 								isRunning
-									? 'bg-transparent text-green-500 border-green-500 rounded-sm cursor-default'
-									: 'bg-transparent text-red-500 border-red-500 rounded-sm cursor-default'
+									? 'bg-green-500/10 text-green-500 border-green-500 rounded-sm cursor-default'
+									: 'bg-red-500/10 text-red-500 border-red-500 rounded-sm cursor-default'
 							}`}
 						>
 							{dict.container.states[
