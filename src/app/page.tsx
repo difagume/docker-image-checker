@@ -42,14 +42,14 @@ export default async function Dashboard() {
 								<Button
 									variant='outline'
 									size='icon'
-									className='hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
+									className='rounded-sm hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
 									aria-label={dict.login.logout}
 								>
 									<LogOut className='h-4 w-4' />
 									</Button>
 									<Button
 										variant='outline'
-										className='hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! items-center gap-2 hidden md:flex'
+										className='rounded-sm hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! items-center gap-2 hidden md:flex'
 									>
 										<LogOut className='h-4 w-4' />
 										{dict.login.logout}
@@ -73,15 +73,15 @@ export default async function Dashboard() {
 							{Array.from({ length: 6 }).map((_, index) => (
 								<div
 									key={index.toString()}
-									className='rounded-lg border border-border bg-muted/50 p-6 animate-pulse'
+									className='rounded-sm border border-border bg-muted/50 p-6 animate-pulse'
 								>
 									<div className='flex items-center justify-between mb-4'>
-										<div className='h-5 w-32 bg-muted rounded' />
-										<div className='h-5 w-16 bg-muted rounded' />
+										<div className='h-5 w-32 bg-muted rounded-sm' />
+										<div className='h-5 w-16 bg-muted rounded-sm' />
 									</div>
 									<div className='space-y-2'>
-										<div className='h-4 w-full bg-muted/50 rounded' />
-										<div className='h-4 w-3/4 bg-muted/50 rounded' />
+										<div className='h-4 w-full bg-muted/50 rounded-sm' />
+										<div className='h-4 w-3/4 bg-muted/50 rounded-sm' />
 									</div>
 								</div>
 							))}

@@ -48,7 +48,7 @@ function StatFilterCard({
 			type='button'
 			onClick={onToggle}
 			aria-pressed={isActive}
-			className={`relative overflow-hidden flex items-center justify-between p-3 rounded-md border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
+			className={`relative overflow-hidden flex items-center justify-between p-3 rounded-sm border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
 				${
 					isActive
 						? activeCardClass
@@ -60,7 +60,7 @@ function StatFilterCard({
 			)}
 			<div className='flex items-center gap-3 relative z-10'>
 				<div
-					className={`p-2 rounded-md border shrink-0 ${
+					className={`p-2 rounded-sm border shrink-0 ${
 						isActive ? activeIconClass : 'bg-muted text-muted-foreground border-border/50'
 					}`}
 				>
@@ -161,7 +161,7 @@ export function StatsSummary({
 					type='button'
 					onClick={onToggleShowHidden}
 					aria-pressed={showHiddenMode}
-					className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+					className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
 						showHiddenMode
 							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
 							: 'text-muted-foreground hover:text-foreground border border-transparent'

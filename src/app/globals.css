@@ -87,6 +87,6 @@
     @apply bg-background text-foreground;
   }
   :root {
-    --radius: 6px;
+    --radius: 7px;
   }
 }

@@ -88,7 +88,7 @@ function StatusAvailable({
 
 	return (
 		<Alert
-			className={`p-3 relative pb-10 ${
+			className={`rounded-sm p-3 relative pb-10 ${
 				isNewMajor
 					? 'bg-violet-500/10 border-violet-500/50 text-violet-300'
 					: 'bg-amber-500/10 border-amber-500/50 text-amber-200'
@@ -169,7 +169,7 @@ function StatusAvailable({
 					disabled={isUpdating}
 					onClick={onUpdate}
 					className={cn(
-						'transition-colors',
+						'rounded-sm transition-colors',
 						isNewMajor
 							? 'bg-transparent text-violet-400 border border-violet-500/50 hover:bg-violet-500/10'
 							: 'bg-transparent text-amber-400 border border-amber-500/50 hover:bg-amber-500/10',
@@ -242,7 +242,7 @@ function NotificationToggle({ containerId, dict }: NotificationToggleProps) {
 		<button
 			type='button'
 			onClick={() => actions.toggleIgnoreNotification(containerId)}
-			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
+			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded-sm p-0.5 shrink-0 ${
 				isIgnored
 					? 'text-muted-foreground hover:text-foreground'
 					: 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20'
@@ -274,7 +274,7 @@ function HideToggle({ containerId, dict }: HideToggleProps) {
 		<button
 			type='button'
 			onClick={() => actions.toggleHideContainer(containerId)}
-			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded p-0.5 shrink-0 ${
+			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded-sm p-0.5 shrink-0 ${
 				isHidden
 					? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
 					: 'text-muted-foreground hover:text-foreground'
@@ -419,7 +419,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 			className='min-w-0'
 		>
 			<Card
-				className={`bg-card border-border text-card-foreground h-full transition-[border-color,opacity,filter] duration-300 overflow-hidden ${
+				className={`rounded-sm bg-card border-border text-card-foreground h-full transition-[border-color,opacity,filter] duration-300 overflow-hidden ${
 					hasUpdateAvailable
 						? isNewMajor
 							? 'border-l-violet-500'
@@ -443,8 +443,8 @@ export const ContainerCard = React.memo(function ContainerCard({
 							variant='outline'
 							className={`shrink-0 ${
 								isRunning
-									? 'bg-transparent text-green-500 border-green-500 rounded-md cursor-default'
-									: 'bg-transparent text-red-500 border-red-500 rounded-md cursor-default'
+									? 'bg-transparent text-green-500 border-green-500 rounded-sm cursor-default'
+									: 'bg-transparent text-red-500 border-red-500 rounded-sm cursor-default'
 							}`}
 						>
 							{dict.container.states[
@@ -528,7 +528,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 									</span>
 									<Badge
 										variant='outline'
-										className='bg-muted text-muted-foreground border-border rounded-md cursor-default max-w-[170px]'
+										className='bg-muted text-muted-foreground border-border rounded-sm cursor-default max-w-[170px]'
 									>
 										<span className='truncate'>{displayCurrentVersion}</span>
 									</Badge>
@@ -546,7 +546,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 
 										<Badge
 											variant='outline'
-											className={`bg-muted border-border rounded-md cursor-default max-w-[170px] ${
+											className={`bg-muted border-border rounded-sm cursor-default max-w-[170px] ${
 												isNewMajor ? 'text-violet-500' : 'text-amber-500'
 											}`}
 										>

@@ -38,7 +38,7 @@ export function SearchBar({
 					value={searchQuery}
 					onChange={(e) => onSearchChange(e.target.value)}
 					maxLength={70}
-					className='pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-colors hover:border-border md:hidden'
+					className='rounded-sm pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-colors hover:border-border md:hidden'
 				/>
 				{/* Desktop input */}
 				<Input
@@ -46,7 +46,7 @@ export function SearchBar({
 					value={searchQuery}
 					onChange={(e) => onSearchChange(e.target.value)}
 					maxLength={70}
-					className='pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-colors hover:border-border hidden md:block'
+					className='rounded-sm pl-10 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring h-11 md:h-10 transition-colors hover:border-border hidden md:block'
 				/>
 				{debouncedQuery && (
 					<span className='absolute right-9 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium hidden md:block pointer-events-none'>

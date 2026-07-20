@@ -46,7 +46,7 @@ export function UpdateConfirmDialog({
 					backdrop-filter: blur(1px);
 				}
 			`}</style>
-			<AlertDialogContent className='max-w-sm'>
+			<AlertDialogContent className='rounded-sm max-w-sm'>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{dict.updateDialog.title}</AlertDialogTitle>
 					{confirmState?.isRunning && (
@@ -57,10 +57,11 @@ export function UpdateConfirmDialog({
 				</AlertDialogHeader>
 
 				<AlertDialogFooter>
-					<AlertDialogCancel className='hidden md:flex'>
+					<AlertDialogCancel className='rounded-sm hidden md:flex'>
 						{dict.common.cancel}
 					</AlertDialogCancel>
 					<AlertDialogAction
+						className='rounded-sm'
 						onClick={() => {
 							if (confirmState) {
 								onConfirm(
