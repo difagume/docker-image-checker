@@ -31,6 +31,7 @@ import { useDashboard } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
 import { formatRelativeTime } from '@/lib/format-relative-time'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
+import type { UpdatePhase } from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
 import { ReferenceUrlPopover } from './reference-url-popover'
 
@@ -59,6 +60,7 @@ interface StatusAvailableProps {
 	onUpdate: () => void
 	isUpdating: boolean
 	updateError?: string | null
+	updatePhase?: { phase: UpdatePhase; statusText: string } | null
 	updatingLabel: string
 	updateButtonLabel: string
 }
@@ -72,10 +74,17 @@ function StatusAvailable({
 	onUpdate,
 	isUpdating,
 	updateError,
+	updatePhase,
 	updatingLabel,
 	updateButtonLabel
 }: StatusAvailableProps) {
 	const c = dict.container
+
+	// Derive the updating label from the phase when available, otherwise fall back
+	const phaseLabel = updatePhase
+		? (c.updating as Record<string, string>)[updatePhase.phase] ||
+			updatePhase.statusText
+		: ''
 
 	return (
 		<Alert
@@ -173,7 +182,7 @@ function StatusAvailable({
 								className='mr-1 h-3 w-3 animate-spin'
 								aria-hidden='true'
 							/>
-							{updatingLabel}
+							{phaseLabel || updatingLabel}
 						</>
 					) : (
 						<>
@@ -301,6 +310,11 @@ interface ContainerCardProps {
 	locale: Locale
 	updatingContainerId: string | null
 	updateError: string | null
+	updatePhase?: {
+		phase: UpdatePhase
+		statusText: string
+		error?: string
+	} | null
 	onSetConfirmUpdate: (state: ConfirmState | null) => void
 	onSaveReferenceUrl: (imageName: string, url: string) => void
 }
@@ -311,6 +325,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 	locale,
 	updatingContainerId,
 	updateError,
+	updatePhase,
 	onSetConfirmUpdate,
 	onSaveReferenceUrl
 }: ContainerCardProps) {
@@ -366,7 +381,14 @@ export const ContainerCard = React.memo(function ContainerCard({
 						}}
 						isUpdating={updatingContainerId === container.Id}
 						updateError={updateError}
-						updatingLabel={dict.container.updating}
+						updatePhase={updatePhase}
+						updatingLabel={
+							updatePhase
+								? (dict.container.updating as Record<string, string>)[
+										updatePhase.phase
+									] || updatePhase.statusText
+								: 'Updating...'
+						}
 						updateButtonLabel={dict.container.update}
 					/>
 				)

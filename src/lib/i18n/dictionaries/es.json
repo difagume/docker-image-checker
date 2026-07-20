@@ -39,7 +39,13 @@
 		"newVersion": "Nueva Versión",
 		"newBuild": "Nueva Compilación",
 		"update": "Actualizar",
-		"updating": "Actualizando...",
+		"updating": {
+			"pulling": "Descargando imagen...",
+			"stopping": "Deteniendo contenedor...",
+			"recreating": "Recreando contenedor...",
+			"starting": "Iniciando contenedor...",
+			"verifying": "Verificando actualización..."
+		},
 		"states": {
 			"running": "En ejecución",
 			"stopped": "Detenido",

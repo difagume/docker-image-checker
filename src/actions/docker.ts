@@ -10,6 +10,8 @@ import type {
 	PolicyState,
 	RemoteTag
 } from '@/lib/policies/types'
+import type { UpdatePhase } from '@/lib/update-progress-store'
+import { progressStore } from '@/lib/update-progress-store'
 
 const FETCH_TIMEOUT = 8000
 
@@ -326,9 +328,18 @@ export async function checkDockerConnection(): Promise<boolean> {
 	}
 }
 
-export async function updateContainerImage(
+export type OnPhaseCallback = (
+	phase: UpdatePhase,
+	data?: {
+		statusText?: string
+		layerProgress?: { currentLayer?: number; totalLayers?: number }
+	}
+) => void
+
+async function doUpdateContainerImage(
 	containerId: string,
-	newImageName: string
+	newImageName: string,
+	onPhase?: OnPhaseCallback
 ): Promise<{
 	success: boolean
 	error?: string
@@ -355,22 +366,53 @@ export async function updateContainerImage(
 			)
 		}
 
+		// Phase: pulling
+		onPhase?.('pulling', { statusText: 'Pulling image...' })
+
 		const pullStream = await docker.pull(newImageName)
 		await new Promise<void>((resolve, reject) => {
-			docker.modem.followProgress(pullStream, (err: Error | null) => {
-				if (err) reject(err)
-				else resolve()
-			})
+			docker.modem.followProgress(
+				pullStream,
+				(err: Error | null) => {
+					if (err) reject(err)
+					else resolve()
+				},
+				(progress: unknown) => {
+					if (!Array.isArray(progress)) return
+					const totalLayers = progress.length
+					const completedLayers = progress.filter(
+						(p: unknown) =>
+							typeof p === 'object' &&
+							p !== null &&
+							'status' in p &&
+							typeof (p as { status: string }).status === 'string' &&
+							((p as { status: string }).status === 'Pull complete' ||
+								(p as { status: string }).status.includes('complete'))
+					).length
+					onPhase?.('pulling', {
+						statusText: `Pulling image... ${completedLayers}/${totalLayers}`,
+						layerProgress: {
+							currentLayer: completedLayers,
+							totalLayers
+						}
+					})
+				}
+			)
 		})
 
 		console.log(`[Image Update] Image ${newImageName} pulled successfully`)
 
 		if (wasRunning) {
+			// Phase: stopping
+			onPhase?.('stopping', { statusText: 'Stopping container...' })
 			console.log(`[Image Update] Stopping container ${containerId}...`)
 			await container.stop()
 
 			console.log(`[Image Update] Removing old container ${containerId}...`)
 			await container.remove()
+
+			// Phase: recreating
+			onPhase?.('recreating', { statusText: 'Recreating container...' })
 
 			const exposedPorts: Record<string, object> = {}
 			if (config.ExposedPorts) {
@@ -445,8 +487,13 @@ export async function updateContainerImage(
 						: undefined
 			})
 
+			// Phase: starting
+			onPhase?.('starting', { statusText: 'Starting container...' })
 			console.log(`[Image Update] Starting new container ${newContainer.id}...`)
 			await newContainer.start()
+
+			// Phase: verifying
+			onPhase?.('verifying', { statusText: 'Verifying update...' })
 
 			// Inspect the new container to get fresh ImageID
 			const newContainerInfo = await newContainer.inspect()
@@ -474,6 +521,65 @@ export async function updateContainerImage(
 			error: error instanceof Error ? error.message : 'Unknown error occurred'
 		}
 	}
+}
+
+export async function updateContainerImage(
+	containerId: string,
+	newImageName: string
+): Promise<{
+	success: boolean
+	error?: string
+	newContainerId?: string
+	newImageId?: string
+}> {
+	return doUpdateContainerImage(containerId, newImageName)
+}
+
+export async function triggerContainerUpdate(
+	containerId: string,
+	newImageName: string
+): Promise<{ taskId: string }> {
+	if (progressStore.isContainerUpdating(containerId)) {
+		throw new Error('Container update already in progress')
+	}
+
+	const taskId = crypto.randomUUID()
+	progressStore.createTask(taskId)
+	progressStore.registerContainer(containerId, taskId)
+
+	const cleanup = () => {
+		progressStore.unregisterContainer(containerId)
+	}
+
+	// Fire-and-forget: the update runs in the background
+	doUpdateContainerImage(containerId, newImageName, (phase, data) => {
+		progressStore.updatePhase(
+			taskId,
+			phase,
+			data?.statusText || '',
+			data?.layerProgress
+		)
+	})
+		.then((result) => {
+			if (result.success) {
+				progressStore.setResult(taskId, {
+					newContainerId: result.newContainerId,
+					newImageId: result.newImageId
+				})
+			} else {
+				progressStore.setError(taskId, result.error || 'Update failed')
+			}
+			cleanup()
+		})
+		.catch((err) => {
+			progressStore.setError(
+				taskId,
+				err instanceof Error ? err.message : 'Update failed'
+			)
+			cleanup()
+		})
+
+	return { taskId }
 }
 
 export async function checkImagesUpdatesBatch(

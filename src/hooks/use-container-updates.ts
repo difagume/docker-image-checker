@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
 	saveAllContainersCacheAction,
@@ -8,13 +8,14 @@ import {
 } from '@/actions/container-cache'
 import {
 	checkImagesUpdatesBatch,
-	updateContainerImage,
+	triggerContainerUpdate,
 	verifyContainerUpdate
 } from '@/actions/docker'
 import { dispatchLoading } from '@/components/loading-events'
 import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
+import type { UpdatePhase } from '@/lib/update-progress-store'
 import type { FilterStatus } from '@/types/app-state'
 
 export interface ReferenceUrlData {
@@ -62,6 +63,10 @@ export function useContainerUpdates(
 		null
 	)
 	const [updateError, setUpdateError] = useState<string | null>(null)
+	const [updatePhases, setUpdatePhases] = useState<
+		Record<string, { phase: UpdatePhase; statusText: string; error?: string }>
+	>({})
+	const activeEventSources = useRef<Record<string, EventSource>>({})
 
 	// Sync loading state with event for the refresh button
 	const isLoading = checkProgress.total > 0
@@ -329,6 +334,10 @@ export function useContainerUpdates(
 	) => {
 		setUpdatingContainerId(containerId)
 		setUpdateError(null)
+		setUpdatePhases((prev) => ({
+			...prev,
+			[containerId]: { phase: 'pulling', statusText: 'Starting...' }
+		}))
 
 		const imageName = containerImage.includes(':')
 			? `${containerImage.split(':')[0]}:${newVersion}`
@@ -339,118 +348,189 @@ export function useContainerUpdates(
 			containerId.substring(0, 12)
 
 		try {
-			const result = await updateContainerImage(containerId, imageName)
+			const { taskId } = await triggerContainerUpdate(containerId, imageName)
 
-			if (result.success) {
-				// Use the new container ID if available (container was recreated)
-				const updatedContainerId = result.newContainerId || containerId
+			const eventSource = new EventSource(
+				`/api/update-progress?taskId=${taskId}`
+			)
+			activeEventSources.current[containerId] = eventSource
 
-				// Refresh the card IMMEDIATELY with optimistic data
-				// Don't wait for verification — the container IS updated on Docker
-				setContainers((prev) =>
-					prev.map((c) =>
-						c.container.Id === containerId
-							? {
-									...c,
-									displayCurrentVersion: newVersion,
-									currentVersion: newVersion,
-									latestVersion: newVersion,
-									isUpToDate: true,
-									updateStatus: 'updated' as FilterStatus,
-									container: {
-										...c.container,
-										Id: updatedContainerId,
-										Image: imageName,
-										// Only update runtime state when container was recreated
-										...(result.newContainerId
-											? {
-													State: 'running' as const,
-													Status:
-														c.container.State === 'running'
-															? c.container.Status
-															: 'Up 0 seconds'
-												}
-											: {}),
-										ImageID: result.newImageId || c.container.ImageID
-									}
-								}
-							: c
-					)
-				)
+			eventSource.addEventListener('phase', (event: MessageEvent) => {
+				const data = JSON.parse(event.data) as {
+					phase: UpdatePhase
+					statusText: string
+					error?: string
+					result?: { newContainerId?: string; newImageId?: string }
+				}
 
-				// Verify in background if there's still a newer version available
-				// This is non-blocking — if it fails, the card already shows 'updated'
-				try {
-					const updateInfo = await verifyContainerUpdate(imageName)
-
-					if (updateInfo.hasUpdate) {
-						// There's a newer version than what we just installed
-						setContainers((prev) =>
-							prev.map((c) =>
-								c.container.Id === updatedContainerId
-									? {
-											...c,
-											latestVersion: updateInfo.latestVersion || newVersion,
-											isUpToDate: false,
-											updateStatus: 'available' as FilterStatus,
-											dockerHubUrl: updateInfo.dockerHubUrl,
-											policyState: updateInfo.policyState
-										}
-									: c
-							)
-						)
+				setUpdatePhases((prev) => ({
+					...prev,
+					[containerId]: {
+						phase: data.phase,
+						statusText: data.statusText,
+						error: data.error
 					}
+				}))
 
-					// Update the cache with the verification result
-					if (updateInfo.localDigest) {
-						updateContainerCacheAction(imageName, updateInfo.localDigest, {
-							displayCurrentVersion: newVersion,
-							currentVersion: newVersion,
-							latestVersion: updateInfo.latestVersion || newVersion,
-							isUpToDate: !updateInfo.hasUpdate,
-							updateStatus: updateInfo.hasUpdate ? 'available' : 'updated',
-							dockerHubUrl: updateInfo.dockerHubUrl,
-							policyState: updateInfo.policyState,
-							lastUpdated: Temporal.Now.instant().toString()
-						}).catch((err) => {
-							console.error('[Cache] Failed to update container cache:', err)
-						})
-					}
-				} catch (verifyErr) {
-					// Verification failed, but the container WAS updated successfully.
-					// The card already shows 'updated' — no need to show an error.
-					console.warn(
-						'[Update] Post-update verification failed, but container was updated:',
-						verifyErr
+				if (data.phase === 'error') {
+					eventSource.close()
+					delete activeEventSources.current[containerId]
+					setUpdatingContainerId(null)
+					setUpdateError(data.error || 'Update failed')
+					setTimeout(() => setUpdateError(null), 5000)
+					toast.error(
+						dict.toast.updateError.replace('{container}', containerName)
 					)
 				}
 
-				toast.success(
-					dict.toast.updateSuccess
-						.replace('{container}', containerName)
-						.replace('{version}', newVersion)
-				)
-			} else {
-				setUpdateError(result.error || 'Unknown error')
+				if (data.phase === 'done') {
+					eventSource.close()
+					delete activeEventSources.current[containerId]
+					setUpdatingContainerId(null)
+
+					// Clean up updatePhase — the update is complete
+					setUpdatePhases((prev) => {
+						const next = { ...prev }
+						delete next[containerId]
+						return next
+					})
+
+					const newContainerId = data.result?.newContainerId || containerId
+					const newImageId = data.result?.newImageId
+
+					// Refresh the card IMMEDIATELY with optimistic data
+					setContainers((prev) =>
+						prev.map((c) =>
+							c.container.Id === containerId
+								? {
+										...c,
+										displayCurrentVersion: newVersion,
+										currentVersion: newVersion,
+										latestVersion: newVersion,
+										isUpToDate: true,
+										updateStatus: 'updated' as FilterStatus,
+										container: {
+											...c.container,
+											Id: newContainerId,
+											Image: imageName,
+											...(newContainerId !== containerId
+												? {
+														State: 'running' as const,
+														Status:
+															c.container.State === 'running'
+																? c.container.Status
+																: 'Up 0 seconds'
+													}
+												: {}),
+											ImageID: newImageId || c.container.ImageID
+										}
+									}
+								: c
+						)
+					)
+
+					// Verify in background (async IIFE inside non-async callback)
+					;(async () => {
+						try {
+							const updateInfo = await verifyContainerUpdate(imageName)
+
+							if (updateInfo.hasUpdate) {
+								setContainers((prev) =>
+									prev.map((c) =>
+										c.container.Id === newContainerId
+											? {
+													...c,
+													latestVersion: updateInfo.latestVersion || newVersion,
+													isUpToDate: false,
+													updateStatus: 'available' as FilterStatus,
+													dockerHubUrl: updateInfo.dockerHubUrl,
+													policyState: updateInfo.policyState
+												}
+											: c
+									)
+								)
+							}
+
+							if (updateInfo.localDigest) {
+								updateContainerCacheAction(imageName, updateInfo.localDigest, {
+									displayCurrentVersion: newVersion,
+									currentVersion: newVersion,
+									latestVersion: updateInfo.latestVersion || newVersion,
+									isUpToDate: !updateInfo.hasUpdate,
+									updateStatus: updateInfo.hasUpdate ? 'available' : 'updated',
+									dockerHubUrl: updateInfo.dockerHubUrl,
+									policyState: updateInfo.policyState,
+									lastUpdated: Temporal.Now.instant().toString()
+								}).catch((err) => {
+									console.error(
+										'[Cache] Failed to update container cache:',
+										err
+									)
+								})
+							}
+						} catch (verifyErr) {
+							console.warn(
+								'[Update] Post-update verification failed, but container was updated:',
+								verifyErr
+							)
+						}
+					})()
+
+					toast.success(
+						dict.toast.updateSuccess
+							.replace('{container}', containerName)
+							.replace('{version}', newVersion)
+					)
+				}
+			})
+
+			eventSource.addEventListener('error', () => {
+				// Connection-level error (not a phase error)
+				eventSource.close()
+				delete activeEventSources.current[containerId]
+
+				// Only handle if we haven't already processed done/error
+				setUpdatePhases((prev) => {
+					if (prev[containerId]?.phase === 'done' || prev[containerId]?.phase === 'error') {
+						return prev
+					}
+					const next = { ...prev }
+					delete next[containerId]
+					return next
+				})
+				setUpdatingContainerId(null)
+				setUpdateError('Connection lost')
 				setTimeout(() => setUpdateError(null), 5000)
-				toast.error(
-					dict.toast.updateError.replace('{container}', containerName)
-				)
-			}
+			})
 		} catch (err) {
+			setUpdatingContainerId(null)
+			setUpdatePhases((prev) => {
+				const next = { ...prev }
+				delete next[containerId]
+				return next
+			})
 			setUpdateError(err instanceof Error ? err.message : 'Unknown error')
 			setTimeout(() => setUpdateError(null), 5000)
 			toast.error(dict.toast.updateError.replace('{container}', containerName))
-		} finally {
-			setUpdatingContainerId(null)
 		}
 	}
+
+	// Clean up active EventSources on unmount
+	useEffect(() => {
+		return () => {
+			for (const id of Object.keys(activeEventSources.current)) {
+				activeEventSources.current[id]?.close()
+			}
+			activeEventSources.current = {}
+		}
+	}, [])
 
 	return {
 		containers,
 		checkProgress,
 		updatingContainerId,
 		updateError,
+		updatePhases,
 		handleUpdateClick
 	}
 }

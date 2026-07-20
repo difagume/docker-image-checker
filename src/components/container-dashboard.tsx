@@ -4,16 +4,14 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { ContainerCard } from '@/components/container-card'
 import { SearchBar } from '@/components/search-bar'
-import type {
-	ContainerData
-} from '@/hooks/use-container-updates'
+import { useDashboard } from '@/contexts/dashboard-context'
+import type { ContainerData } from '@/hooks/use-container-updates'
 import { useContainerUpdates } from '@/hooks/use-container-updates'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useLanguageSync } from '@/hooks/use-language-sync'
 import { useSettingsSync } from '@/hooks/use-settings-sync'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
-import { useDashboard } from '@/contexts/dashboard-context'
 import { StatsSummary } from './stats-summary'
 import { UpdateConfirmDialog } from './update-confirm-dialog'
 
@@ -48,12 +46,16 @@ export function ContainerDashboard({
 	const prefersReducedMotion = useReducedMotion()
 	const debouncedQuery = useDebounce(searchQuery, 300)
 
-	const { state: { hiddenContainerIds, notificationsEnabled }, actions } = useDashboard()
+	const {
+		state: { hiddenContainerIds, notificationsEnabled },
+		actions
+	} = useDashboard()
 
 	const {
 		containers,
 		updatingContainerId,
 		updateError,
+		updatePhases,
 		handleUpdateClick
 	} = useContainerUpdates(processedContainers, dict)
 
@@ -148,7 +150,10 @@ export function ContainerDashboard({
 				dict={dict.filter}
 			/>
 
-			<motion.div layout={prefersReducedMotion ? false : true} className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
+			<motion.div
+				layout={!prefersReducedMotion}
+				className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'
+			>
 				<AnimatePresence mode='popLayout'>
 					{filteredContainers.map((item) => (
 						<ContainerCard
@@ -158,6 +163,7 @@ export function ContainerDashboard({
 							locale={locale}
 							updatingContainerId={updatingContainerId}
 							updateError={updateError}
+							updatePhase={updatePhases[item.container.Id] ?? null}
 							onSetConfirmUpdate={setConfirmUpdateState}
 							onSaveReferenceUrl={actions.saveReferenceUrl}
 						/>

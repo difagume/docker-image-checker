@@ -39,7 +39,13 @@
 		"newVersion": "New Version",
 		"newBuild": "New Build",
 		"update": "Update",
-		"updating": "Updating...",
+		"updating": {
+			"pulling": "Pulling image...",
+			"stopping": "Stopping container...",
+			"recreating": "Recreating container...",
+			"starting": "Starting container...",
+			"verifying": "Verifying update..."
+		},
 		"states": {
 			"running": "Running",
 			"stopped": "Stopped",
