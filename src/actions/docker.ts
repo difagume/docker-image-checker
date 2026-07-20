@@ -509,8 +509,50 @@ async function doUpdateContainerImage(
 			}
 		}
 
-		console.log(`[Image Update] Container was stopped, image updated locally`)
-		return { success: true }
+		// Container was stopped — still recreate it with the new image
+		console.log(
+			`[Image Update] Container was stopped, recreating with new image...`
+		)
+
+		// Phase: recreating (stopped container)
+		onPhase?.('recreating', { statusText: 'Recreating container...' })
+
+		// Remove old container and create a new one with the new image
+		await container.remove()
+
+		const newContainer = await docker.createContainer({
+			name,
+			Image: newImageName,
+			Cmd: config.Cmd,
+			Env: config.Env,
+			WorkingDir: config.WorkingDir || undefined,
+			Labels: config.Labels,
+			ExposedPorts: config.ExposedPorts || undefined,
+			HostConfig: {
+				Binds: hostConfig.Binds || undefined,
+				PortBindings: hostConfig.PortBindings || undefined,
+				RestartPolicy: hostConfig.RestartPolicy,
+				NetworkMode: hostConfig.NetworkMode || undefined
+			},
+			NetworkingConfig: networkingConfig.Networks
+				? { EndpointsConfig: Object.fromEntries(Object.keys(networkingConfig.Networks).map((n) => [n, {}])) }
+				: undefined
+		})
+
+		// Phase: verifying
+		onPhase?.('verifying', { statusText: 'Verifying update...' })
+
+		const newContainerInfo = await newContainer.inspect()
+
+		console.log(
+			`[Image Update] Successfully updated stopped container ${containerId} -> ${newContainer.id}`
+		)
+
+		return {
+			success: true,
+			newContainerId: newContainer.id.substring(0, 12),
+			newImageId: newContainerInfo.Image
+		}
 	} catch (error) {
 		console.error(
 			`[Image Update] Failed to update container ${containerId}:`,
