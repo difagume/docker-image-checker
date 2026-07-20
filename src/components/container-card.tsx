@@ -528,7 +528,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 									</span>
 									<Badge
 										variant='outline'
-										className='bg-muted text-muted-foreground border-border rounded-sm cursor-default max-w-[170px]'
+										className='bg-muted text-muted-foreground border-border rounded-sm cursor-default max-w-42.5'
 									>
 										<span className='truncate'>{displayCurrentVersion}</span>
 									</Badge>
@@ -546,7 +546,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 
 										<Badge
 											variant='outline'
-											className={`bg-muted border-border rounded-sm cursor-default max-w-[170px] ${
+											className={`bg-muted border-border rounded-sm cursor-default max-w-42.5 ${
 												isNewMajor ? 'text-violet-500' : 'text-amber-500'
 											}`}
 										>
