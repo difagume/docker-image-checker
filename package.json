@@ -2,7 +2,7 @@
 	"name": "docker-image-checker",
 	"version": "0.2.0",
 	"private": true,
-	"packageManager": "pnpm@11.15.0",
+	"packageManager": "pnpm@11.15.1",
 	"engines": {
 		"node": ">=26.0.0"
 	},
@@ -37,7 +37,8 @@
 		"radix-ui": "^1.6.2",
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
-		"sonner": "^2.0.7"
+		"sonner": "^2.0.7",
+		"ssh2": "^1.17.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.4",
@@ -45,6 +46,7 @@
 		"@types/dockerode": "^4.0.1",
 		"@types/node": "^26.1.1",
 		"@types/node-cron": "^3.0.11",
+		"@types/ssh2": "^1.15.5",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"shadcn": "^4.13.1",

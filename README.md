@@ -8,14 +8,112 @@ Por defecto, la aplicación se conecta al daemon de Docker usando el socket del 
 - **Windows**: Named pipe `//./pipe/docker_engine`
 - **Unix/Linux**: Socket `/var/run/docker.sock`
 
-### Variable DOCKER_HOST
+Para monitorear un **servidor remoto**, define la variable `DOCKER_HOST`. Se soportan los formatos estándar de Docker: `tcp://`, `https://` (TLS), `ssh://` y `unix://`.
 
-Puedes especificar una conexión remota usando la variable `DOCKER_HOST`:
+| Método | Cuándo usarlo | Seguridad |
+|--------|---------------|-----------|
+| **Socket local** | Docker en la misma máquina/host | ✅ Alta |
+| **SSH** (`ssh://`) | Servidor remoto con acceso SSH (recomendado) | ✅ Alta |
+| **TCP + TLS** (`https://`) | Red no confiable con certificados | ✅ Alta |
+| **TCP plano** (`tcp://`) | Solo redes privadas / VPN de confianza | ⚠️ Baja (sin cifrado) |
 
+### Opción 1: Conexión SSH (recomendada)
+
+Es la forma más práctica y segura de monitorear un servidor remoto: reutiliza el acceso SSH que ya tienes y no requiere exponer el puerto de Docker ni generar certificados.
+
+**Requisitos:**
+- `DOCKER_HOST=ssh://usuario@host`
+- Una clave privada SSH (por archivo o por contenido).
+- El servidor remoto debe tener Docker con soporte para `docker system dial-stdio` (Docker ≥ 18.09) y el usuario debe pertenecer al grupo `docker`.
+
+```bash
+# Host y usuario remoto
+DOCKER_HOST=ssh://ubuntu@141.148.168.168
+
+# Clave privada — Opción A: ruta al archivo
+DOCKER_SSH_KEY_FILE=/ruta/a/mi-clave.key
+
+# Clave privada — Opción B: contenido en la variable (usa \n para saltos de línea)
+# Tiene prioridad sobre DOCKER_SSH_KEY_FILE si está definido
+DOCKER_SSH_KEY="-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"
+
+# Passphrase de la clave (si aplica)
+DOCKER_SSH_KEY_PASSPHRASE=
 ```
-# Conexión TCP a un host remoto
+
+> [!NOTE]
+> Se usa el puerto SSH estándar (**22**). Los puertos SSH personalizados no están soportados por la versión actual de `docker-modem`.
+
+> [!TIP]
+> Si tu servidor está en un proveedor cloud (Oracle Cloud, AWS, etc.), asegúrate de que la IP desde la que se conecta la aplicación esté permitida en las reglas de firewall / security list del servidor para el puerto 22.
+
+### Opción 2: Conexión TCP con TLS
+
+Recomendada cuando el daemon de Docker escucha por red y quieres cifrado + autenticación mutua. Sigue el estándar de Docker (puerto `2376`).
+
+```bash
+# Endpoint remoto (puerto 2376 activa TLS automáticamente)
+DOCKER_HOST=tcp://192.168.1.100:2376
+DOCKER_TLS_VERIFY=1
+
+# Opción A (estándar Docker): directorio con ca.pem, cert.pem y key.pem
+DOCKER_CERT_PATH=/ruta/a/certs
+
+# Opción B: contenido PEM directamente en variables (usa \n para saltos de línea)
+# Tiene prioridad sobre DOCKER_CERT_PATH
+DOCKER_TLS_CA="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+DOCKER_TLS_CERT="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+DOCKER_TLS_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+```
+
+### Opción 3: Conexión TCP plana (sin cifrado)
+
+Solo úsala en redes privadas de confianza o a través de una VPN, ya que expone el daemon de Docker sin autenticación.
+
+```bash
 DOCKER_HOST=tcp://192.168.1.100:2375
 ```
+
+### Resumen de variables de conexión
+
+| Variable | Descripción |
+|----------|-------------|
+| `DOCKER_HOST` | Endpoint del daemon: `tcp://`, `https://`, `ssh://` o `unix://` |
+| `DOCKER_TLS_VERIFY` | `1` para activar TLS en conexiones TCP |
+| `DOCKER_CERT_PATH` | Directorio con `ca.pem`, `cert.pem` y `key.pem` (estándar Docker) |
+| `DOCKER_TLS_CA` / `DOCKER_TLS_CERT` / `DOCKER_TLS_KEY` | Contenido PEM inline (alternativa a `DOCKER_CERT_PATH`) |
+| `DOCKER_SSH_KEY_FILE` | Ruta al archivo de la clave privada SSH |
+| `DOCKER_SSH_KEY` | Contenido de la clave privada SSH (alternativa a `DOCKER_SSH_KEY_FILE`) |
+| `DOCKER_SSH_KEY_PASSPHRASE` | Passphrase de la clave privada SSH (si aplica) |
+
+### 🐳 Notas de despliegue en Docker (conexión remota)
+
+Cuando ejecutas la aplicación **dentro de un contenedor** y te conectas a un daemon remoto, **no** necesitas montar `/var/run/docker.sock`. En su lugar:
+
+- **SSH**: monta la clave privada como volumen de solo lectura y apunta `DOCKER_SSH_KEY_FILE` a la ruta interna del contenedor, o pasa la clave por contenido con `DOCKER_SSH_KEY`.
+- **TLS**: monta el directorio de certificados como volumen y apunta `DOCKER_CERT_PATH` a la ruta interna, o pásalos por contenido con `DOCKER_TLS_CA/CERT/KEY`.
+- Con conexión remota **no** hace falta la línea `user: "UID:GID"` (esa solo aplica al socket local).
+
+```yaml
+services:
+  image-checker:
+    image: TU_USUARIO/image-checker:latest
+    container_name: image-checker
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      # Clave SSH montada como solo lectura
+      - /ruta/en/host/mi-clave.key:/keys/mi-clave.key:ro
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Guayaquil
+      - DOCKER_HOST=ssh://ubuntu@141.148.168.168
+      - DOCKER_SSH_KEY_FILE=/keys/mi-clave.key
+```
+
+> [!TIP]
+> Si prefieres no montar archivos, puedes inyectar la clave por contenido usando `DOCKER_SSH_KEY` (con `\n` para los saltos de línea). Es útil con secretos de Docker Swarm, Kubernetes o gestores de secretos.
 
 ## 🔐 Autenticación
 

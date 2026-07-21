@@ -37,7 +37,12 @@ This is a Next.js dashboard application for monitoring Docker containers and che
 3. **Docker Library** (`src/lib/docker.ts`):
    - Singleton Dockerode instance with platform-specific socket configuration
    - Handles both Windows (named pipe) and Unix (socket) Docker connections
-   - Supports DOCKER_HOST environment variable for TCP connections
+   - Supports remote daemons via `DOCKER_HOST`: `tcp://` (plain), `https://`/TCP+TLS, `ssh://`, and `unix://`/`npipe://`
+   - Delegates host/port/protocol/user parsing to docker-modem's native `DOCKER_HOST` handling and only supplements what it cannot resolve on its own (SSH private key/passphrase and inline TLS certificate content)
+   - TLS via standard `DOCKER_TLS_VERIFY`/`DOCKER_CERT_PATH` or inline `DOCKER_TLS_CA`/`DOCKER_TLS_CERT`/`DOCKER_TLS_KEY`
+   - SSH via `ssh://user@host` plus a private key from `DOCKER_SSH_KEY_FILE` (path) or `DOCKER_SSH_KEY` (content); uses `ssh2` (explicit dependency) and `docker system dial-stdio` on the remote host (Docker >= 18.09)
+   - SSH is limited to the standard port 22 (custom SSH ports hit a docker-modem URL-building bug)
+   - Key material accepts either a file path or inline env content (with `\n`-escaped newlines)
    - Uses global singleton pattern to prevent multiple connections in development mode
 
 4. **Authentication System** (`src/actions/auth.ts`, `src/lib/htpasswd.ts`):
@@ -121,9 +126,19 @@ This project currently does not have a test suite configured. When adding tests,
 ### Core Variables
 - `AUTH_HTPASSWD`: Optional htpasswd string for authentication (if not set, authentication is disabled)
 - `AUTH_SESSION_PASSWORD`: Optional password for encrypting sessions (if not set, uses AUTH_HTPASSWD, must be at least 32 characters)
-- `DOCKER_HOST`: Optional Docker daemon host (uses socket by default)
+- `DOCKER_HOST`: Optional Docker daemon endpoint (uses local socket by default). Supports `tcp://host:2375` (plain), `tcp://host:2376`/`https://` (TLS), `ssh://user@host` (SSH), and `unix://`/`npipe://`
 - `NODE_ENV`: Environment mode (development/production)
 - `TZ`: Timezone for scheduler (e.g., America/Guayaquil)
+
+### Remote Docker Connection Variables
+Used together with a remote `DOCKER_HOST`:
+- `DOCKER_TLS_VERIFY`: Set to `1` to enable TLS on TCP connections
+- `DOCKER_CERT_PATH`: Directory containing `ca.pem`, `cert.pem`, `key.pem` (standard Docker convention, read natively by docker-modem)
+- `DOCKER_TLS_CA` / `DOCKER_TLS_CERT` / `DOCKER_TLS_KEY`: Inline PEM content (alternative to `DOCKER_CERT_PATH`; takes precedence)
+- `DOCKER_SSH_KEY_FILE`: Path to the SSH private key file (for `ssh://` connections)
+- `DOCKER_SSH_KEY`: SSH private key content (alternative to `DOCKER_SSH_KEY_FILE`; supports `\n`-escaped newlines; takes precedence)
+- `DOCKER_SSH_KEY_PASSPHRASE`: Passphrase for the SSH private key (if applicable)
+- `SSH_AUTH_SOCK`: Optional SSH agent socket (handled natively by docker-modem as a fallback)
 
 ### Notification System Variables
 - `NOTIFICATIONS_ENABLED`: Enable or disable the entire notification system (default: false)
@@ -200,7 +215,10 @@ The application includes a configurable notification system for Docker image upd
 1. **Docker Connection Handling**:
    - Uses singleton pattern to prevent multiple connections in development mode
    - Platform-specific Docker socket configuration (Windows named pipe vs Unix socket)
-   - Supports DOCKER_HOST environment variable for remote Docker daemons
+   - Supports remote Docker daemons over TCP (plain), TCP+TLS, and SSH via `DOCKER_HOST`
+   - Host/port/protocol/user parsing is delegated to docker-modem; the app only injects the SSH private key/passphrase and inline TLS certificate content that docker-modem cannot resolve on its own
+   - Key/certificate material can be supplied as a file path or as inline environment content (with `\n`-escaped newlines)
+   - SSH uses `ssh2` and `docker system dial-stdio`; limited to the standard port 22
 
 2. **Image Update Checking**:
    - Queries Docker Hub API to compare local image digests with remote versions
