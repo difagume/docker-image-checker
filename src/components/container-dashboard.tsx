@@ -23,6 +23,7 @@ interface ContainerDashboardProps {
 	connectionInfo: DockerConnectionInfo
 	initialActiveFilters?: FilterStatus[]
 	initialShowHiddenMode?: boolean
+	dockerConnected?: boolean
 }
 
 export function ContainerDashboard({
@@ -31,7 +32,8 @@ export function ContainerDashboard({
 	locale,
 	connectionInfo,
 	initialActiveFilters = ['updated', 'available', 'unknown'],
-	initialShowHiddenMode = false
+	initialShowHiddenMode = false,
+	dockerConnected = true
 }: ContainerDashboardProps) {
 	const [activeFilters, setActiveFilters] =
 		useState<FilterStatus[]>(initialActiveFilters)
@@ -176,7 +178,7 @@ export function ContainerDashboard({
 			</motion.div>
 
 			<AnimatePresence>
-				{filteredContainers.length === 0 && (
+				{filteredContainers.length === 0 && dockerConnected && (
 					<motion.div
 						initial={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
 						animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}

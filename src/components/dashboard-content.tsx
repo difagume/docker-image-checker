@@ -1,4 +1,8 @@
-import { getContainers, getImages } from '@/actions/docker'
+import {
+	checkDockerConnection,
+	getContainers,
+	getImages
+} from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
 import { getDashboardSettings } from '@/lib/app-state'
@@ -14,12 +18,14 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 
 	const dict = getDictionary(locale)
 	console.log('[Dashboard] Loading containers from Docker...')
-	const [containers, images, cache, settings] = await Promise.all([
-		getContainers(),
-		getImages(),
-		loadContainersCache(),
-		getDashboardSettings()
-	])
+	const [containers, images, cache, settings, dockerConnected] =
+		await Promise.all([
+			getContainers(),
+			getImages(),
+			loadContainersCache(),
+			getDashboardSettings(),
+			checkDockerConnection()
+		])
 	console.log(
 		`[Dashboard] Found ${containers.length} containers and ${images.length} images`
 	)
@@ -100,10 +106,11 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 				connectionInfo={getDockerConnectionInfo()}
 				initialActiveFilters={settings.activeFilters as FilterStatus[]}
 				initialShowHiddenMode={settings.showHiddenMode}
+				dockerConnected={dockerConnected}
 			/>
 
 			{containers.length === 0 && (
-				<div className='text-center py-20 text-muted-foreground'>
+				<div className='text-center text-muted-foreground'>
 					{dict.dashboard.noContainers}
 				</div>
 			)}
