@@ -76,7 +76,9 @@
 		"hideMarkedContainers": "Hide marked containers",
 		"viewHiddenContainers": "View hidden containers",
 		"viewingHidden": "Viewing hidden",
-		"hiddenManagement": "Hidden management"
+		"hiddenManagement": "Hidden management",
+		"remoteServer": "Remote server",
+		"remoteServerTooltip": "Viewing containers from a remote Docker server"
 	},
 	"time": {
 		"ago": "ago",

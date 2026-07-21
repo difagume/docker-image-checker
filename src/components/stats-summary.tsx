@@ -1,14 +1,10 @@
 'use client'
 
 import NumberFlow from '@number-flow/react'
-import {
-	ArrowUp,
-	Check,
-	Eye,
-	EyeOff,
-	HelpCircle
-} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { ArrowUp, Check, Eye, EyeOff, HelpCircle } from 'lucide-react'
+import { RemoteConnectionIndicator } from '@/components/remote-connection-indicator'
+import type { DockerConnectionInfo } from '@/lib/docker-connection'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
 
@@ -61,7 +57,9 @@ function StatFilterCard({
 			<div className='flex items-center gap-3 relative z-10'>
 				<div
 					className={`p-2 rounded-sm border shrink-0 ${
-						isActive ? activeIconClass : 'bg-muted text-muted-foreground border-border/50'
+						isActive
+							? activeIconClass
+							: 'bg-muted text-muted-foreground border-border/50'
 					}`}
 				>
 					<Icon className='h-4 w-4' strokeWidth={3} aria-hidden='true' />
@@ -99,6 +97,7 @@ interface StatsSummaryProps {
 	onToggleFilter: (status: FilterStatus) => void
 	showHiddenMode: boolean
 	onToggleShowHidden: () => void
+	connectionInfo: DockerConnectionInfo
 	dict: Dictionary['stats']
 }
 
@@ -110,6 +109,7 @@ export function StatsSummary({
 	onToggleFilter,
 	showHiddenMode,
 	onToggleShowHidden,
+	connectionInfo,
 	dict
 }: StatsSummaryProps) {
 	const isFilterActive = (status: FilterStatus) =>
@@ -136,7 +136,9 @@ export function StatsSummary({
 				isActive={isFilterActive('available')}
 				onToggle={() => onToggleFilter('available')}
 				icon={ArrowUp}
-				label={availableCount === 1 ? dict.updateAvailable : dict.updatesAvailable}
+				label={
+					availableCount === 1 ? dict.updateAvailable : dict.updatesAvailable
+				}
 				activeCardClass='bg-muted border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
 				activeIconClass='bg-amber-950/40 text-amber-500 border-amber-500/20'
 				activeEyeClass='text-amber-500'
@@ -156,12 +158,17 @@ export function StatsSummary({
 				activeEyeClass='text-muted-foreground'
 			/>
 
-			<div className='md:col-span-3 flex justify-end -mt-2'>
+			<div className='md:col-span-3 flex flex-col items-start gap-2 -mt-2 sm:flex-row sm:items-center'>
+				<RemoteConnectionIndicator
+					info={connectionInfo}
+					label={dict.remoteServer}
+					tooltip={dict.remoteServerTooltip}
+				/>
 				<button
 					type='button'
 					onClick={onToggleShowHidden}
 					aria-pressed={showHiddenMode}
-					className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
+					className={`shrink-0 sm:ml-auto flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
 						showHiddenMode
 							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
 							: 'text-muted-foreground hover:text-foreground border border-transparent'

@@ -10,6 +10,7 @@ import { useContainerUpdates } from '@/hooks/use-container-updates'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useLanguageSync } from '@/hooks/use-language-sync'
 import { useSettingsSync } from '@/hooks/use-settings-sync'
+import type { DockerConnectionInfo } from '@/lib/docker-connection'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
 import { StatsSummary } from './stats-summary'
@@ -19,6 +20,7 @@ interface ContainerDashboardProps {
 	processedContainers: ContainerData[]
 	dict: Dictionary
 	locale: Locale
+	connectionInfo: DockerConnectionInfo
 	initialActiveFilters?: FilterStatus[]
 	initialShowHiddenMode?: boolean
 }
@@ -27,6 +29,7 @@ export function ContainerDashboard({
 	processedContainers,
 	dict,
 	locale,
+	connectionInfo,
 	initialActiveFilters = ['updated', 'available', 'unknown'],
 	initialShowHiddenMode = false
 }: ContainerDashboardProps) {
@@ -135,6 +138,7 @@ export function ContainerDashboard({
 				onToggleFilter={toggleFilter}
 				showHiddenMode={showHiddenMode}
 				onToggleShowHidden={() => setShowHiddenMode(!showHiddenMode)}
+				connectionInfo={connectionInfo}
 				dict={dict.stats}
 			/>
 

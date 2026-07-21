@@ -76,7 +76,9 @@
 		"hideMarkedContainers": "Ocultar contêineres marcados",
 		"viewHiddenContainers": "Ver contêineres ocultos",
 		"viewingHidden": "Visualizando ocultos",
-		"hiddenManagement": "Gerenciamento de ocultos"
+		"hiddenManagement": "Gerenciamento de ocultos",
+		"remoteServer": "Servidor remoto",
+		"remoteServerTooltip": "Visualizando contêineres de um servidor Docker remoto"
 	},
 	"time": {
 		"ago": "há",

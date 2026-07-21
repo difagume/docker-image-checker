@@ -3,6 +3,7 @@ import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
 import { getDashboardSettings } from '@/lib/app-state'
 import { getCacheKey, loadContainersCache } from '@/lib/cache/containers'
+import { getDockerConnectionInfo } from '@/lib/docker-connection'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
@@ -96,6 +97,7 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 				processedContainers={processedContainers}
 				dict={dict}
 				locale={locale}
+				connectionInfo={getDockerConnectionInfo()}
 				initialActiveFilters={settings.activeFilters as FilterStatus[]}
 				initialShowHiddenMode={settings.showHiddenMode}
 			/>
