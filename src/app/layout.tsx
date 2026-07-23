@@ -2,6 +2,7 @@ import { IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Footer } from '@/components/footer'
+import { ProgressProviders } from '@/components/progress-providers'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -75,13 +76,15 @@ export default async function RootLayout({
 					enableSystem={false}
 					disableTransitionOnChange
 				>
-					<TooltipProvider>
-						<main id='main-content' className='flex-1 flex flex-col'>
-							{children}
-						</main>
-						<Footer />
-						<Toaster richColors />
-					</TooltipProvider>
+					<ProgressProviders>
+						<TooltipProvider>
+							<main id='main-content' className='flex-1 flex flex-col'>
+								{children}
+							</main>
+							<Footer />
+							<Toaster richColors />
+						</TooltipProvider>
+					</ProgressProviders>
 				</ThemeProvider>
 			</body>
 		</html>

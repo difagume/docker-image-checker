@@ -1,6 +1,6 @@
 import type { ScheduledTask } from 'node-cron'
 import cron from 'node-cron'
-import { getContainers, getImages } from '@/actions/docker'
+import { listContainersRaw, listImagesRaw } from '@/lib/docker-inventory'
 import { checkAndNotify } from './notification-service'
 import { validateProviders } from './provider-factory'
 
@@ -48,8 +48,8 @@ export function initScheduler(): void {
 		async () => {
 			console.log('Running scheduled notification check...')
 			try {
-				const containers = await getContainers()
-				const images = await getImages()
+				const containers = await listContainersRaw()
+				const images = await listImagesRaw()
 				await checkAndNotify(containers, images)
 			} catch (error) {
 				console.error('Error during scheduled notification check:', error)
@@ -67,8 +67,8 @@ export function initScheduler(): void {
 	setTimeout(async () => {
 		console.log('Running initial notification check...')
 		try {
-			const containers = await getContainers()
-			const images = await getImages()
+			const containers = await listContainersRaw()
+			const images = await listImagesRaw()
 			await checkAndNotify(containers, images)
 		} catch (error) {
 			console.error('Error during initial notification check:', error)

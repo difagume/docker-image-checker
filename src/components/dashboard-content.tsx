@@ -1,13 +1,13 @@
-import {
-	checkDockerConnection,
-	getContainers,
-	getImages
-} from '@/actions/docker'
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
 import { getDashboardSettings } from '@/lib/app-state'
 import { getCacheKey, loadContainersCache } from '@/lib/cache/containers'
 import { getDockerConnectionInfo } from '@/lib/docker-connection'
+import {
+	getContainers,
+	getDockerConnected,
+	getImages
+} from '@/lib/docker-inventory'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
@@ -24,7 +24,7 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 			getImages(),
 			loadContainersCache(),
 			getDashboardSettings(),
-			checkDockerConnection()
+			getDockerConnected()
 		])
 	console.log(
 		`[Dashboard] Found ${containers.length} containers and ${images.length} images`

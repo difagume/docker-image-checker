@@ -1,6 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import {
 	getReferenceUrls,
 	saveReferenceUrl as saveUrl

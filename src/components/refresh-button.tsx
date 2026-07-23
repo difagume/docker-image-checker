@@ -4,20 +4,25 @@ import { RefreshCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { subscribeToLoading } from './loading-events'
+import { setFormPending, subscribeRefreshState } from './loading-events'
 
 export function RefreshButton() {
 	const { pending } = useFormStatus()
-	const [isEventLoading, setIsEventLoading] = useState(false)
+	const [isChecking, setIsChecking] = useState(false)
 
+	// Publish the server-action pending state for the top progress bar
 	useEffect(() => {
-		return subscribeToLoading((isLoading) => {
-			setIsEventLoading(isLoading)
+		setFormPending(pending)
+	}, [pending])
+
+	// Track the background check to keep the button disabled while it runs
+	useEffect(() => {
+		return subscribeRefreshState((state) => {
+			setIsChecking(state.checkTotal > 0)
 		})
 	}, [])
 
-	const isLoading = pending || isEventLoading
+	const isLoading = pending || isChecking
 
 	return (
 		<Button
@@ -27,20 +32,9 @@ export function RefreshButton() {
 			disabled={isLoading}
 			aria-busy={isLoading}
 			aria-label={isLoading ? 'Refreshing containers' : 'Refresh dashboard'}
-			className={cn(
-				'relative rounded-sm',
-				isLoading
-					? 'border-blue-500/50 bg-blue-500/15 text-blue-100 shadow-[0_0_4px_rgba(59,130,246,0.45)] ring-1 ring-blue-500/30 animate-pulse disabled:opacity-100 hover:bg-blue-500/20'
-					: 'border-border bg-muted hover:bg-neutral-700! hover:text-neutral-950! hover:border-neutral-700! disabled:opacity-80'
-			)}
+			className='relative rounded-sm border-border bg-muted hover:bg-neutral-700! hover:text-neutral-950! hover:border-neutral-700! disabled:opacity-80'
 		>
-			<RefreshCcw
-				className={cn(
-					'h-4 w-4 shrink-0',
-					isLoading && 'animate-spin text-blue-400'
-				)}
-				aria-hidden
-			/>
+			<RefreshCcw className='h-4 w-4 shrink-0' aria-hidden />
 		</Button>
 	)
 }

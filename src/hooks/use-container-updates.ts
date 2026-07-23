@@ -11,7 +11,7 @@ import {
 	triggerContainerUpdate,
 	verifyContainerUpdate
 } from '@/actions/docker'
-import { dispatchLoading } from '@/components/loading-events'
+import { setCheckProgress as broadcastCheckProgress } from '@/components/loading-events'
 import type { ContainersCache } from '@/lib/cache/containers'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import type { PolicyState } from '@/lib/policies/types'
@@ -68,12 +68,10 @@ export function useContainerUpdates(
 	>({})
 	const activeEventSources = useRef<Record<string, EventSource>>({})
 
-	// Sync loading state with event for the refresh button
-	const isLoading = checkProgress.total > 0
-
+	// Broadcast check progress for the refresh button + top progress bar
 	useEffect(() => {
-		dispatchLoading(isLoading)
-	}, [isLoading])
+		broadcastCheckProgress(checkProgress.current, checkProgress.total)
+	}, [checkProgress])
 
 	// Sync containers state with props when they change
 	useEffect(() => {
@@ -491,7 +489,10 @@ export function useContainerUpdates(
 
 				// Only handle if we haven't already processed done/error
 				setUpdatePhases((prev) => {
-					if (prev[containerId]?.phase === 'done' || prev[containerId]?.phase === 'error') {
+					if (
+						prev[containerId]?.phase === 'done' ||
+						prev[containerId]?.phase === 'error'
+					) {
 						return prev
 					}
 					const next = { ...prev }

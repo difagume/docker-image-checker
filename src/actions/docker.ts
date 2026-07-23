@@ -1,8 +1,24 @@
 'use server'
 
-import type { ContainerInfo, ImageInfo } from 'dockerode'
-import { revalidatePath } from 'next/cache'
 import docker from '@/lib/docker'
+import {
+	getContainers as getContainersFromInventory,
+	getDockerConnected,
+	getImages as getImagesFromInventory
+} from '@/lib/docker-inventory'
+
+// Thin wrappers so existing imports from '@actions/docker' continue to work.
+// These delegate to the cached versions from docker-inventory.
+export async function getContainers() {
+	return getContainersFromInventory()
+}
+export async function getImages() {
+	return getImagesFromInventory()
+}
+export async function checkDockerConnection() {
+	return getDockerConnected()
+}
+
 import { evaluatePolicies } from '@/lib/policies/engine'
 import type {
 	ImageContext,
@@ -41,26 +57,6 @@ function fetchWithTimeout(
 	})
 
 	return Promise.race([fetchPromise, timeoutPromise])
-}
-
-export async function getContainers(): Promise<ContainerInfo[]> {
-	try {
-		const containers = await docker.listContainers({ all: true })
-		return JSON.parse(JSON.stringify(containers))
-	} catch (error) {
-		console.error('Failed to list containers:', error)
-		return []
-	}
-}
-
-export async function getImages(): Promise<ImageInfo[]> {
-	try {
-		const images = await docker.listImages()
-		return JSON.parse(JSON.stringify(images))
-	} catch (error) {
-		console.error('Failed to list images:', error)
-		return []
-	}
 }
 
 export async function checkImageUpdate(
@@ -318,16 +314,6 @@ async function checkGhcrUpdate(
 	}
 }
 
-export async function checkDockerConnection(): Promise<boolean> {
-	try {
-		await docker.ping()
-		return true
-	} catch (error) {
-		console.error('Docker connection failed:', error)
-		return false
-	}
-}
-
 export type OnPhaseCallback = (
 	phase: UpdatePhase,
 	data?: {
@@ -535,7 +521,11 @@ async function doUpdateContainerImage(
 				NetworkMode: hostConfig.NetworkMode || undefined
 			},
 			NetworkingConfig: networkingConfig.Networks
-				? { EndpointsConfig: Object.fromEntries(Object.keys(networkingConfig.Networks).map((n) => [n, {}])) }
+				? {
+						EndpointsConfig: Object.fromEntries(
+							Object.keys(networkingConfig.Networks).map((n) => [n, {}])
+						)
+					}
 				: undefined
 		})
 
@@ -660,11 +650,6 @@ export async function checkImagesUpdatesBatch(
 			}
 		})
 	)
-}
-
-export async function refreshDashboard(): Promise<void> {
-	'use server'
-	revalidatePath('/')
 }
 
 export async function verifyContainerUpdate(imageName: string): Promise<{
