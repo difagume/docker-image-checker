@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getContainers, getImages } from '@/actions/docker'
+import { listContainersRaw, listImagesRaw } from '@/lib/docker-inventory'
 import { checkAndNotify } from '@/lib/notifications/notification-service'
 
 export const dynamic = 'force-dynamic'
@@ -24,8 +24,8 @@ export async function POST() {
 
 		console.log('Manual notification check triggered via API')
 
-		const containers = await getContainers()
-		const images = await getImages()
+		const containers = await listContainersRaw()
+		const images = await listImagesRaw()
 
 		await checkAndNotify(containers, images)
 

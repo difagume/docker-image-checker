@@ -1,5 +1,5 @@
 import { LogOut } from 'lucide-react'
-import { revalidatePath } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { checkAuth, logout } from '@/actions/auth'
@@ -8,8 +8,6 @@ import { RefreshButton } from '@/components/refresh-button'
 import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getLocale } from '@/lib/i18n/get-locale'
-
-export const dynamic = 'force-dynamic'
 
 export default async function Dashboard() {
 	const [auth, locale] = process.env.AUTH_HTPASSWD
@@ -22,7 +20,9 @@ export default async function Dashboard() {
 
 	async function refresh() {
 		'use server'
-		revalidatePath('/')
+		revalidateTag('docker:containers', 'minutes')
+		revalidateTag('docker:images', 'minutes')
+		revalidateTag('docker:connection', 'seconds')
 	}
 
 	return (
@@ -39,13 +39,13 @@ export default async function Dashboard() {
 						<div className='flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-3'>
 							{authEnabled && (
 								<form action={logout}>
-								<Button
-									variant='outline'
-									size='icon'
-									className='rounded-sm hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
-									aria-label={dict.login.logout}
-								>
-									<LogOut className='h-4 w-4' />
+									<Button
+										variant='outline'
+										size='icon'
+										className='rounded-sm hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
+										aria-label={dict.login.logout}
+									>
+										<LogOut className='h-4 w-4' />
 									</Button>
 									<Button
 										variant='outline'
