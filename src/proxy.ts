@@ -13,8 +13,14 @@ async function checkAuth() {
 }
 
 export async function proxy(request: NextRequest) {
-	const { authenticated, required } = await checkAuth()
 	const pathname = request.nextUrl.pathname
+
+	if (pathname !== '/' && pathname !== '/login') {
+		// Redirecciona de forma inmediata cualquier ruta inexistente a la raíz
+		return NextResponse.redirect(new URL('/', request.url))
+	}
+
+	const { authenticated, required } = await checkAuth()
 
 	if (!required) return NextResponse.next()
 
