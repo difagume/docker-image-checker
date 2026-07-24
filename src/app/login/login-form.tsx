@@ -87,6 +87,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 								autoFocus
 								id='username'
 								type='text'
+								autoComplete='username'
 								value={username}
 								onChange={(e) => setUsername(e.target.value)}
 								placeholder={dict.usernamePlaceholder}
@@ -103,6 +104,7 @@ export default function LoginForm({ dict }: LoginFormProps) {
 							<Input
 								id='password'
 								type='password'
+								autoComplete='current-password'
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
 								placeholder={dict.passwordPlaceholder}

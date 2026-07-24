@@ -31,9 +31,13 @@ export function SearchBar({
 	return (
 		<div className='flex flex-col md:flex-row gap-4 items-center justify-between mb-8 md:mb-6'>
 			<div className='relative w-full shadow-sm'>
-				<Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' aria-hidden='true' />
+				<Search
+					className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none'
+					aria-hidden='true'
+				/>
 				{/* Mobile input */}
 				<Input
+					aria-label={dict.placeholderMobile}
 					placeholder={dict.placeholderMobile}
 					value={searchQuery}
 					onChange={(e) => onSearchChange(e.target.value)}
@@ -42,6 +46,7 @@ export function SearchBar({
 				/>
 				{/* Desktop input */}
 				<Input
+					aria-label={dict.placeholder}
 					placeholder={dict.placeholder}
 					value={searchQuery}
 					onChange={(e) => onSearchChange(e.target.value)}

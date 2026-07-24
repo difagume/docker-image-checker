@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getPreferredLanguage, loadState } from '@/lib/app-state'
-import { getEnabledProviders } from '@/lib/notifications/provider-factory'
+import {
+	getEnabledProviders,
+	validateProviders
+} from '@/lib/notifications/provider-factory'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +41,8 @@ export async function GET() {
 			}
 		}
 
+		const validation = validateProviders()
+
 		return NextResponse.json({
 			enabled: true,
 			status: 'running',
@@ -45,6 +50,7 @@ export async function GET() {
 			language,
 			providers: providerStatus,
 			activeProvidersCount: providers.length,
+			providerErrors: validation.valid ? [] : validation.errors,
 			lastCheck: state.lastCheck,
 			notifiedCount: Object.keys(state.notifiedUpdates).length
 		})

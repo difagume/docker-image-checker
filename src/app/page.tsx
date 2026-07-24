@@ -1,13 +1,19 @@
-import { LogOut } from 'lucide-react'
+import type { Metadata } from 'next'
 import { revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { checkAuth, logout } from '@/actions/auth'
 import { DashboardContent } from '@/components/dashboard-content'
+import { LogoutButton } from '@/components/logout-button'
 import { RefreshButton } from '@/components/refresh-button'
-import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getLocale } from '@/lib/i18n/get-locale'
+
+export const metadata: Metadata = {
+	title: 'Docker Image Checker',
+	description:
+		'Self-hosted dashboard to monitor Docker containers and detect available image updates.'
+}
 
 export default async function Dashboard() {
 	const [auth, locale] = process.env.AUTH_HTPASSWD
@@ -38,26 +44,25 @@ export default async function Dashboard() {
 						{/* Acciones */}
 						<div className='flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-3'>
 							{authEnabled && (
-								<form action={logout}>
-									<Button
+								<form action={logout} noValidate>
+									<LogoutButton
 										variant='outline'
 										size='icon'
-										className='rounded-sm hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! flex items-center gap-2 md:hidden'
-										aria-label={dict.login.logout}
-									>
-										<LogOut className='h-4 w-4' />
-									</Button>
-									<Button
+										showIcon
+										ariaLabel={dict.login.logout}
+										className='md:hidden'
+									/>
+									<LogoutButton
 										variant='outline'
-										className='rounded-sm hover:bg-neutral-700! hover:text-neutral-950 hover:border-neutral-700! items-center gap-2 hidden md:flex'
+										showIcon
+										className='hidden md:flex'
 									>
-										<LogOut className='h-4 w-4' />
 										{dict.login.logout}
-									</Button>
+									</LogoutButton>
 								</form>
 							)}
 
-							<form action={refresh}>
+							<form action={refresh} noValidate>
 								<RefreshButton />
 							</form>
 						</div>
