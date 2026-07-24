@@ -73,6 +73,8 @@
 		"updatesAvailable": "Actualizaciones disponibles",
 		"unknownImage": "Imagen desconocida/local",
 		"unknownImages": "Imágenes desconocidas/locales",
+		"filterApply": "Filtrar por",
+		"filterRemove": "Quitar filtro de",
 		"hideMarkedContainers": "Ocultar contenedores marcados",
 		"viewHiddenContainers": "Ver contenedores ocultos",
 		"viewingHidden": "Viendo ocultos",

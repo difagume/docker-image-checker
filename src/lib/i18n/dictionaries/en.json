@@ -73,6 +73,8 @@
 		"updatesAvailable": "Updates available",
 		"unknownImage": "Unknown/local image",
 		"unknownImages": "Unknown/local images",
+		"filterApply": "Filter by",
+		"filterRemove": "Remove filter for",
 		"hideMarkedContainers": "Hide marked containers",
 		"viewHiddenContainers": "View hidden containers",
 		"viewingHidden": "Viewing hidden",

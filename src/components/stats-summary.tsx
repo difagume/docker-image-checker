@@ -2,7 +2,15 @@
 
 import NumberFlow from '@number-flow/react'
 import type { LucideIcon } from 'lucide-react'
-import { ArrowUp, Check, Eye, EyeOff, HelpCircle } from 'lucide-react'
+import {
+	ArrowUp,
+	Check,
+	Eye,
+	EyeOff,
+	HelpCircle,
+	ToggleLeft,
+	ToggleRight
+} from 'lucide-react'
 import { RemoteConnectionIndicator } from '@/components/remote-connection-indicator'
 import type { DockerConnectionInfo } from '@/lib/docker-connection'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
@@ -21,8 +29,12 @@ interface StatFilterCardProps {
 	activeIconClass: string
 	/** Tailwind classes for the text label active state (defaults to text-foreground) */
 	activeTextClass?: string
-	/** Tailwind classes for the eye icon active state (defaults to matching the border color) */
-	activeEyeClass?: string
+	/** Tailwind classes for the toggle indicator active state (defaults to matching the border color) */
+	activeIndicatorClass?: string
+	/** Accessible verb used when the filter is inactive (e.g. "Filter by") */
+	filterApplyLabel: string
+	/** Accessible verb used when the filter is active (e.g. "Remove filter for") */
+	filterRemoveLabel: string
 	/** Show gradient overlay when active */
 	gradient?: boolean
 }
@@ -36,14 +48,19 @@ function StatFilterCard({
 	activeCardClass,
 	activeIconClass,
 	activeTextClass = 'text-foreground',
-	activeEyeClass = 'text-muted-foreground',
+	activeIndicatorClass = 'text-muted-foreground',
+	filterApplyLabel,
+	filterRemoveLabel,
 	gradient
 }: StatFilterCardProps) {
+	const actionLabel = `${isActive ? filterRemoveLabel : filterApplyLabel} ${label}`
 	return (
 		<button
 			type='button'
 			onClick={onToggle}
 			aria-pressed={isActive}
+			title={actionLabel}
+			aria-label={actionLabel}
 			className={`relative overflow-hidden flex items-center justify-between p-3 rounded-sm border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
 				${
 					isActive
@@ -75,14 +92,14 @@ function StatFilterCard({
 			<div
 				className={`relative z-10 transition-colors duration-300 ${
 					isActive
-						? activeEyeClass
+						? activeIndicatorClass
 						: 'text-muted-foreground group-hover:text-foreground'
 				}`}
 			>
 				{isActive ? (
-					<Eye className='h-4 w-4' aria-hidden='true' />
+					<ToggleRight className='h-4 w-4' aria-hidden='true' />
 				) : (
-					<EyeOff className='h-4 w-4' aria-hidden='true' />
+					<ToggleLeft className='h-4 w-4' aria-hidden='true' />
 				)}
 			</div>
 		</button>
@@ -127,7 +144,9 @@ export function StatsSummary({
 				activeCardClass='bg-muted border-green-500/50 ring-1 ring-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
 				activeIconClass='bg-green-950/30 text-green-500 border-green-500/20'
 				activeTextClass='text-foreground'
-				activeEyeClass='text-green-500'
+				activeIndicatorClass='text-green-500'
+				filterApplyLabel={dict.filterApply}
+				filterRemoveLabel={dict.filterRemove}
 			/>
 
 			<StatFilterCard
@@ -141,7 +160,9 @@ export function StatsSummary({
 				}
 				activeCardClass='bg-muted border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
 				activeIconClass='bg-amber-950/40 text-amber-500 border-amber-500/20'
-				activeEyeClass='text-amber-500'
+				activeIndicatorClass='text-amber-500'
+				filterApplyLabel={dict.filterApply}
+				filterRemoveLabel={dict.filterRemove}
 				gradient
 			/>
 
@@ -155,7 +176,9 @@ export function StatsSummary({
 				activeCardClass='bg-muted border-muted-foreground/50 ring-1 ring-muted-foreground/20 shadow-[0_0_15px_rgba(115,115,115,0.1)]'
 				activeIconClass='bg-muted text-muted-foreground border-border/50'
 				activeTextClass='text-foreground'
-				activeEyeClass='text-muted-foreground'
+				activeIndicatorClass='text-muted-foreground'
+				filterApplyLabel={dict.filterApply}
+				filterRemoveLabel={dict.filterRemove}
 			/>
 
 			<div className='md:col-span-3 flex flex-col items-start gap-2 -mt-2 sm:flex-row sm:items-center'>
@@ -170,7 +193,7 @@ export function StatsSummary({
 					aria-pressed={showHiddenMode}
 					className={`shrink-0 sm:ml-auto flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
 						showHiddenMode
-							? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+							? 'bg-muted text-foreground border border-border'
 							: 'text-muted-foreground hover:text-foreground border border-transparent'
 					}`}
 					title={

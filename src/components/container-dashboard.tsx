@@ -172,6 +172,7 @@ export function ContainerDashboard({
 							updatePhase={updatePhases[item.container.Id] ?? null}
 							onSetConfirmUpdate={setConfirmUpdateState}
 							onSaveReferenceUrl={actions.saveReferenceUrl}
+							showHiddenMode={showHiddenMode}
 						/>
 					))}
 				</AnimatePresence>

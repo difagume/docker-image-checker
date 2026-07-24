@@ -276,7 +276,7 @@ function HideToggle({ containerId, dict }: HideToggleProps) {
 			onClick={() => actions.toggleHideContainer(containerId)}
 			className={`transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded-sm p-0.5 shrink-0 ${
 				isHidden
-					? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+					? 'text-foreground bg-muted hover:bg-muted/80'
 					: 'text-muted-foreground hover:text-foreground'
 			}`}
 			title={isHidden ? dict.showContainer : dict.hideContainer}
@@ -317,6 +317,7 @@ interface ContainerCardProps {
 	} | null
 	onSetConfirmUpdate: (state: ConfirmState | null) => void
 	onSaveReferenceUrl: (imageName: string, url: string) => void
+	showHiddenMode?: boolean
 }
 
 export const ContainerCard = React.memo(function ContainerCard({
@@ -327,7 +328,8 @@ export const ContainerCard = React.memo(function ContainerCard({
 	updateError,
 	updatePhase,
 	onSetConfirmUpdate,
-	onSaveReferenceUrl
+	onSaveReferenceUrl,
+	showHiddenMode = false
 }: ContainerCardProps) {
 	const {
 		container,
@@ -349,6 +351,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 	const prefersReducedMotion = useReducedMotion()
 	const hasUpdateAvailable = updateStatus === 'available'
 	const isNewMajor = policyState === 'NEW_MAJOR_VERSION_AVAILABLE'
+	const isHidden = hiddenContainerIds.includes(container.Id)
 
 	const displayLatestVersion: string =
 		latestVersion !== 'latest' &&
@@ -425,7 +428,13 @@ export const ContainerCard = React.memo(function ContainerCard({
 							? 'border-l-violet-500'
 							: 'border-l-amber-500'
 						: ''
-				} ${hiddenContainerIds.includes(container.Id) ? 'opacity-40 grayscale-[0.5] scale-[0.98]' : ''}`}
+				} ${
+					isHidden
+						? showHiddenMode
+							? 'opacity-70 scale-[0.98]'
+							: 'opacity-40 grayscale-[0.5] scale-[0.98]'
+						: ''
+				}`}
 			>
 				<CardHeader>
 					<div className='flex justify-between items-start gap-4'>
