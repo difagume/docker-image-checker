@@ -47,6 +47,8 @@ yarn-error.log*
 .continue
 .kiro
 .junie
+.opencode
+.impeccable
 
 # typescript
 *.tsbuildinfo
