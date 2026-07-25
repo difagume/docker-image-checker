@@ -47,14 +47,14 @@
 			"verifying": "Verificando atualização..."
 		},
 		"states": {
-			"running": "Em execução",
-			"stopped": "Parado",
-			"exited": "Finalizado",
-			"paused": "Pausado",
-			"restarting": "Reiniciando",
-			"removing": "Removendo",
-			"created": "Criado",
-			"dead": "Morto"
+			"running": "em execução",
+			"stopped": "parado",
+			"exited": "finalizado",
+			"paused": "pausado",
+			"restarting": "reiniciando",
+			"removing": "removendo",
+			"created": "criado",
+			"dead": "morto"
 		},
 		"enableNotifications": "Ativar notificações",
 		"disableNotifications": "Desativar notificações",

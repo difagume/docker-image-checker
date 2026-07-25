@@ -438,28 +438,29 @@ export const ContainerCard = React.memo(function ContainerCard({
 			>
 				<CardHeader>
 					<div className='flex justify-between items-start gap-4'>
-						<CardTitle className='text-lg font-semibold tracking-tight text-foreground wrap-anywhere break-normal flex items-start gap-2'>
-							<span className='flex-1 line-clamp-3'>{containerName}</span>
-							<div className='flex items-center gap-1 mt-1'>
-								<NotificationToggle
-									containerId={container.Id}
-									dict={dict.container}
-								/>
-								<HideToggle containerId={container.Id} dict={dict.container} />
-							</div>
+						<CardTitle className='text-lg font-semibold tracking-tight text-foreground wrap-anywhere break-normal line-clamp-3'>
+							{containerName}
 						</CardTitle>
-						<Badge
-							variant='outline'
-							className={`shrink-0 ${
-								isRunning
-									? 'bg-green-500/10 text-green-500 border-green-500 rounded-sm cursor-default'
-									: 'bg-red-500/10 text-red-500 border-red-500 rounded-sm cursor-default'
-							}`}
-						>
-							{dict.container.states[
-								container.State.toLowerCase() as keyof typeof dict.container.states
-							] || container.State}
-						</Badge>
+						<div className='flex items-center gap-1.5 shrink-0 mt-0.5'>
+							<NotificationToggle
+								containerId={container.Id}
+								dict={dict.container}
+							/>
+							<HideToggle containerId={container.Id} dict={dict.container} />
+							<Badge
+								variant='outline'
+								className='ml-1 gap-1.5 cursor-default rounded-full h-5 px-2.5 bg-secondary text-white border-border text-xs'
+							>
+								<span
+									className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+										isRunning ? 'bg-green-500' : 'bg-red-500'
+									}`}
+								/>
+								{dict.container.states[
+									container.State.toLowerCase() as keyof typeof dict.container.states
+								] || container.State}
+							</Badge>
+						</div>
 					</div>
 				</CardHeader>
 				<CardContent>
