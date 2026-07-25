@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { revalidateTag } from 'next/cache'
+import { updateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { checkAuth, logout } from '@/actions/auth'
@@ -26,9 +26,13 @@ export default async function Dashboard() {
 
 	async function refresh() {
 		'use server'
-		revalidateTag('docker:containers', 'minutes')
-		revalidateTag('docker:images', 'minutes')
-		revalidateTag('docker:connection', 'seconds')
+		// updateTag expires immediately (read-your-writes) so the re-render
+		// after the action always re-scans the daemon instead of serving stale
+		updateTag('docker:containers')
+		updateTag('docker:images')
+		updateTag('docker:connection')
+		// Also expire cached Docker Hub / GHCR responses (1h fetch cache)
+		updateTag('registry:checks')
 	}
 
 	return (

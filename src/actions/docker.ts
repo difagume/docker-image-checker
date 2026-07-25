@@ -101,7 +101,7 @@ export async function checkImageUpdate(
 		// Single fetch for tags
 		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=70`
 		const tagsResponse = await fetchWithTimeout(tagsUrl, {
-			next: { revalidate: 3600 }
+			next: { revalidate: 900, tags: ['registry:checks'] }
 		})
 
 		if (!tagsResponse.ok) {
@@ -234,7 +234,7 @@ async function checkGhcrUpdate(
 					Accept: 'application/vnd.github+json',
 					'X-GitHub-Api-Version': '2022-11-28'
 				},
-				next: { revalidate: 3600 }
+				next: { revalidate: 900, tags: ['registry:checks'] }
 			})
 
 			if (response.ok) {
