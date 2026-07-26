@@ -3,6 +3,10 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
 	output: 'standalone',
 	poweredByHeader: false,
+	logging: {
+		// Forward browser warnings and errors to the terminal (Next.js 16.2+)
+		browserToTerminal: 'warn'
+	},
 	experimental: {
 		optimizePackageImports: ['lucide-react']
 	},

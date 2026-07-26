@@ -1,3 +1,11 @@
+<!-- BEGIN:nextjs-agent-rules -->
+
+# Next.js: ALWAYS read docs before coding
+
+Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
+
+<!-- END:nextjs-agent-rules -->
+
 # AGENTS.md
 
 This file provides guidance to Qoder (qoder.com) when working with code in this repository.
@@ -120,6 +128,18 @@ pnpm exec biome check --apply .
 
 ### Testing
 This project currently does not have a test suite configured. When adding tests, they would likely use Jest or Vitest for unit tests and Playwright or Cypress for end-to-end tests.
+
+### Agent DevTools (next-browser)
+The project includes `@vercel/next-browser` (dev dependency) so AI agents can inspect the running app from the terminal (component trees, PPR shells, errors, network, screenshots). Requires Chromium via `pnpm exec playwright install chromium` on first use.
+
+```bash
+pnpm exec next-browser open http://localhost:3000
+pnpm exec next-browser snapshot   # accessibility tree with interactive refs
+pnpm exec next-browser errors     # build/runtime errors for current page
+pnpm exec next-browser close
+```
+
+Browser console warnings/errors are also forwarded to the dev server terminal automatically (`logging.browserToTerminal: 'warn'` in `next.config.ts`).
 
 ## Environment Variables
 
