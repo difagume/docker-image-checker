@@ -14,6 +14,7 @@ import {
 	Fingerprint,
 	Loader2,
 	Package,
+	ScrollText,
 	Server,
 	Zap
 } from 'lucide-react'
@@ -33,6 +34,7 @@ import { formatRelativeTime } from '@/lib/format-relative-time'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
+import { ContainerLogsDialog } from './container-logs-dialog'
 import { ReferenceUrlPopover } from './reference-url-popover'
 
 const cardVariants = {
@@ -441,15 +443,10 @@ export const ContainerCard = React.memo(function ContainerCard({
 						<CardTitle className='text-lg font-semibold tracking-tight text-foreground wrap-anywhere break-normal line-clamp-3'>
 							{containerName}
 						</CardTitle>
-						<div className='flex items-center gap-1.5 shrink-0 mt-0.5'>
-							<NotificationToggle
-								containerId={container.Id}
-								dict={dict.container}
-							/>
-							<HideToggle containerId={container.Id} dict={dict.container} />
+						<div className='flex flex-col items-end gap-1.5 shrink-0 mt-0.5'>
 							<Badge
 								variant='outline'
-								className='ml-1 gap-1.5 cursor-default rounded-full h-5 px-2.5 bg-secondary text-white border-border text-xs'
+								className='gap-1.5 cursor-default rounded-full h-5 px-2.5 bg-secondary text-white border-border text-xs'
 							>
 								<span
 									className={`h-1.5 w-1.5 rounded-full shrink-0 ${
@@ -460,6 +457,35 @@ export const ContainerCard = React.memo(function ContainerCard({
 									container.State.toLowerCase() as keyof typeof dict.container.states
 								] || container.State}
 							</Badge>
+							<div className='flex items-center gap-1.5'>
+								<NotificationToggle
+									containerId={container.Id}
+									dict={dict.container}
+								/>
+								<HideToggle containerId={container.Id} dict={dict.container} />
+								<ContainerLogsDialog
+									containerId={container.Id}
+									containerName={containerName}
+									image={container.Image}
+									state={container.State.toLowerCase()}
+									stateLabel={
+										dict.container.states[
+											container.State.toLowerCase() as keyof typeof dict.container.states
+										] || container.State
+									}
+									dict={dict.logs}
+									trigger={
+										<button
+											type='button'
+											className='transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded-sm p-0.5 shrink-0 text-muted-foreground hover:text-foreground'
+											title={dict.logs.viewLogs}
+											aria-label={dict.logs.viewLogs}
+										>
+											<ScrollText className='h-3.5 w-3.5' aria-hidden='true' />
+										</button>
+									}
+								/>
+							</div>
 						</div>
 					</div>
 				</CardHeader>
