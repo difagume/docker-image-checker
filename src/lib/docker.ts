@@ -138,10 +138,11 @@ if (process.env.NODE_ENV === 'production') {
 	docker = createDocker()
 } else {
 	// Reuse a single instance across module reloads in development mode.
-	if (!(global as any).docker) {
-		;(global as any).docker = createDocker()
+	const globalForDocker = globalThis as typeof globalThis & { docker?: Docker }
+	if (!globalForDocker.docker) {
+		globalForDocker.docker = createDocker()
 	}
-	docker = (global as any).docker
+	docker = globalForDocker.docker
 }
 
 export default docker

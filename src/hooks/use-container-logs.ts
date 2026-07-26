@@ -48,6 +48,7 @@ export function useContainerLogs({
 		setPendingCount(0)
 	}, [paused])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt fuerza la reconexión manual del EventSource
 	useEffect(() => {
 		if (!enabled || !containerId) {
 			setStatus('idle')
