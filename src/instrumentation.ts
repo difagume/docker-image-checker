@@ -6,9 +6,11 @@ export async function register() {
 ██║  ██║██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗    ██║██║╚██╔╝██║██╔══██║██║   ██║██╔══╝      ██║     ██╔══██║██╔══╝  ██║     ██╔═██╗ ██╔══╝  ██╔══██╗
 ██████╔╝╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║    ██║██║ ╚═╝ ██║██║  ██║╚██████╔╝███████╗    ╚██████╗██║  ██║███████╗╚██████╗██║  ██╗███████╗██║  ██║
 ╚═════╝  ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝    ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝`)
-}
 
-if (process.env.NEXT_RUNTIME === 'nodejs') {
-	const { initScheduler } = await import('./lib/notifications/scheduler')
-	initScheduler()
+	// Los efectos secundarios deben vivir dentro de register(): se ejecuta una
+	// sola vez al iniciar el servidor, no al importar el módulo.
+	if (process.env.NEXT_RUNTIME === 'nodejs') {
+		const { initScheduler } = await import('./lib/notifications/scheduler')
+		initScheduler()
+	}
 }

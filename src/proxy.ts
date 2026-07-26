@@ -22,16 +22,17 @@ export async function proxy(request: NextRequest) {
 
 	const { authenticated, required } = await checkAuth()
 
-	if (!required) return NextResponse.next()
+	if (required) {
+		if (!authenticated && pathname !== '/login') {
+			return NextResponse.redirect(new URL('/login', request.url))
+		}
 
-	if (!authenticated && pathname !== '/login') {
-		return NextResponse.redirect(new URL('/login', request.url))
+		if (authenticated && pathname === '/login') {
+			return NextResponse.redirect(new URL('/', request.url))
+		}
 	}
 
-	if (authenticated && pathname === '/login') {
-		return NextResponse.redirect(new URL('/', request.url))
-	}
-
+	// La CSP se aplica siempre, con o sin autenticación habilitada
 	const isDev = process.env.NODE_ENV !== 'production'
 	const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
 	const cspHeader = `
@@ -75,7 +76,7 @@ export const config = {
 	matcher: [
 		{
 			source:
-				'/((?!api|_next/static|_next/image|manifest|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)',
+				'/((?!api|_next/static|_next/image|site.webmanifest|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)',
 			missing: [
 				{ type: 'header', key: 'next-router-prefetch' },
 				{ type: 'header', key: 'purpose', value: 'prefetch' }
