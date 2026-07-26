@@ -24,7 +24,12 @@
 			"trailingCommas": "none",
 			"semicolons": "asNeeded",
 			"quoteStyle": "single",
-			"lineEnding": "auto"
+			"lineEnding": "lf"
+		}
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
 		}
 	},
 	"assist": {
@@ -38,7 +43,8 @@
 	"overrides": [
 		{
 			"includes": [
-				".engram",
+				".engram/**",
+				"public/**",
 				"pnpm-lock.yaml",
 				"pnpm-workspace.yaml",
 				"package.json",

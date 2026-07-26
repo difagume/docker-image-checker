@@ -126,7 +126,8 @@ export async function getLastCheck(): Promise<string | undefined> {
  */
 export async function clearOldNotifications(daysOld = 30): Promise<void> {
 	const state = await loadState()
-	const cutoffInstant = Temporal.Now.instant().toZonedDateTimeISO('UTC')
+	const cutoffInstant = Temporal.Now.instant()
+		.toZonedDateTimeISO('UTC')
 		.subtract({ days: daysOld })
 		.toInstant()
 

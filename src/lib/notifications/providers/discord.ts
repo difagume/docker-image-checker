@@ -87,13 +87,16 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 			if (message.lastUpdated) {
 				embed.fields.push({
 					name: t.updated,
-					value: Temporal.Instant.from(message.lastUpdated).toLocaleString(message.locale, {
-						year: 'numeric',
-						month: '2-digit',
-						day: '2-digit',
-						hour: '2-digit',
-						minute: '2-digit'
-					}),
+					value: Temporal.Instant.from(message.lastUpdated).toLocaleString(
+						message.locale,
+						{
+							year: 'numeric',
+							month: '2-digit',
+							day: '2-digit',
+							hour: '2-digit',
+							minute: '2-digit'
+						}
+					),
 					inline: false
 				})
 			}

@@ -10,11 +10,7 @@ import { RefreshProgressBar } from './refresh-progress-bar'
  * must be wrapped in our own client component before being used from the
  * (server) root layout.
  */
-export function ProgressProviders({
-	children
-}: {
-	children: React.ReactNode
-}) {
+export function ProgressProviders({ children }: { children: React.ReactNode }) {
 	return (
 		<ProgressProvider
 			height='3px'

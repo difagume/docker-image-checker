@@ -33,9 +33,7 @@ interface DashboardActions {
 	saveReferenceUrl: (imageName: string, url: string) => void
 	isHidden: (id: string) => boolean
 	isIgnored: (id: string) => boolean
-	getReferenceUrls: (
-		imageName: string
-	) => ReferenceUrlData | undefined
+	getReferenceUrls: (imageName: string) => ReferenceUrlData | undefined
 }
 
 interface DashboardContextValue {
@@ -60,15 +58,12 @@ export function DashboardProvider({
 	initialReferenceUrls = {},
 	notificationsEnabled = false
 }: DashboardProviderProps) {
-	const [hiddenContainerIds, setHiddenContainerIds] = useState<string[]>(
-		initialHiddenIds
-	)
-	const [ignoredNotificationIds, setIgnoredNotificationIds] = useState<
-		string[]
-	>(initialIgnoredIds)
-	const [referenceUrls, setReferenceUrls] = useState<
-		Record<string, ReferenceUrlData>
-	>(initialReferenceUrls)
+	const [hiddenContainerIds, setHiddenContainerIds] =
+		useState<string[]>(initialHiddenIds)
+	const [ignoredNotificationIds, setIgnoredNotificationIds] =
+		useState<string[]>(initialIgnoredIds)
+	const [referenceUrls, setReferenceUrls] =
+		useState<Record<string, ReferenceUrlData>>(initialReferenceUrls)
 
 	// Load initial state from server on mount
 	useEffect(() => {
@@ -110,54 +105,62 @@ export function DashboardProvider({
 			referenceUrls,
 			notificationsEnabled
 		}),
-		[hiddenContainerIds, ignoredNotificationIds, referenceUrls, notificationsEnabled]
+		[
+			hiddenContainerIds,
+			ignoredNotificationIds,
+			referenceUrls,
+			notificationsEnabled
+		]
 	)
 
-	const toggleHideContainer = useCallback((id: string) => {
-		setHiddenContainerIds((prev) => {
-			const newHiddenIds = prev.includes(id)
-				? prev.filter((i) => i !== id)
-				: [...prev, id]
-			return newHiddenIds
-		})
-		setHiddenContainerIdsAction(
-			hiddenContainerIds.includes(id)
-				? hiddenContainerIds.filter((i) => i !== id)
-				: [...hiddenContainerIds, id]
-		).catch((error) => {
-			console.error('Failed to sync hidden containers:', error)
-		})
-	}, [hiddenContainerIds])
-
-	const toggleIgnoreNotification = useCallback((id: string) => {
-		setIgnoredNotificationIds((prev) => {
-			const newIgnoredIds = prev.includes(id)
-				? prev.filter((i) => i !== id)
-				: [...prev, id]
-			return newIgnoredIds
-		})
-		setIgnoredNotificationContainerIdsAction(
-			ignoredNotificationIds.includes(id)
-				? ignoredNotificationIds.filter((i) => i !== id)
-				: [...ignoredNotificationIds, id]
-		).catch((error) => {
-			console.error('Failed to sync ignored containers:', error)
-		})
-	}, [ignoredNotificationIds])
-
-	const saveReferenceUrl = useCallback(
-		(imageName: string, url: string) => {
-			setReferenceUrls((prev: Record<string, ReferenceUrlData>) => ({
-				...prev,
-				[imageName]: {
-					image: imageName,
-					referenceUrl: url
-				}
-			}))
-			saveReferenceUrlAction(imageName, url)
+	const toggleHideContainer = useCallback(
+		(id: string) => {
+			setHiddenContainerIds((prev) => {
+				const newHiddenIds = prev.includes(id)
+					? prev.filter((i) => i !== id)
+					: [...prev, id]
+				return newHiddenIds
+			})
+			setHiddenContainerIdsAction(
+				hiddenContainerIds.includes(id)
+					? hiddenContainerIds.filter((i) => i !== id)
+					: [...hiddenContainerIds, id]
+			).catch((error) => {
+				console.error('Failed to sync hidden containers:', error)
+			})
 		},
-		[]
+		[hiddenContainerIds]
 	)
+
+	const toggleIgnoreNotification = useCallback(
+		(id: string) => {
+			setIgnoredNotificationIds((prev) => {
+				const newIgnoredIds = prev.includes(id)
+					? prev.filter((i) => i !== id)
+					: [...prev, id]
+				return newIgnoredIds
+			})
+			setIgnoredNotificationContainerIdsAction(
+				ignoredNotificationIds.includes(id)
+					? ignoredNotificationIds.filter((i) => i !== id)
+					: [...ignoredNotificationIds, id]
+			).catch((error) => {
+				console.error('Failed to sync ignored containers:', error)
+			})
+		},
+		[ignoredNotificationIds]
+	)
+
+	const saveReferenceUrl = useCallback((imageName: string, url: string) => {
+		setReferenceUrls((prev: Record<string, ReferenceUrlData>) => ({
+			...prev,
+			[imageName]: {
+				image: imageName,
+				referenceUrl: url
+			}
+		}))
+		saveReferenceUrlAction(imageName, url)
+	}, [])
 
 	const isHidden = useCallback(
 		(id: string) => hiddenContainerIds.includes(id),

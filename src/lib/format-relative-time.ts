@@ -5,9 +5,10 @@ export function formatRelativeTime(
 	dict: Dictionary,
 	locale: Locale
 ) {
-	const plainDate = date instanceof Temporal.PlainDate
-		? date
-		: Temporal.PlainDate.from(date.toISOString().split('T')[0])
+	const plainDate =
+		date instanceof Temporal.PlainDate
+			? date
+			: Temporal.PlainDate.from(date.toISOString().split('T')[0])
 	const now = Temporal.Now.plainDateISO()
 	const duration = now.since(plainDate, { largestUnit: 'year' })
 

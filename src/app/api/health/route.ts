@@ -3,7 +3,7 @@ import docker from '@/lib/docker'
 
 export async function GET() {
 	const timestamp = Temporal.Now.instant().toString()
-	
+
 	try {
 		// Ping Docker daemon to ensure connection is alive
 		await docker.ping()
@@ -27,9 +27,9 @@ export async function GET() {
 				timestamp,
 				components: {
 					app: { status: 'up' },
-					docker: { 
-						status: 'down', 
-						error: error instanceof Error ? error.message : 'Unknown error' 
+					docker: {
+						status: 'down',
+						error: error instanceof Error ? error.message : 'Unknown error'
 					}
 				}
 			},

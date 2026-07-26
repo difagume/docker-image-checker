@@ -1,0 +1,13 @@
+# Normaliza todos los archivos de texto a LF, también en el checkout (Windows incluido).
+# Alineado con biome.json ("lineEnding": "lf") para evitar diffs por fines de línea.
+* text=auto eol=lf
+
+# Binarios: sin conversión de fines de línea
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary

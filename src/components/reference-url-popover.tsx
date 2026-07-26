@@ -102,17 +102,17 @@ export function ReferenceUrlPopover({
 						)}
 					</div>
 
-				<div className='grid gap-3'>
-					<label htmlFor='url' className='sr-only'>
-						{dict.referenceUrlPlaceholder}
-					</label>
-					<Input
-						id='url'
-						value={url}
-						onChange={(e) => setUrl(e.target.value)}
-						placeholder={dict.referenceUrlPlaceholder}
-						className='rounded-sm h-9 bg-muted border-border text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-sm'
-					/>
+					<div className='grid gap-3'>
+						<label htmlFor='url' className='sr-only'>
+							{dict.referenceUrlPlaceholder}
+						</label>
+						<Input
+							id='url'
+							value={url}
+							onChange={(e) => setUrl(e.target.value)}
+							placeholder={dict.referenceUrlPlaceholder}
+							className='rounded-sm h-9 bg-muted border-border text-foreground focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-sm'
+						/>
 
 						<div className='flex gap-2'>
 							<Button
