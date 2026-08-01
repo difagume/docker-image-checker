@@ -173,6 +173,7 @@ Used together with a remote `DOCKER_HOST`:
 - `NTFY_ENABLED`: Enable ntfy notifications
 - `NTFY_TOPIC`: ntfy topic name
 - `NTFY_SERVER`: Optional custom ntfy server (default: https://ntfy.sh)
+- `NTFY_USERNAME` / `NTFY_PASSWORD`: Optional ntfy authentication (user/password; use either this or `NTFY_TOKEN`, not both)
 - `NTFY_TOKEN`: Optional ntfy authentication token
 - `DISCORD_ENABLED`: Enable Discord notifications
 - `DISCORD_WEBHOOK_URL`: Discord webhook URL
@@ -223,7 +224,8 @@ The application includes a configurable notification system for Docker image upd
 
 ### Proxy Connection (compose.proxy.yaml)
 - Uses tecnativa/docker-socket-proxy for security
-- Only allows read operations (CONTAINERS=1, IMAGES=1, POST=0)
+- Allows read operations and image pulls (CONTAINERS=1, IMAGES=1, POST=1)
+- POST=1 is required because the dashboard can pull image updates
 - Safer as it doesn't expose full Docker socket to application
 
 ### Multi-architecture Builds
