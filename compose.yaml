@@ -1,6 +1,7 @@
 services:
   dashboard:
     build: .
+    user: "1001:0" # nextjs + grupo del socket (root) para poder leer Docker
     restart: unless-stopped
     ports:
       - "3000:3000"
