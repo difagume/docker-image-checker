@@ -303,8 +303,7 @@ Para generar la imagen compatible con **amd64** (Intel/AMD) y **arm64** (Apple S
 ### 1. Preparación (Solo una vez)
 ```bash
 docker login
-docker buildx create --name image-checker --use
-docker buildx inspect --bootstrap
+docker buildx create --name image-checker --bootstrap --use
 ```
 
 > [!NOTE]
