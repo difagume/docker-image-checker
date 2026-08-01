@@ -10,3 +10,36 @@ services:
       - ./notifications-data:/app/data  # Persistent storage
     environment:
       - NODE_ENV=production
+      # --- Autenticación (opcional) ---
+      # Si no se define AUTH_HTPASSWD, la autenticación está desactivada.
+      # Formato: username:$apr1$salt$hash  (usa \n para múltiples usuarios)
+      # - AUTH_HTPASSWD=admin:$apr1$salt$hash
+      # - AUTH_SESSION_PASSWORD=clave-segura-de-al-menos-32-caracteres
+      # --- Docker remoto (opcional; por defecto usa el socket del sistema) ---
+      # - DOCKER_HOST=tcp://host:2375
+      # - DOCKER_TLS_VERIFY=1
+      # - DOCKER_CERT_PATH=/certs
+      # - DOCKER_SSH_KEY_FILE=/keys/id_rsa
+      # - DOCKER_SSH_KEY_PASSPHRASE=passphrase
+      # - SSH_AUTH_SOCK=/run/ssh-agent.sock
+      # --- GitHub Container Registry (opcional) ---
+      # - GITHUB_GHCR_TOKEN=token-con-read:packages
+      # --- Notificaciones (opcional; sistema desactivado por defecto) ---
+      # - TZ=America/Guayaquil
+      # - NOTIFICATIONS_ENABLED=true
+      # - NOTIFICATIONS_LANGUAGE=es
+      # - NOTIFICATIONS_CRON_SCHEDULE=0 */6 * * *
+      # --- Proveedor: Telegram (opcional) ---
+      # - TELEGRAM_ENABLED=true
+      # - TELEGRAM_BOT_TOKEN=token-de-botfather
+      # - TELEGRAM_CHAT_ID=chat-id
+      # --- Proveedor: ntfy (opcional) ---
+      # - NTFY_ENABLED=true
+      # - NTFY_TOPIC=mi-topic
+      # - NTFY_SERVER=https://ntfy.sh
+      # - NTFY_USERNAME=usuario
+      # - NTFY_PASSWORD=password
+      # - NTFY_TOKEN=token
+      # --- Proveedor: Discord (opcional) ---
+      # - DISCORD_ENABLED=true
+      # - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...

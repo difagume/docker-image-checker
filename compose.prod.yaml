@@ -1,10 +1,9 @@
-# image: tecnativa/docker-socket-proxy
 services:
   image-checker:
-    image: difagume/image-checker:1.0.1
+    image: difagume/image-checker:0.2.0
     container_name: image-checker
     user: "1001:988" # UID 1001 (nextjs) y GID 988 (grupo docker en tu host)
-    #restart: always
+    restart: always
     ports:
       - "3000:3000"
     volumes:
@@ -12,7 +11,37 @@ services:
       - notifications-data:/app/data # Persistent storage for notification state
     environment:
       - NODE_ENV=production
-      - TZ=America/Guayquil
+      - TZ=America/Guayaquil
+      # --- Autenticación (opcional) ---
+      # - AUTH_HTPASSWD=admin:$apr1$salt$hash
+      # - AUTH_SESSION_PASSWORD=clave-segura-de-al-menos-32-caracteres
+      # --- Docker remoto (opcional; en esta configuración se usa el socket local) ---
+      # - DOCKER_HOST=tcp://host:2375
+      # - DOCKER_TLS_VERIFY=1
+      # - DOCKER_CERT_PATH=/certs
+      # - DOCKER_SSH_KEY_FILE=/keys/id_rsa
+      # - DOCKER_SSH_KEY_PASSPHRASE=passphrase
+      # - SSH_AUTH_SOCK=/run/ssh-agent.sock
+      # --- GitHub Container Registry (opcional) ---
+      # - GITHUB_GHCR_TOKEN=token-con-read:packages
+      # --- Notificaciones (opcional; sistema desactivado por defecto) ---
+      # - NOTIFICATIONS_ENABLED=true
+      # - NOTIFICATIONS_LANGUAGE=es
+      # - NOTIFICATIONS_CRON_SCHEDULE=0 */6 * * *
+      # --- Proveedor: Telegram (opcional) ---
+      # - TELEGRAM_ENABLED=true
+      # - TELEGRAM_BOT_TOKEN=token-de-botfather
+      # - TELEGRAM_CHAT_ID=chat-id
+      # --- Proveedor: ntfy (opcional) ---
+      # - NTFY_ENABLED=true
+      # - NTFY_TOPIC=mi-topic
+      # - NTFY_SERVER=https://ntfy.sh
+      # - NTFY_USERNAME=usuario
+      # - NTFY_PASSWORD=password
+      # - NTFY_TOKEN=token
+      # --- Proveedor: Discord (opcional) ---
+      # - DISCORD_ENABLED=true
+      # - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 volumes:
   notifications-data:

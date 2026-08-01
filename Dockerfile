@@ -1,53 +1,58 @@
-FROM node:26-alpine AS base
+# syntax=docker/dockerfile:1
+
+# ============================================
+# Stage 1: Dependencies Installation Stage
+# ============================================
+ARG NODE_VERSION=26-slim
+
+FROM node:${NODE_VERSION} AS base
 
 # Corepack was decoupled from Node.js starting with v25 — install it manually
-RUN npm install -g corepack@latest --force && corepack enable pnpm
+RUN npm install -g corepack@latest --force
 
-# Install dependencies only when needed
+# ============================================
+# Stage 2: Install dependencies
+# ============================================
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* pnpm-workspace.yaml .npmrc* ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+# Install dependencies with frozen lockfile for reproducible builds
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+  corepack enable pnpm && pnpm install --frozen-lockfile
 
-
-# Rebuild the source code only when needed
+# ============================================
+# Stage 3: Build Next.js application in standalone mode
+# ============================================
 FROM base AS builder
 WORKDIR /app
+
+# Copy project dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage.
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+# Build Next.js application
+RUN --mount=type=cache,target=/app/.next/cache \
+  corepack enable pnpm && pnpm build
 
-
-# Production image, copy all the files and run next
+# ============================================
+# Stage 4: Run Next.js application
+# ============================================
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
 
-# Install nano text editor
-RUN apk add --no-cache nano
-
+# Copy production assets
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
@@ -60,16 +65,11 @@ RUN mkdir -p data && chown nextjs:nodejs data
 VOLUME /app/data
 
 # Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
 EXPOSE 3000
-
-ENV PORT=3000
-# set hostname to localhost
-ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
