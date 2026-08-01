@@ -30,12 +30,12 @@ import {
 } from '@/components/ui/tooltip'
 import { useDashboard } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
-import { formatRelativeTime } from '@/lib/format-relative-time'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
 import { ContainerLogsDialog } from './container-logs-dialog'
 import { ReferenceUrlPopover } from './reference-url-popover'
+import { RelativeTime } from './relative-time'
 
 const cardVariants = {
 	initial: { opacity: 0, scale: 0.96, y: 10 },
@@ -136,9 +136,7 @@ function StatusAvailable({
 							}`}
 						>
 							<Clock className='h-3 w-3' aria-hidden='true' />
-							<span className='text-xs'>
-								{formatRelativeTime(new Date(lastUpdated), dict, locale)}
-							</span>
+							<RelativeTime date={lastUpdated} dict={dict} locale={locale} />
 						</AlertDescription>
 					</TooltipTrigger>
 					<TooltipContent

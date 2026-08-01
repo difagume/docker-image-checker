@@ -1,4 +1,5 @@
 import { IBM_Plex_Mono } from 'next/font/google'
+import { headers } from 'next/headers'
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 import { Footer } from '@/components/footer'
@@ -58,6 +59,11 @@ export default async function RootLayout({
 	children: React.ReactNode
 }>) {
 	const locale = await getLocale()
+	// El proxy (src/proxy.ts) genera un nonce por request y lo expone vía
+	// la cabecera x-nonce; next-themes lo necesita para su script inline
+	// bajo la CSP (script-src 'nonce-...' 'strict-dynamic').
+	const headerList = await headers()
+	const nonce = headerList.get('x-nonce') ?? undefined
 
 	return (
 		<html lang={locale} suppressHydrationWarning>
@@ -75,6 +81,7 @@ export default async function RootLayout({
 					defaultTheme='dark'
 					enableSystem={false}
 					disableTransitionOnChange
+					nonce={nonce}
 				>
 					<ProgressProviders>
 						<TooltipProvider>
