@@ -12,6 +12,12 @@ function getSessionPassword() {
 	const password =
 		process.env.AUTH_SESSION_PASSWORD || process.env.AUTH_HTPASSWD
 
+	if (!process.env.AUTH_SESSION_PASSWORD && process.env.AUTH_HTPASSWD) {
+		console.warn(
+			'[auth] AUTH_SESSION_PASSWORD no está definido; usando AUTH_HTPASSWD como secreto de sesión. Define AUTH_SESSION_PASSWORD en producción para separar credenciales del usuario del secreto de sesión.'
+		)
+	}
+
 	if (!password) {
 		throw new Error(
 			'AUTH_SESSION_PASSWORD (or AUTH_HTPASSWD) is required when authentication is enabled'
