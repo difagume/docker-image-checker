@@ -127,7 +127,15 @@ El panel incluye soporte para autenticación con sesión usando htpasswd y iron-
 4. Si no se establece la variable `AUTH_HTPASSWD`, el acceso será automático (sin autenticación)
 
 > [!IMPORTANT]
-> Si estás usando la variable de entorno `AUTH_HTPASSWD` en un archivo `.env`, recuerda que el carácter `$` debe ser escapado con `\` (doble barra invertida) para evitar que el shell interprete variables. Por ejemplo: `AUTH_HTPASSWD="usuario:\$2y\$10\$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2"`
+> El carácter `$` de los hashes htpasswd (`$apr1$`, `$2y$`, `$2b$`, `$1$`, `$6$`) es parte del valor y su escape depende de **dónde** defines la variable. Usa la regla que corresponda a tu contexto:
+>
+> | Contexto | Cómo definir el `$` |
+> |---|---|
+> | Archivo `.env` auto-cargado por `docker compose up` | **Comillas simples** (valor literal, sin escape): `AUTH_HTPASSWD='usuario:$2y$10$...'` |
+> | Bloque `environment:` inline en `compose.yaml` | Duplicar el `$` como `$$`: `AUTH_HTPASSWD=usuario:$$2y$$10$$...` |
+> | Shell Bash / `export docker run -e` en línea de comando | Comillas simples (`AUTH_HTPASSWD='usuario:$2y$10$...'`) o `\$` escapado |
+>
+> Nota: `docker run --env-file` **no** aplica interpolación de variables, así que tampoco necesita escape.
 
 > [!IMPORTANT]
 > Si usas autenticación (`AUTH_HTPASSWD`), define explícitamente `AUTH_SESSION_PASSWORD` para separar credenciales de login y secreto de sesión. Puedes generar una contraseña segura con [1Password](https://1password.com/password-generator/) o con el siguiente comando:
@@ -137,7 +145,7 @@ El panel incluye soporte para autenticación con sesión usando htpasswd y iron-
 
 Ejemplo de contenido para las variables de entorno:
 ```
-AUTH_HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+AUTH_HTPASSWD='usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2'
 AUTH_SESSION_PASSWORD=TuContrasenaSeguraDe32CaracteresOMasXXXXXXXXXX
 GITHUB_GHCR_TOKEN=ghp_TuGitHubTokenAqui
 ```
@@ -156,7 +164,7 @@ Para obtener información precisa sobre imágenes alojadas en `ghcr.io` (como el
 
 ### API para Generar Hashes htpasswd
 
-La aplicación incluye una API para generar hashes htpasswd directamente. La API soporta los siguientes formatos: APR1 (MD5), Bcrypt y SHA1.
+La aplicación incluye una API para generar hashes htpasswd directamente. La API soporta los siguientes formatos: APR1 (MD5), Bcrypt y SHA1. Para cuentas nuevas se recomienda **Bcrypt** (`format: bcrypt`); APR1 queda como compatibilidad.
 
 #### Endpoint
 
@@ -213,12 +221,16 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=America/Guayaquil
-      - AUTH_HTPASSWD=usuario:$2y$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+      # En un bloque environment: el $ se duplica como $$. En un .env usa comillas simples.
+      - AUTH_HTPASSWD=usuario:$$2y$$10$$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
 ```
 
 ## 📊 Monitoreo (Uptime Kuma)
 
 La aplicación incluye un endpoint de salud detallado en `/api/health` diseñado para ser utilizado con herramientas de monitoreo como [Uptime Kuma](https://github.com/louislam/uptime-kuma).
+
+> [!NOTE]
+> Por diseño, los endpoints `/api/health` y `/api/notifications/check` permanecen **sin autenticación** (públicos) para que los monitores como Uptime Kuma puedan verificarlos sin necesidad de una sesión.
 
 ### Endpoint de Salud
 - **Ruta**: `/api/health`

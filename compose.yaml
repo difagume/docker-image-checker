@@ -12,8 +12,9 @@ services:
       - NODE_ENV=production
       # --- Autenticación (opcional) ---
       # Si no se define AUTH_HTPASSWD, la autenticación está desactivada.
-      # Formato: username:$apr1$salt$hash  (usa \n para múltiples usuarios)
-      # - AUTH_HTPASSWD=admin:$apr1$salt$hash
+      # Formato: username:$apr1$salt$hash  (en un bloque environment: usa $$ para el símbolo $,
+      # y \n para varios usuarios, o define el valor en un .env con comillas simples)
+      # - AUTH_HTPASSWD=admin:$$apr1$$salt$$hash
       # - AUTH_SESSION_PASSWORD=clave-segura-de-al-menos-32-caracteres
       # --- Docker remoto (opcional; por defecto usa el socket del sistema) ---
       # - DOCKER_HOST=tcp://host:2375

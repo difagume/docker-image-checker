@@ -13,7 +13,8 @@ services:
       - NODE_ENV=production
       - TZ=America/Guayaquil
       # --- Autenticación (opcional) ---
-      # - AUTH_HTPASSWD=admin:$apr1$salt$hash
+      # En un bloque environment: usa $$ para el símbolo $ del hash
+      # - AUTH_HTPASSWD=admin:$$apr1$$salt$$hash
       # - AUTH_SESSION_PASSWORD=clave-segura-de-al-menos-32-caracteres
       # --- Docker remoto (opcional; en esta configuración se usa el socket local) ---
       # - DOCKER_HOST=tcp://host:2375

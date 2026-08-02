@@ -20,6 +20,9 @@ services:
       - TZ=${TZ}
       - AUTH_SESSION_PASSWORD=${AUTH_SESSION_PASSWORD}
       - AUTH_HTPASSWD=${AUTH_HTPASSWD}
+      # En Dokploy (o cualquier .env): escribe el valor con COMILLAS SIMPLES para que
+      # el $ del hash no se interprete como variable. Ejemplo en la pestaña "Variables":
+      # AUTH_HTPASSWD='admin:$2a$10$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj6'
       - GITHUB_GHCR_TOKEN=${GITHUB_GHCR_TOKEN}
       - NOTIFICATIONS_ENABLED=${NOTIFICATIONS_ENABLED}
       - NOTIFICATIONS_CRON_SCHEDULE=${NOTIFICATIONS_CRON_SCHEDULE}
