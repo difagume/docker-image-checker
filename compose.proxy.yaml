@@ -1,7 +1,6 @@
 services:
   docker-proxy:
     image: tecnativa/docker-socket-proxy
-    container_name: docker-proxy
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -9,55 +8,26 @@ services:
       - CONTAINERS=1 # Permite listar y ver info de contenedores
       - IMAGES=1     # Permite listar imágenes
       - POST=1       # Permite hacer pull de imágenes (la app actualiza imágenes)
-    networks:
-      - docker-internal
 
   image-checker:
-    image: difagume/image-checker:0.2.0
-    container_name: image-checker
+    image: difagume/image-checker:1.0.30
     restart: always
-    ports:
-      - "3000:3000"
     volumes:
       - notifications-data:/app/data # Persistent storage for notification state
     environment:
       - NODE_ENV=production
       - DOCKER_HOST=tcp://docker-proxy:2375
-      - TZ=America/Guayaquil
-      # --- Autenticación (opcional) ---
-      # - AUTH_HTPASSWD=admin:$apr1$salt$hash
-      # - AUTH_SESSION_PASSWORD=clave-segura-de-al-menos-32-caracteres
-      # --- Docker remoto adicional (opcional) ---
-      # - DOCKER_SSH_KEY_FILE=/keys/id_rsa
-      # - DOCKER_SSH_KEY_PASSPHRASE=passphrase
-      # --- GitHub Container Registry (opcional) ---
-      # - GITHUB_GHCR_TOKEN=token-con-read:packages
-      # --- Notificaciones (opcional; sistema desactivado por defecto) ---
-      # - NOTIFICATIONS_ENABLED=true
-      # - NOTIFICATIONS_LANGUAGE=es
-      # - NOTIFICATIONS_CRON_SCHEDULE=0 */6 * * *
-      # --- Proveedor: Telegram (opcional) ---
-      # - TELEGRAM_ENABLED=true
-      # - TELEGRAM_BOT_TOKEN=token-de-botfather
-      # - TELEGRAM_CHAT_ID=chat-id
-      # --- Proveedor: ntfy (opcional) ---
-      # - NTFY_ENABLED=true
-      # - NTFY_TOPIC=mi-topic
-      # - NTFY_SERVER=https://ntfy.sh
-      # - NTFY_USERNAME=usuario
-      # - NTFY_PASSWORD=password
-      # - NTFY_TOKEN=token
-      # --- Proveedor: Discord (opcional) ---
-      # - DISCORD_ENABLED=true
-      # - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+      - TZ=${TZ}
+      - AUTH_SESSION_PASSWORD=${AUTH_SESSION_PASSWORD}
+      - AUTH_HTPASSWD=${AUTH_HTPASSWD}
+      - GITHUB_GHCR_TOKEN=${GITHUB_GHCR_TOKEN}
+      - NOTIFICATIONS_ENABLED=${NOTIFICATIONS_ENABLED}
+      - NOTIFICATIONS_CRON_SCHEDULE=${NOTIFICATIONS_CRON_SCHEDULE}
+      - TELEGRAM_ENABLED=${TELEGRAM_ENABLED}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     depends_on:
       - docker-proxy
-    networks:
-      - docker-internal
-
-networks:
-  docker-internal:
-    driver: bridge
 
 volumes:
   notifications-data:
