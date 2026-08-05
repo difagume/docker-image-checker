@@ -14,7 +14,9 @@ import type { FilterStatus } from '@/types/app-state'
 
 export async function DashboardContent({ locale }: { locale: Locale }) {
 	console.log('[Dashboard] Starting to load container data...')
-	const startTime = Date.now()
+	// performance.now() is a monotonic telemetry timer; Date.now() would block
+	// prerendering (blocking-prerender-current-time) and only logs here.
+	const startTime = performance.now()
 
 	const dict = getDictionary(locale)
 	console.log('[Dashboard] Loading containers from Docker...')
@@ -90,7 +92,7 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 		}
 	})
 
-	const elapsed = Date.now() - startTime
+	const elapsed = performance.now() - startTime
 	console.log(
 		`[Dashboard] Finished loading initial container data in ${elapsed}ms`
 	)

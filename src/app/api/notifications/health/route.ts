@@ -5,8 +5,6 @@ import {
 	validateProviders
 } from '@/lib/notifications/provider-factory'
 
-export const dynamic = 'force-dynamic'
-
 /**
  * Health check for notification system
  */

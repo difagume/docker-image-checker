@@ -1,8 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { progressStore, type UpdatePhase } from '@/lib/update-progress-store'
 
-export const dynamic = 'force-dynamic'
-
 interface ProgressEvent {
 	phase: UpdatePhase
 	statusText: string

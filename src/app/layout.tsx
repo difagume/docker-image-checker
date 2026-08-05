@@ -9,6 +9,12 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getLocale } from '@/lib/i18n/get-locale'
 
+// instant = false: the root layout reads request-time headers() for the CSP
+// nonce (x-nonce) consumed by next-themes and for the <html lang> attribute.
+// Both drive the static shell itself, so there is no child to wrap in
+// <Suspense>. Deliberate Block under Cache Components.
+export const instant = false
+
 const ibmPlexMono = IBM_Plex_Mono({
 	variable: '--font-ibm-plex-mono',
 	subsets: ['latin'],

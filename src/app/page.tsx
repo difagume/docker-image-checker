@@ -9,6 +9,14 @@ import { RefreshButton } from '@/components/refresh-button'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getLocale } from '@/lib/i18n/get-locale'
 
+// instant = false: the dashboard is auth-gated; it reads session cookies via
+// checkAuth() and request headers via getLocale() at the top of the page to
+// redirect unauthenticated users. Moving the gate into <Suspense> would delay
+// the redirect behind the streamed shell. Deliberate Block under Cache
+// Components (the proxy already redirects unauthenticated requests, so this is
+// defense-in-depth at the render layer).
+export const instant = false
+
 export const metadata: Metadata = {
 	title: 'Docker Image Checker',
 	description:

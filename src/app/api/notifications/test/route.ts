@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { listContainersRaw, listImagesRaw } from '@/lib/docker-inventory'
 import { checkAndNotify } from '@/lib/notifications/notification-service'
 
-export const dynamic = 'force-dynamic'
-
 /**
  * Test endpoint to manually trigger notification check
  * Useful for testing the notification system without waiting for cron
