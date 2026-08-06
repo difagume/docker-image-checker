@@ -97,6 +97,12 @@ This is a Next.js dashboard application for monitoring Docker containers and che
     - Language detection from browser or environment
     - Dictionary-based translation system
 
+11. **Cache Components** (`src/lib/docker-inventory.ts`, `src/lib/registry-updates.ts`):
+    - `cacheComponents: true` with `'use cache'` scopes
+    - Tags and cacheLife profiles centralized in `src/lib/cache-tags.ts`
+    - Manual refresh revalidates tags via `updateTag` (`src/components/dashboard-gate.tsx`)
+    - The notification scheduler keeps the raw readers path (it runs outside the request context); request-context routes such as `/api/notifications/test` use the cached wrappers
+
 ## Development Commands
 
 ### Starting the Development Server
@@ -114,6 +120,11 @@ pnpm build
 pnpm start
 ```
 
+### Running Tests
+```bash
+pnpm test
+```
+
 ### Code Formatting and Linting
 This project uses Biome for code formatting and linting:
 
@@ -129,7 +140,7 @@ pnpm exec biome check --apply .
 ```
 
 ### Testing
-This project currently does not have a test suite configured. When adding tests, they would likely use Jest or Vitest for unit tests and Playwright or Cypress for end-to-end tests.
+This project uses Vitest for unit tests (`pnpm test` = `vitest run`). There are 3 test files: `src/lib/policies/engine.test.ts`, `src/lib/cache-tags.test.ts`, and `src/lib/fs-atomic.test.ts`.
 
 ### Agent DevTools (next-browser)
 The project includes `@vercel/next-browser` (dev dependency) so AI agents can inspect the running app from the terminal (component trees, PPR shells, errors, network, screenshots). Requires Chromium via `pnpm exec playwright install chromium` on first use.
@@ -254,8 +265,9 @@ The application includes a configurable notification system for Docker image upd
 
 3. **Server-Side Data Fetching**:
    - Uses React Server Components for data fetching
-   - Implements `dynamic = 'force-dynamic'` to prevent caching of Docker information
-   - Uses Next.js cache revalidation for Docker Hub API calls
+   - `cacheComponents: true` in `next.config.ts`; cached readers use `'use cache'` scopes with explicit `cacheLife`/`cacheTag` in `src/lib/docker-inventory.ts` (containers, images, connection) and `src/lib/registry-updates.ts` (registry checks)
+   - Cache tags and profiles are centralized in `src/lib/cache-tags.ts` (`CACHE_TAGS`, `REFRESH_TAGS`); the dashboard refresh button revalidates them via `updateTag` in `src/components/dashboard-gate.tsx`
+   - A single `instant = false` opt-out in `src/app/layout.tsx` covers the root layout (CSP nonce header + `<html lang>`); everything else is a static shell that streams data via Suspense
 
 4. **UI Features**:
    - Responsive card-based layout for container information
@@ -267,7 +279,7 @@ The application includes a configurable notification system for Docker image upd
 
 5. **Security Features**:
    - HTTP-only cookies for session management via iron-session
-   - Authentication middleware to protect routes
+   - Proxy-based authentication guard (`src/proxy.ts`, named `proxy` export with a `matcher`) redirecting unauthenticated users to `/login`
    - Secure cookie settings (secure flag in production)
    - Support for Docker socket proxy for enhanced security
    - Salted password hashes with multiple supported formats
