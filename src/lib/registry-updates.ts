@@ -1,3 +1,4 @@
+import type { ContainerInfo } from 'dockerode'
 import { cacheLife, cacheTag } from 'next/cache'
 import {
 	CACHE_TAGS,
@@ -31,6 +32,11 @@ export interface CheckImageUpdateResult {
 
 export interface ContainerUpdateState {
 	containerId: string
+	container: ContainerInfo
+	isRunning: boolean
+	ports: string
+	containerName: string
+	localDigest?: string
 	hasUpdate: boolean
 	updateStatus: FilterStatus | 'local'
 	currentVersion?: string
@@ -363,6 +369,12 @@ export async function getContainerUpdateStates(): Promise<
 	const states = await Promise.all(
 		containers.map(async (container) => {
 			const imageTag = container.Image.split(':')[1] || 'latest'
+			const isRunning = container.State === 'running'
+			const ports = (container.Ports || [])
+				.filter((p) => p.PublicPort > 0)
+				.map((p) => `${p.PublicPort}:${p.PrivatePort}`)
+				.join(', ')
+			const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'
 
 			const localImage = images.find((img) => img.Id === container.ImageID)
 			let localDigest = localImage?.RepoDigests?.[0]?.split('@')[1]
@@ -386,6 +398,11 @@ export async function getContainerUpdateStates(): Promise<
 
 			return {
 				containerId: container.Id,
+				container,
+				isRunning,
+				ports,
+				containerName,
+				localDigest,
 				hasUpdate: result.hasUpdate,
 				updateStatus,
 				currentVersion: result.currentVersion,

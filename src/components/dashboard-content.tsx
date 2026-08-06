@@ -1,16 +1,22 @@
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
+import type { ContainerData } from '@/hooks/use-container-updates'
 import { getDashboardSettings } from '@/lib/app-state'
 import { getDockerConnectionInfo } from '@/lib/docker-connection'
-import {
-	getContainers,
-	getDockerConnected,
-	getImages
-} from '@/lib/docker-inventory'
+import { getDockerConnected } from '@/lib/docker-inventory'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
-import { getContainerUpdateStates } from '@/lib/registry-updates'
+import {
+	type ContainerUpdateState,
+	getContainerUpdateStates
+} from '@/lib/registry-updates'
 import type { FilterStatus } from '@/types/app-state'
+
+const DEFAULT_ACTIVE_FILTERS: FilterStatus[] = [
+	'updated',
+	'available',
+	'unknown'
+]
 
 export async function DashboardContent({ locale }: { locale: Locale }) {
 	console.log('[Dashboard] Starting to load container data...')
@@ -20,64 +26,47 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 
 	const dict = getDictionary(locale)
 	console.log('[Dashboard] Loading containers from Docker...')
-	const [containers, images, updateStates, settings, dockerConnected] =
-		await Promise.all([
-			getContainers(),
-			getImages(),
+
+	// Docker-down graceful degrade: the cached readers throw when the daemon is
+	// unreachable (the cache never stores error states). Catch here and render
+	// the friendly "no containers" copy instead of a raw ENOENT crash.
+	let updateStates: ContainerUpdateState[] = []
+	let settings: Awaited<ReturnType<typeof getDashboardSettings>> | undefined
+	let dockerConnected = false
+	try {
+		;[updateStates, settings, dockerConnected] = await Promise.all([
 			getContainerUpdateStates(),
 			getDashboardSettings(),
 			getDockerConnected()
 		])
+	} catch (error) {
+		console.error(
+			'[Dashboard] Docker connection failed, degrading to empty state:',
+			error
+		)
+	}
 
-	console.log(
-		`[Dashboard] Found ${containers.length} containers and ${images.length} images`
-	)
-
-	console.log('[Dashboard] Resolving container update state...')
-	const statesByContainerId = new Map(
-		updateStates.map((state) => [state.containerId, state])
-	)
-
-	const processedContainers = containers.map((container) => {
-		const isRunning = container.State === 'running'
-		const ports = (container.Ports || [])
-			.filter((p) => p.PublicPort > 0)
-			.map((p) => `${p.PublicPort}:${p.PrivatePort}`)
-			.join(', ')
-
-		const imageTag = container.Image.split(':')[1] || 'latest'
-		const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'
-
-		const localImage = images.find((img) => img.Id === container.ImageID)
-		let localDigest = localImage?.RepoDigests?.[0]?.split('@')[1]
-		if (!localDigest && container.ImageID) {
-			localDigest = container.ImageID
-		}
-
-		// Update status resolved server-side by getContainerUpdateStates
-		// (registry:checks cache scope) — no client round-trip, no 'checking' flash.
-		const state = statesByContainerId.get(container.Id)
-
-		return {
-			container,
-			isRunning,
-			ports,
-			containerName,
-			localDigest,
-			updateStatus: state?.updateStatus ?? 'unknown',
-			displayCurrentVersion: state?.displayCurrentVersion ?? imageTag,
-			currentVersion: state?.currentVersion,
-			latestVersion: state?.latestVersion,
-			lastUpdated: state?.lastUpdated,
-			dockerHubUrl: state?.dockerHubUrl,
-			isUpToDate: state?.isUpToDate ?? true,
-			policyState: state?.policyState
-		}
-	})
+	// Per-container data is fully derived server-side by getContainerUpdateStates
+	// (registry:checks cache scope) — no client round-trip, no 'checking' flash.
+	const processedContainers: ContainerData[] = updateStates.map((state) => ({
+		container: state.container,
+		isRunning: state.isRunning,
+		ports: state.ports,
+		containerName: state.containerName,
+		localDigest: state.localDigest,
+		updateStatus: state.updateStatus,
+		displayCurrentVersion: state.displayCurrentVersion,
+		currentVersion: state.currentVersion,
+		latestVersion: state.latestVersion,
+		lastUpdated: state.lastUpdated,
+		dockerHubUrl: state.dockerHubUrl,
+		isUpToDate: state.isUpToDate,
+		policyState: state.policyState
+	}))
 
 	const elapsed = performance.now() - startTime
 	console.log(
-		`[Dashboard] Finished loading initial container data in ${elapsed}ms`
+		`[Dashboard] Resolved update states for ${updateStates.length} containers in ${elapsed}ms`
 	)
 
 	return (
@@ -89,12 +78,14 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 				dict={dict}
 				locale={locale}
 				connectionInfo={getDockerConnectionInfo()}
-				initialActiveFilters={settings.activeFilters as FilterStatus[]}
-				initialShowHiddenMode={settings.showHiddenMode}
+				initialActiveFilters={
+					(settings?.activeFilters ?? DEFAULT_ACTIVE_FILTERS) as FilterStatus[]
+				}
+				initialShowHiddenMode={settings?.showHiddenMode ?? false}
 				dockerConnected={dockerConnected}
 			/>
 
-			{containers.length === 0 && (
+			{updateStates.length === 0 && (
 				<div className='text-center text-muted-foreground'>
 					{dict.dashboard.noContainers}
 				</div>
