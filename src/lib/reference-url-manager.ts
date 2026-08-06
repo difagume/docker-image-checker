@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { writeFileAtomic } from '@/lib/fs-atomic'
 
 const REFERENCE_URLS_FILE_PATH = path.join(
 	process.cwd(),
@@ -51,17 +52,10 @@ export async function saveReferenceUrls(
 	state: ReferenceUrlState
 ): Promise<void> {
 	try {
-		// Ensure data directory exists
-		const dataDir = path.dirname(REFERENCE_URLS_FILE_PATH)
-		if (dataDir) {
-			await fs.mkdir(dataDir, { recursive: true })
-		}
-
-		// Write state to file
-		await fs.writeFile(
+		// Atomic write (temp + rename); creates the data directory if missing
+		await writeFileAtomic(
 			REFERENCE_URLS_FILE_PATH,
-			JSON.stringify(state, null, 2),
-			'utf-8'
+			JSON.stringify(state, null, 2)
 		)
 		console.log('Reference URLs saved successfully')
 	} catch (error) {

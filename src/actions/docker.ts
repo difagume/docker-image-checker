@@ -6,6 +6,10 @@ import {
 	getDockerConnected,
 	getImages as getImagesFromInventory
 } from '@/lib/docker-inventory'
+import type { PolicyState } from '@/lib/policies/types'
+import { checkImageUpdate } from '@/lib/registry-updates'
+import type { UpdatePhase } from '@/lib/update-progress-store'
+import { progressStore } from '@/lib/update-progress-store'
 
 // Thin wrappers so existing imports from '@actions/docker' continue to work.
 // These delegate to the cached versions from docker-inventory.
@@ -17,301 +21,6 @@ export async function getImages() {
 }
 export async function checkDockerConnection() {
 	return getDockerConnected()
-}
-
-import { evaluatePolicies } from '@/lib/policies/engine'
-import type {
-	ImageContext,
-	PolicyResult,
-	PolicyState,
-	RemoteTag
-} from '@/lib/policies/types'
-import type { UpdatePhase } from '@/lib/update-progress-store'
-import { progressStore } from '@/lib/update-progress-store'
-
-const FETCH_TIMEOUT = 8000
-
-function fetchWithTimeout(
-	url: string,
-	options: RequestInit = {},
-	timeout = FETCH_TIMEOUT
-): Promise<Response> {
-	const startTime = Temporal.Now.instant().epochMilliseconds
-	console.log(`[Docker API] Starting fetch: ${url}`)
-
-	let timeoutId: NodeJS.Timeout | null = null
-
-	const fetchPromise = fetch(url, options).then((response) => {
-		if (timeoutId) clearTimeout(timeoutId)
-		const elapsed = Temporal.Now.instant().epochMilliseconds - startTime
-		console.log(`[Docker API] Success: ${url} (${elapsed}ms)`)
-		return response
-	})
-
-	const timeoutPromise = new Promise<Response>((_, reject) => {
-		timeoutId = setTimeout(() => {
-			const elapsed = Temporal.Now.instant().epochMilliseconds - startTime
-			console.warn(`[Docker API] Timeout: ${url} after ${elapsed}ms`)
-			reject(new Error(`Timeout after ${timeout}ms`))
-		}, timeout)
-	})
-
-	return Promise.race([fetchPromise, timeoutPromise])
-}
-
-export async function checkImageUpdate(
-	imageName: string,
-	localDigest?: string
-): Promise<{
-	hasUpdate: boolean
-	latestDigest?: string
-	lastUpdated?: string
-	currentVersion?: string
-	latestVersion?: string
-	dockerHubUrl?: string
-	isLocal?: boolean
-	policyResult?: PolicyResult
-	ghcrError?: 'invalid_token'
-	ghcrImageName?: string
-}> {
-	// 1. Detect GHCR images
-	if (imageName.startsWith('ghcr.io/')) {
-		const result = await checkGhcrUpdate(imageName, localDigest)
-		return result
-	}
-
-	// 2. Handle known registries proxying Docker Hub
-	if (imageName.startsWith('lscr.io/')) {
-		imageName = imageName.replace('lscr.io/', '')
-	}
-	if (imageName.startsWith('docker.hyperdx.io/')) {
-		imageName = imageName.replace('docker.hyperdx.io/', '')
-	}
-
-	try {
-		const parts = imageName.split(':')
-		let repo = parts[0]
-		const tag = parts[1] || 'latest'
-		const originalRepo = repo
-
-		if (!repo.includes('/')) {
-			repo = `library/${repo}`
-		}
-
-		// Single fetch for tags
-		const tagsUrl = `https://hub.docker.com/v2/repositories/${repo}/tags?page_size=70`
-		const tagsResponse = await fetchWithTimeout(tagsUrl, {
-			next: { revalidate: 900, tags: ['registry:checks'] }
-		})
-
-		if (!tagsResponse.ok) {
-			if (tagsResponse.status === 404) {
-				// Detect if it's likely a local image (no slash in original name suggests docker-compose naming)
-				const isLocal = !originalRepo.includes('/')
-				return { hasUpdate: false, isLocal }
-			}
-			throw new Error(`Docker Hub API error: ${tagsResponse.statusText}`)
-		}
-
-		const tagsData = await tagsResponse.json()
-		const hubResults =
-			(tagsData.results as Array<{
-				name: string
-				digest: string
-				last_updated: string
-			}>) || []
-
-		if (hubResults.length === 0) return { hasUpdate: false }
-
-		// Map to ImageContext
-		const remoteTags: RemoteTag[] = hubResults.map((r) => ({
-			tag: r.name,
-			digest: r.digest,
-			publishedAt: r.last_updated
-		}))
-
-		const context: ImageContext = {
-			imageName,
-			currentTag: tag,
-			currentDigest: localDigest || '',
-			remoteTags
-		}
-
-		const policyResult = evaluatePolicies(context)
-
-		// Map back to result structure
-		const hasUpdate =
-			policyResult.state === 'CONTENT_UPDATED' ||
-			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
-			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
-
-		const targetTag =
-			policyResult.details?.latestCompatible ||
-			policyResult.details?.majorAvailable ||
-			tag
-
-		const targetRemote =
-			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
-
-		const result = {
-			hasUpdate,
-			latestDigest: targetRemote.digest,
-			lastUpdated: targetRemote.publishedAt,
-			currentVersion: tag,
-			latestVersion: targetTag,
-			dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
-			isLocal: false,
-			policyResult
-		}
-
-		return result
-	} catch (error) {
-		console.error('Failed to check image update:', error)
-		return { hasUpdate: false, isLocal: false }
-	}
-}
-
-interface GhcrPackageVersion {
-	id: number
-	name: string
-	updated_at: string
-	metadata: {
-		package_type: string
-		container: {
-			tags: string[]
-		}
-	}
-}
-
-async function checkGhcrUpdate(
-	fullImageName: string,
-	localDigest?: string
-): Promise<{
-	hasUpdate: boolean
-	latestDigest?: string
-	lastUpdated?: string
-	currentVersion?: string
-	latestVersion?: string
-	dockerHubUrl?: string
-	isLocal?: boolean
-	policyResult?: PolicyResult
-	ghcrError?: 'invalid_token'
-	ghcrImageName?: string
-}> {
-	try {
-		const nameWithTag = fullImageName.replace('ghcr.io/', '')
-		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
-		const parts = imagePath.split('/')
-
-		if (parts.length < 2) {
-			return { hasUpdate: false, isLocal: true }
-		}
-
-		const owner = parts[0]
-		const repo = parts.slice(1).join('/')
-		const packageName = parts[parts.length - 1]
-		const token = process.env.GITHUB_GHCR_TOKEN
-
-		if (!token) {
-			console.warn(
-				`GITHUB_GHCR_TOKEN not found for ${fullImageName}. GHCR update checks require a token.`
-			)
-			return { hasUpdate: false, isLocal: false }
-		}
-
-		const endpoints = [
-			`https://api.github.com/users/${owner}/packages/container/${packageName}/versions?per_page=70`,
-			`https://api.github.com/orgs/${owner}/packages/container/${packageName}/versions?per_page=70`
-		]
-
-		let data: GhcrPackageVersion[] = []
-		let success = false
-
-		for (const url of endpoints) {
-			const response = await fetchWithTimeout(url, {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					Accept: 'application/vnd.github+json',
-					'X-GitHub-Api-Version': '2022-11-28'
-				},
-				next: { revalidate: 900, tags: ['registry:checks'] }
-			})
-
-			if (response.ok) {
-				data = (await response.json()) as GhcrPackageVersion[]
-				success = true
-				break
-			}
-		}
-
-		if (!success || data.length === 0) {
-			console.error(
-				`GHCR API failed or returned no data for ${fullImageName}. Check your token permissions and package visibility.`
-			)
-			return {
-				hasUpdate: false,
-				isLocal: false,
-				ghcrError: 'invalid_token',
-				ghcrImageName: fullImageName
-			}
-		}
-
-		const remoteTags: RemoteTag[] = []
-		for (const v of data) {
-			const digest = v.name
-			const publishedAt = v.updated_at
-			const tags = v.metadata?.container?.tags || []
-
-			for (const t of tags) {
-				remoteTags.push({ tag: t, digest, publishedAt })
-			}
-
-			if (tags.length === 0) {
-				remoteTags.push({ tag: digest, digest, publishedAt })
-			}
-		}
-
-		const context: ImageContext = {
-			imageName: fullImageName,
-			currentTag: tag,
-			currentDigest: localDigest || '',
-			remoteTags
-		}
-
-		const policyResult = evaluatePolicies(context)
-
-		const hasUpdate =
-			policyResult.state === 'CONTENT_UPDATED' ||
-			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
-			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
-
-		const targetTag =
-			policyResult.details?.latestCompatible ||
-			policyResult.details?.majorAvailable ||
-			tag
-
-		const targetRemote =
-			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
-
-		const ghcrResult = {
-			hasUpdate,
-			latestDigest: targetRemote.digest,
-			lastUpdated: targetRemote.publishedAt,
-			currentVersion: tag,
-			latestVersion: targetTag,
-			dockerHubUrl: `https://github.com/${owner}/${repo}/pkgs/container/${packageName}`,
-			isLocal: false,
-			policyResult
-		}
-
-		return ghcrResult
-	} catch (error) {
-		console.error(
-			`Failed to check GHCR image update for ${fullImageName}:`,
-			error
-		)
-		return { hasUpdate: false, isLocal: false }
-	}
 }
 
 export type OnPhaseCallback = (
@@ -614,44 +323,6 @@ export async function triggerContainerUpdate(
 	return { taskId }
 }
 
-export async function checkImagesUpdatesBatch(
-	items: Array<{
-		containerId: string
-		imageName: string
-		localDigest?: string
-	}>
-): Promise<
-	Array<{
-		containerId: string
-		hasUpdate: boolean
-		latestDigest?: string
-		lastUpdated?: string
-		currentVersion?: string
-		latestVersion?: string
-		dockerHubUrl?: string
-		isLocal?: boolean
-		policyResult?: PolicyResult
-		ghcrError?: 'invalid_token'
-		ghcrImageName?: string
-		error?: string
-	}>
-> {
-	return Promise.all(
-		items.map(async (item) => {
-			try {
-				const result = await checkImageUpdate(item.imageName, item.localDigest)
-				return { containerId: item.containerId, ...result }
-			} catch (error) {
-				return {
-					containerId: item.containerId,
-					hasUpdate: false,
-					error: error instanceof Error ? error.message : 'Unknown error'
-				}
-			}
-		})
-	)
-}
-
 export async function verifyContainerUpdate(imageName: string): Promise<{
 	hasUpdate: boolean
 	latestVersion?: string
@@ -659,15 +330,14 @@ export async function verifyContainerUpdate(imageName: string): Promise<{
 	policyState?: PolicyState
 	localDigest?: string
 }> {
-	'use server'
-
 	try {
 		// Get the new digest from the updated image
 		const image = docker.getImage(imageName)
 		const imageInfo = await image.inspect()
 		const localDigest = imageInfo.Id
 
-		// Check for updates with the new image
+		// Check for updates with the new image (cached registry scope; the new
+		// digest is a cache miss, so this queries fresh)
 		const updateInfo = await checkImageUpdate(imageName, localDigest)
 
 		return {
