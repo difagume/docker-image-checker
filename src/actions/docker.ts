@@ -1,27 +1,10 @@
 'use server'
 
 import docker from '@/lib/docker'
-import {
-	getContainers as getContainersFromInventory,
-	getDockerConnected,
-	getImages as getImagesFromInventory
-} from '@/lib/docker-inventory'
 import type { PolicyState } from '@/lib/policies/types'
 import { checkImageUpdate } from '@/lib/registry-updates'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { progressStore } from '@/lib/update-progress-store'
-
-// Thin wrappers so existing imports from '@actions/docker' continue to work.
-// These delegate to the cached versions from docker-inventory.
-export async function getContainers() {
-	return getContainersFromInventory()
-}
-export async function getImages() {
-	return getImagesFromInventory()
-}
-export async function checkDockerConnection() {
-	return getDockerConnected()
-}
 
 export type OnPhaseCallback = (
 	phase: UpdatePhase,
