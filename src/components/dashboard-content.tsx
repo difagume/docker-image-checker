@@ -1,7 +1,6 @@
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
 import { getDashboardSettings } from '@/lib/app-state'
-import { getCacheKey, loadContainersCache } from '@/lib/cache/containers'
 import { getDockerConnectionInfo } from '@/lib/docker-connection'
 import {
 	getContainers,
@@ -10,6 +9,7 @@ import {
 } from '@/lib/docker-inventory'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
+import { getContainerUpdateStates } from '@/lib/registry-updates'
 import type { FilterStatus } from '@/types/app-state'
 
 export async function DashboardContent({ locale }: { locale: Locale }) {
@@ -20,19 +20,24 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 
 	const dict = getDictionary(locale)
 	console.log('[Dashboard] Loading containers from Docker...')
-	const [containers, images, cache, settings, dockerConnected] =
+	const [containers, images, updateStates, settings, dockerConnected] =
 		await Promise.all([
 			getContainers(),
 			getImages(),
-			loadContainersCache(),
+			getContainerUpdateStates(),
 			getDashboardSettings(),
 			getDockerConnected()
 		])
+
 	console.log(
 		`[Dashboard] Found ${containers.length} containers and ${images.length} images`
 	)
 
-	console.log('[Dashboard] Initializing container update tracking...')
+	console.log('[Dashboard] Resolving container update state...')
+	const statesByContainerId = new Map(
+		updateStates.map((state) => [state.containerId, state])
+	)
+
 	const processedContainers = containers.map((container) => {
 		const isRunning = container.State === 'running'
 		const ports = (container.Ports || [])
@@ -49,46 +54,24 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 			localDigest = container.ImageID
 		}
 
-		// Try to hydrate from cache using the current localDigest as key.
-		// If the digest matches what was cached, we have a valid (non-stale) entry.
-		const cacheKey = localDigest
-			? getCacheKey(container.Image, localDigest)
-			: null
-		const cached = cacheKey ? cache[cacheKey] : undefined
+		// Update status resolved server-side by getContainerUpdateStates
+		// (registry:checks cache scope) — no client round-trip, no 'checking' flash.
+		const state = statesByContainerId.get(container.Id)
 
-		if (cached) {
-			// Use cached data — no "checking" flash on load
-			return {
-				container,
-				isRunning,
-				ports,
-				containerName,
-				localDigest,
-				// Cached fields
-				updateStatus: cached.updateStatus,
-				displayCurrentVersion: cached.displayCurrentVersion,
-				currentVersion: cached.currentVersion,
-				latestVersion: cached.latestVersion,
-				lastUpdated: cached.lastUpdated,
-				dockerHubUrl: cached.dockerHubUrl,
-				isUpToDate: cached.isUpToDate,
-				policyState: cached.policyState,
-				// Mark as stale so the client refreshes it in the background
-				isStale: true
-			}
-		}
-
-		// No cache hit — will be freshly checked on the client
 		return {
 			container,
 			isRunning,
 			ports,
-			updateStatus: 'checking' as const,
 			containerName,
-			displayCurrentVersion: imageTag,
-			isUpToDate: true,
 			localDigest,
-			isStale: false
+			updateStatus: state?.updateStatus ?? 'unknown',
+			displayCurrentVersion: state?.displayCurrentVersion ?? imageTag,
+			currentVersion: state?.currentVersion,
+			latestVersion: state?.latestVersion,
+			lastUpdated: state?.lastUpdated,
+			dockerHubUrl: state?.dockerHubUrl,
+			isUpToDate: state?.isUpToDate ?? true,
+			policyState: state?.policyState
 		}
 	})
 
