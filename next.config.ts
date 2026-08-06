@@ -4,12 +4,15 @@ const nextConfig: NextConfig = {
 	cacheComponents: true,
 	output: 'standalone',
 	poweredByHeader: false,
+	reactCompiler: true,
 	logging: {
 		// Forward browser warnings and errors to the terminal (Next.js 16.2+)
 		browserToTerminal: 'warn'
 	},
 	experimental: {
-		optimizePackageImports: ['lucide-react']
+		optimizePackageImports: ['lucide-react'],
+		// Native Rust port of the React Compiler running inside Turbopack (Next.js 16.3+)
+		turbopackRustReactCompiler: true
 	},
 	serverExternalPackages: ['dockerode', 'ssh2', 'cpu-features'],
 	async headers() {
