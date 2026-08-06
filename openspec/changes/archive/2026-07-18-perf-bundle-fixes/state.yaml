@@ -1,0 +1,24 @@
+schema: spec-driven
+change: perf-bundle-fixes
+archived_at: "2026-07-18"
+status: complete
+
+dag:
+  proposal: done
+  specs: skipped
+  design: skipped
+  tasks: done
+  apply: done
+  verify: done
+  archive: done
+
+notes:
+  - "Spec and design skipped intentionally: change is pure refactor, no behavioral spec or architecture design needed"
+  - "8 implementation tasks completed, verified, build successful"
+  - "Stale checkboxes reconciled at archive time — apply-progress not persisted but verify-report proves all tasks complete"
+
+observation_ids:
+  proposal: 495
+  tasks: 496
+  state: 497
+  verify_report: 500
