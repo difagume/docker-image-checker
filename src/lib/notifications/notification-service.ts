@@ -7,16 +7,28 @@ import {
 } from '@/lib/app-state'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
 import { getReferenceUrls } from '@/lib/reference-url-manager'
-import { checkImageUpdateRaw } from '@/lib/registry-updates'
+import {
+	type CheckImageUpdateResult,
+	checkImageUpdateRaw
+} from '@/lib/registry-updates'
 import type { ContainerUpdate, NotificationMessage } from '@/types/app-state'
 import { getEnabledProviders } from './provider-factory'
 
 /**
- * Check for container updates and send notifications
+ * Check for container updates and send notifications.
+ *
+ * `checkUpdate` lets callers choose between the raw path (default — used by
+ * the scheduler, which runs outside the App Router request context where
+ * "use cache" would throw E279) and the cached wrappers (used by request-context
+ * callers such as the /api/notifications/test route).
  */
 export async function checkAndNotify(
 	containers: ContainerInfo[],
-	images: ImageInfo[]
+	images: ImageInfo[],
+	checkUpdate: (
+		imageName: string,
+		localDigest?: string
+	) => Promise<CheckImageUpdateResult> = checkImageUpdateRaw
 ): Promise<void> {
 	console.log('▶️ Starting notification check...')
 
@@ -58,9 +70,9 @@ export async function checkAndNotify(
 				localDigest = container.ImageID
 			}
 
-			// Check for updates (raw path: the scheduler runs outside the App
-			// Router request context, where "use cache" would throw E279)
-			const updateInfo = await checkImageUpdateRaw(container.Image, localDigest)
+			// Check for updates (scheduler path uses the raw reader; request-context
+			// callers may pass a cached wrapper)
+			const updateInfo = await checkUpdate(container.Image, localDigest)
 
 			// Skip if no update available or if it's a local image
 			if (!updateInfo.hasUpdate || updateInfo.isLocal) {
