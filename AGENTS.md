@@ -78,7 +78,7 @@ This is a Next.js dashboard application for monitoring Docker containers and che
    - Supports Telegram, ntfy, and Discord notifications
    - Deduplication to avoid repeated notifications for same updates
    - Internationalization support (EN, ES, PT)
-   - Persistent state in `data/notifications-state.json`
+   - Persistent state in `data/dashboard-state.json`
    - Integration with dashboard "hide notifications" feature
    - Initialized in `src/instrumentation.ts`
 
@@ -210,7 +210,7 @@ The application includes a configurable notification system for Docker image upd
 - **Discord**: Requires webhook URL
 
 ### Persistent Storage
-- Notification state is stored in `data/notifications-state.json`
+- Notification state is stored in `data/dashboard-state.json`
 - When using Docker, mount this directory as a volume to persist state across restarts
 
 ### Health Check

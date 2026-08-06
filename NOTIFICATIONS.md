@@ -10,7 +10,7 @@ The system runs a background scheduler that checks for updates based on a config
 - **Deduplication**: You only get notified once per image update/digest.
 - **Internationalization (i18n)**: Notifications are sent in your preferred language (EN, ES, PT).
 - **Hidden Containers Integration**: Containers you hide in the dashboard are automatically excluded from notifications.
-- **Persistence**: Notification state is stored in `data/notifications-state.json` to survive restarts.
+- **Persistence**: Notification state is stored in `data/dashboard-state.json` to survive restarts.
 
 ---
 
@@ -84,7 +84,7 @@ To trigger a manual check and send a test notification if updates are found:
 `POST /api/notifications/check` (Requires authentication if enabled)
 
 ### Persistence
-The system stores its state in `data/notifications-state.json`. If you are using Docker, make sure this directory is mounted as a volume to keep track of already notified updates across restarts.
+The system stores its state in `data/dashboard-state.json`. If you are using Docker, make sure this directory is mounted as a volume to keep track of already notified updates across restarts.
 
 ```yaml
 volumes:
