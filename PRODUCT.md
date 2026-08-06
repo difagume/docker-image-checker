@@ -73,7 +73,7 @@ el mecanismo central que un monitor genérico de contenedores no replica de form
 - Autenticación opcional htpasswd (APR1, Bcrypt, SHA1) con sesiones iron-session en cookies
   HTTP-only; API para generar hashes en `/api/htpasswd-hash`.
 - Sistema de notificaciones (Telegram, ntfy, Discord) con scheduler node-cron,
-  deduplicación y estado persistente en `data/notifications-state.json`.
+  deduplicación y estado persistente en `data/dashboard-state.json`.
 - Endpoint de salud `/api/health` para monitoreo.
 
 **Restricciones técnicas:**
@@ -110,8 +110,7 @@ el mecanismo central que un monitor genérico de contenedores no replica de form
   notificaciones.
 - `AGENTS.md`: descripción arquitectónica detallada del código.
 - Assets de marca reales en `public/`.
-- Estado de ejemplo en `data/` (`containers-cache.json`, `dashboard-state.json`,
-  `notifications-state.json`).
+- Estado de ejemplo en `data/` (`dashboard-state.json`).
 - No existen todavía: testimonios, métricas de uso, casos de estudio ni benchmarks de
   rendimiento verificados. El trabajo futuro no debe fabricarlos.
 

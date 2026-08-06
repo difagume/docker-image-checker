@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Next.js 16.3.0 App Router (cacheComponents: true), React 19.2.8, Tailwind CSS 4.3.3,
+  pnpm 11.20.0, TypeScript 6.0.3, Biome 2.5.6, Vitest 4.1.10.
+  Server Actions + RSC data fetching; Docker via dockerode (local socket or remote
+  TCP/TLS/SSH); session auth htpasswd + iron-session; background notification scheduler
+  (Telegram/ntfy/Discord) via instrumentation.ts; i18n EN/ES/PT.
+  Cache layer: unstable_cache + file cache in data/ + fetch revalidate.
+  Active changes: dashboard-ux-fixes (explore), refresh-data-caching (archived per state.yaml).
+
+testing:
+  strict_tdd: true
+  runner: vitest
+  runner_command: pnpm test
+  unit: vitest
+  integration: none
+  e2e: none
+  coverage: false
+  linter: pnpm exec biome lint .
+  type_checker: pnpm exec tsc --noEmit
+  formatter: pnpm exec biome format --write .
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - State scope boundaries and what is NOT in scope
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns (Biome: tabs, single quotes, no semicolons)
+      - Server Actions for backend logic; RSC for data fetching
+    tdd: true
+    test_command: pnpm test
+  verify:
+    test_command: pnpm test
+    build_command: pnpm build
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

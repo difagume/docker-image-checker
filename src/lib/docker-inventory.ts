@@ -1,5 +1,10 @@
 import type { ContainerInfo, ImageInfo } from 'dockerode'
-import { unstable_cache } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
+import {
+	CACHE_TAGS,
+	CONNECTION_CACHE_PROFILE,
+	INVENTORY_CACHE_PROFILE
+} from '@/lib/cache-tags'
 import docker from '@/lib/docker'
 
 // ── Raw readers (always fresh, throw on error) ────────────────
@@ -31,53 +36,40 @@ export async function pingDockerRaw(): Promise<boolean> {
 	return true
 }
 
-// ── Cached wrappers (stale-while-revalidate via unstable_cache) ──
+// ── Cached wrappers (stale-while-revalidate via Cache Components) ──
 
-function cacheKey(...parts: string[]) {
-	return ['docker-inventory', ...parts]
+/**
+ * Returns the cached container list. On cache miss or expiry, re-scans the
+ * daemon (stale 5min / revalidate 1min / expire 1h). Throws on error — the
+ * cache never stores error states.
+ */
+export async function getContainers(): Promise<ContainerInfo[]> {
+	'use cache'
+	cacheLife(INVENTORY_CACHE_PROFILE)
+	cacheTag(CACHE_TAGS.containers)
+	return listContainersRaw()
 }
 
 /**
- * Returns cached container list. On cache miss or expiry, re-scans the daemon.
- * Throws on error — the cache never stores error states.
+ * Returns the cached image list. On cache miss or expiry, re-scans the daemon
+ * (stale 5min / revalidate 1min / expire 1h). Throws on error — the cache
+ * never stores error states.
  */
-export const getContainers = unstable_cache(
-	async (): Promise<ContainerInfo[]> => {
-		return listContainersRaw()
-	},
-	cacheKey('containers'),
-	{
-		tags: ['docker:containers'],
-		revalidate: 300 // 5 minutes
-	}
-)
+export async function getImages(): Promise<ImageInfo[]> {
+	'use cache'
+	cacheLife(INVENTORY_CACHE_PROFILE)
+	cacheTag(CACHE_TAGS.images)
+	return listImagesRaw()
+}
 
 /**
- * Returns cached image list. On cache miss or expiry, re-scans the daemon.
- * Throws on error — the cache never stores error states.
+ * Returns the cached daemon connectivity status (stale 30s / revalidate 1s /
+ * expire 1min — short-lived, excluded from prerenders). Throws on error — the
+ * cache never stores error states.
  */
-export const getImages = unstable_cache(
-	async (): Promise<ImageInfo[]> => {
-		return listImagesRaw()
-	},
-	cacheKey('images'),
-	{
-		tags: ['docker:images'],
-		revalidate: 300 // 5 minutes
-	}
-)
-
-/**
- * Returns cached daemon connectivity status. On cache miss or expiry, re-pings.
- * Throws on error — the cache never stores error states.
- */
-export const getDockerConnected = unstable_cache(
-	async (): Promise<boolean> => {
-		return pingDockerRaw()
-	},
-	cacheKey('connection'),
-	{
-		tags: ['docker:connection'],
-		revalidate: 10 // 10 seconds
-	}
-)
+export async function getDockerConnected(): Promise<boolean> {
+	'use cache'
+	cacheLife(CONNECTION_CACHE_PROFILE)
+	cacheTag(CACHE_TAGS.connection)
+	return pingDockerRaw()
+}

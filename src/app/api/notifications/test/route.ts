@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
-import { listContainersRaw, listImagesRaw } from '@/lib/docker-inventory'
+import { getContainers, getImages } from '@/lib/docker-inventory'
 import { checkAndNotify } from '@/lib/notifications/notification-service'
-
-export const dynamic = 'force-dynamic'
+import { checkImageUpdate } from '@/lib/registry-updates'
 
 /**
  * Test endpoint to manually trigger notification check
@@ -24,10 +23,12 @@ export async function POST() {
 
 		console.log('Manual notification check triggered via API')
 
-		const containers = await listContainersRaw()
-		const images = await listImagesRaw()
+		// Runs inside the request context, so it may use the cached wrappers
+		// (the scheduler keeps the raw path — see src/lib/notifications/scheduler.ts)
+		const containers = await getContainers()
+		const images = await getImages()
 
-		await checkAndNotify(containers, images)
+		await checkAndNotify(containers, images, checkImageUpdate)
 
 		return NextResponse.json({
 			success: true,

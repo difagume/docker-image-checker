@@ -3,8 +3,6 @@ import docker from '@/lib/docker'
 import { detectLevel, type LogLine, type LogStream } from '@/lib/docker-logs'
 import { getSession } from '@/lib/session'
 
-export const dynamic = 'force-dynamic'
-
 /**
  * Streaming de logs por SSE.
  *

@@ -1,0 +1,18 @@
+schema: spec-driven
+change: refresh-data-caching
+status: archived
+
+dag:
+  proposal: done
+  specs: skipped
+  design: done
+  tasks: done
+  apply: done
+  verify: done
+  archive: done
+
+notes:
+  - "Specs skipped: no capability spec nuevo; el cambio es un refactor de arquitectura (data fetching + caching) con behavior SWR observable, cubierto por design.md"
+  - "Design NO skipped: hay decisiones reales de arquitectura (Cache Components vs unstable_cache, tags, TTL, runtime APIs)"
+  - "Gate 2.4 RESULT: cacheComponents incompatible with client providers → degraded to unstable_cache fallback"
+  - "Apply completed: all 5 phases implemented, 21/21 tasks done"
