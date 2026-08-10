@@ -14,11 +14,18 @@ export interface NotificationTranslations {
 	updated: string
 	viewReference: string
 	viewOnRegistry: string
+	update: string
+	updating: string
+	updateStatusSuccess: string
+	updateStatusError: string
+	updateStatusAlready: string
 }
 
 export interface NotificationMessage {
 	containerName: string
 	imageName: string
+	dockerContainerId: string
+	fullImageName: string
 	currentVersion: string
 	latestVersion: string
 	dockerHubUrl?: string
@@ -30,6 +37,8 @@ export interface NotificationMessage {
 
 export interface ContainerUpdate {
 	containerId: string
+	dockerContainerId: string
+	fullImageName: string
 	containerName: string
 	imageName: string
 	imageDigest: string

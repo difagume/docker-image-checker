@@ -175,7 +175,12 @@
 		"latest": "Mais recente",
 		"updated": "Atualizado",
 		"viewReference": "Ver referência",
-		"viewOnRegistry": "Ver no registro"
+		"viewOnRegistry": "Ver no registro",
+		"update": "Atualizar",
+		"updating": "Atualizando...",
+		"updateStatusSuccess": "Atualização concluída",
+		"updateStatusError": "Falha na atualização",
+		"updateStatusAlready": "Já está atualizado"
 	},
 	"updateDialog": {
 		"title": "Atualizar Imagem do Contêiner",

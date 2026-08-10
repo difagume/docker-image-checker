@@ -162,7 +162,12 @@
 		"latest": "Latest",
 		"updated": "Updated",
 		"viewReference": "View reference",
-		"viewOnRegistry": "View on Registry"
+		"viewOnRegistry": "View on Registry",
+		"update": "Update",
+		"updating": "Updating...",
+		"updateStatusSuccess": "Update completed",
+		"updateStatusError": "Update failed",
+		"updateStatusAlready": "Already up to date"
 	},
 	"login": {
 		"title": "Login",
