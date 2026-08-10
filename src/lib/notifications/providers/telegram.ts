@@ -1,8 +1,10 @@
+import type { SendMessageParams } from 'node-telegram-bot-api'
 import TelegramBot from 'node-telegram-bot-api'
 import type {
 	NotificationMessage,
 	NotificationTranslations
 } from '@/types/app-state'
+import { storeCallbackData } from '../notification-callbacks'
 import { BaseNotificationProvider } from './base'
 
 export class TelegramNotificationProvider extends BaseNotificationProvider {
@@ -19,6 +21,8 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 		this.enabled = process.env.TELEGRAM_ENABLED === 'true'
 
 		if (this.enabled && this.validate() && this.botToken) {
+			// Outbound-only: the inbound poller lives in telegram-polling.ts
+			// (single getUpdates loop per token — R4/N1).
 			this.bot = new TelegramBot(this.botToken, { polling: false })
 		}
 	}
@@ -46,10 +50,38 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 			if (!this.chatId) {
 				throw new Error('Chat ID not configured')
 			}
-			await this.bot.sendMessage(this.chatId, text, {
+
+			const options: Omit<SendMessageParams, 'chat_id' | 'text'> = {
 				parse_mode: 'Markdown',
 				link_preview_options: { is_disabled: true }
-			})
+			}
+
+			// R2: inline "Update" button backed by the callback store. The
+			// 8-char shortId keeps callback_data ≤ 64 bytes (N5). If the store
+			// write fails, still send the notification without the button.
+			if (message.dockerContainerId && message.fullImageName) {
+				try {
+					const shortId = await storeCallbackData(
+						message.dockerContainerId,
+						message.fullImageName,
+						message.locale || 'en'
+					)
+					options.reply_markup = {
+						inline_keyboard: [
+							[
+								{
+									text: message.translations?.update || 'Update',
+									callback_data: `u:${shortId}`
+								}
+							]
+						]
+					}
+				} catch (error) {
+					console.error('❌ Failed to store Telegram callback:', error)
+				}
+			}
+
+			await this.bot.sendMessage(this.chatId, text, options)
 			console.log(`📨 Telegram notification sent for ${message.containerName}`)
 		} catch (error) {
 			console.error('❌ Failed to send Telegram notification:', error)
