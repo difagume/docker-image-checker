@@ -28,7 +28,11 @@ services:
       - NOTIFICATIONS_CRON_SCHEDULE=${NOTIFICATIONS_CRON_SCHEDULE}
       - TELEGRAM_ENABLED=${TELEGRAM_ENABLED}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # Chat(s) autorizados para el botón "Actualizar". Varios separados por comas:
+      #   TELEGRAM_CHAT_ID=123456789,@micanal
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      # URL interna de revalidación (opcional). Solo si la app no escucha en 127.0.0.1
+      - INTERNAL_REVALIDATE_URL=${INTERNAL_REVALIDATE_URL}
     depends_on:
       - docker-proxy
 

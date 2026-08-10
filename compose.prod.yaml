@@ -32,7 +32,11 @@ services:
       # --- Proveedor: Telegram (opcional) ---
       # - TELEGRAM_ENABLED=true
       # - TELEGRAM_BOT_TOKEN=token-de-botfather
+      # Chat(s) autorizados para el botón "Actualizar". Varios separados por comas:
+      #   - TELEGRAM_CHAT_ID=123456789,@micanal
       # - TELEGRAM_CHAT_ID=chat-id
+      # URL interna de revalidación (opcional). Solo si la app no escucha en 127.0.0.1
+      # - INTERNAL_REVALIDATE_URL=http://127.0.0.1:3000/api/internal/revalidate
       # --- Proveedor: ntfy (opcional) ---
       # - NTFY_ENABLED=true
       # - NTFY_TOPIC=mi-topic

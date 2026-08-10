@@ -33,26 +33,26 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Shared Core + Web Action Refactor
 
-- [ ] 2.1 New `src/lib/container-update-task.ts`: `runContainerUpdateTask(id, image, { revalidate, onPhase })` → `{ taskId, done }`; move `doUpdateContainerImage`/`OnPhaseCallback`; dedup throw (R6, R7)
-- [ ] 2.2 Core wiring: createTask/register, fire-and-forget, setResult/setError, revalidate + clearContainerCallbacks on success, cleanup (R6.1, R11, R10)
-- [ ] 2.3 `src/actions/docker.ts`: `triggerContainerUpdate` delegates with `updateTag(REFRESH_TAGS)` revalidator; re-export `updateContainerImage` (R6.2)
-- [ ] 2.4 Unit test `container-update-task.test.ts`: dedup, revalidator called, clearCallbacks, cleanup (R7.1, R10.1, R11.1)
+- [x] 2.1 New `src/lib/container-update-task.ts`: `runContainerUpdateTask(id, image, { revalidate, onPhase })` → `{ taskId, done }`; move `doUpdateContainerImage`/`OnPhaseCallback`; dedup throw (R6, R7)
+- [x] 2.2 Core wiring: createTask/register, fire-and-forget, setResult/setError, revalidate + clearContainerCallbacks on success, cleanup (R6.1, R11, R10)
+- [x] 2.3 `src/actions/docker.ts`: `triggerContainerUpdate` delegates with `updateTag(REFRESH_TAGS)` revalidator; re-export `updateContainerImage` (R6.2)
+- [x] 2.4 Unit test `container-update-task.test.ts`: dedup, revalidator called, clearCallbacks, cleanup (R7.1, R10.1, R11.1)
 
 ## Phase 3: Tunnel + Polling + Instrumentation
 
-- [ ] 3.1 New `src/lib/notifications/revalidate-tunnel.ts`: URL env|`127.0.0.1:${PORT\|3000}`, `requestRevalidation`, `getRevalidateNonce` (R12)
-- [ ] 3.2 New `src/app/api/internal/revalidate/route.ts`: nonce + loopback guard, `revalidateTag(tag,{expire:0})`, 403/400 (R12.1, R12.3, N3)
-- [ ] 3.3 Unit test URL derivation: env override, PORT fallback (R12)
-- [ ] 3.4 Integration test route: nonce ok, 403, 400 (R12.1, R12.3)
-- [ ] 3.5 New `src/lib/notifications/telegram-polling.ts`: singleton, env-gated init/stop/status (R4, R15)
-- [ ] 3.6 Callback: shortId + chat checks, answer, edits, swallow benign errors (R5, R7, R8, R9, R10, R13)
-- [ ] 3.7 Unit test chat parsing: single/comma/whitespace (R13)
-- [ ] 3.8 `providers/telegram.ts`: storeCallbackData + inline keyboard, polling:false + link_preview kept (R2, N5)
-- [ ] 3.9 `src/instrumentation.ts`: start poller beside scheduler, SIGTERM/SIGINT stop (R4.2, R15.1)
+- [x] 3.1 New `src/lib/notifications/revalidate-tunnel.ts`: URL env|`127.0.0.1:${PORT\|3000}`, `requestRevalidation`, `getRevalidateNonce` (R12)
+- [x] 3.2 New `src/app/api/internal/revalidate/route.ts`: nonce + loopback guard, `revalidateTag(tag,{expire:0})`, 403/400 (R12.1, R12.3, N3)
+- [x] 3.3 Unit test URL derivation: env override, PORT fallback (R12)
+- [x] 3.4 Integration test route: nonce ok, 403, 400 (R12.1, R12.3)
+- [x] 3.5 New `src/lib/notifications/telegram-polling.ts`: singleton, env-gated init/stop/status (R4, R15)
+- [x] 3.6 Callback: shortId + chat checks, answer, edits, swallow benign errors (R5, R7, R8, R9, R10, R13)
+- [x] 3.7 Unit test chat parsing: single/comma/whitespace (R13)
+- [x] 3.8 `providers/telegram.ts`: storeCallbackData + inline keyboard, polling:false + link_preview kept (R2, N5)
+- [x] 3.9 `src/instrumentation.ts`: start poller beside scheduler, SIGTERM/SIGINT stop (R4.2, R15.1)
 
 ## Phase 4: i18n + Docs + Env
 
-- [ ] 4.1 `en/es/pt-BR.json`: add 5 `update*` keys each, parity (R14.2)
-- [ ] 4.2 Rewrite `docs/telegram-image-update-implementation.md` for polling
-- [ ] 4.3 `.env.example` + compose: `TELEGRAM_CHAT_ID` commas, `INTERNAL_REVALIDATE_URL`
-- [ ] 4.4 Gate: `pnpm build` + `pnpm test` green, Biome clean (N2)
+- [x] 4.1 `en/es/pt-BR.json`: add 5 `update*` keys each, parity (R14.2)
+- [x] 4.2 Rewrite `docs/telegram-image-update-implementation.md` for polling
+- [x] 4.3 `.env.example` + compose: `TELEGRAM_CHAT_ID` commas, `INTERNAL_REVALIDATE_URL`
+- [x] 4.4 Gate: `pnpm build` + `pnpm test` green, Biome clean (N2)
