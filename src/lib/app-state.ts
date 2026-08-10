@@ -199,7 +199,7 @@ export async function isContainerIgnored(
  */
 export async function getPreferredLanguage(): Promise<string> {
 	const state = await loadState()
-	return state.preferredLanguage || process.env.NOTIFICATIONS_LANGUAGE || 'en'
+	return process.env.NOTIFICATIONS_LANGUAGE || state.preferredLanguage || 'en'
 }
 
 /**

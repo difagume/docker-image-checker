@@ -28,7 +28,7 @@ All configuration is handled through environment variables. You can find these i
 | `TZ` | Timezone for the scheduler (e.g., `America/Guayaquil`). | System Time |
 
 > [!TIP]
-> **Smart Language Detection**: If you use the dashboard, the system automatically synchronizes your browser language and uses it for notifications, overriding the default `NOTIFICATIONS_LANGUAGE`.
+> **Language priority**: If `NOTIFICATIONS_LANGUAGE` is set, it takes priority over everything else. If it is not set and you use the dashboard, the system automatically synchronizes your browser language and uses it for notifications, falling back to `en` when neither is available.
 
 ---
 
