@@ -1,5 +1,7 @@
 'use server'
 
+import { updateTag } from 'next/cache'
+import { REFRESH_TAGS } from '@/lib/cache-tags'
 import docker from '@/lib/docker'
 import type { PolicyState } from '@/lib/policies/types'
 import { checkImageUpdate } from '@/lib/registry-updates'
@@ -290,6 +292,14 @@ export async function triggerContainerUpdate(
 					newContainerId: result.newContainerId,
 					newImageId: result.newImageId
 				})
+
+				// After a successful update the daemon already has the new
+				// digest; invalidate the "use cache" readers so they re-scan
+				// instead of serving the stale container/image/registry data
+				// (same pattern as the manual refresh in dashboard-gate).
+				for (const tag of REFRESH_TAGS) {
+					updateTag(tag)
+				}
 			} else {
 				progressStore.setError(taskId, result.error || 'Update failed')
 			}
