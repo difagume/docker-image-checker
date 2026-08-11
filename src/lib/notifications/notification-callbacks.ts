@@ -13,6 +13,29 @@ export interface CallbackData {
 	fullImageName: string
 	locale: string
 	createdAt: number // timestamp for TTL
+	// Message info persisted by the provider at send time so the poller can
+	// keep the original container/image/version block visible across edits
+	// and rebuild it with the post-update version on success.
+	containerName?: string
+	imageName?: string
+	currentVersion?: string
+	latestVersion?: string
+	dockerHubUrl?: string
+	referenceUrl?: string
+	lastUpdated?: string
+	// Coordinates of the exact sent message (filled after sendMessage).
+	chatId?: number
+	messageId?: number
+}
+
+export interface StoreCallbackOptions {
+	containerName?: string
+	imageName?: string
+	currentVersion?: string
+	latestVersion?: string
+	dockerHubUrl?: string
+	referenceUrl?: string
+	lastUpdated?: string
 }
 
 export interface PersistentCallbacks {
@@ -69,11 +92,15 @@ function generateShortId(): string {
 
 /**
  * Store callback data and return a short ID to use in callback_data.
+ * `options` carries the base message info (labels are re-resolved from the
+ * stored locale by the poller) used to keep the original info visible while
+ * the inline-button edits progress.
  */
 export function storeCallbackData(
 	containerId: string,
 	fullImageName: string,
-	locale: string
+	locale: string,
+	options: StoreCallbackOptions = {}
 ): Promise<string> {
 	const file = getCallbacksFile()
 	return runExclusive(async () => {
@@ -85,7 +112,14 @@ export function storeCallbackData(
 			containerId,
 			fullImageName,
 			locale,
-			createdAt
+			createdAt,
+			containerName: options.containerName,
+			imageName: options.imageName,
+			currentVersion: options.currentVersion,
+			latestVersion: options.latestVersion,
+			dockerHubUrl: options.dockerHubUrl,
+			referenceUrl: options.referenceUrl,
+			lastUpdated: options.lastUpdated
 		}
 
 		// Clean up old entries if we have too many
@@ -153,6 +187,27 @@ export function removeCallbackData(shortId: string): Promise<void> {
 			delete callbacks[shortId]
 			await writeAllCallbacks(file, callbacks)
 		}
+	})
+}
+
+/**
+ * Attach the coordinates of the sent message to a stored callback. The
+ * provider knows them only after `sendMessage` resolves, so this runs as a
+ * second step. The poller prefers these over the tap metadata so edits always
+ * target the exact message that carried the button.
+ */
+export function updateCallbackMessageData(
+	shortId: string,
+	coords: { chatId: number; messageId: number }
+): Promise<void> {
+	const file = getCallbacksFile()
+	return runExclusive(async () => {
+		const callbacks = await readAllCallbacks(file)
+		const data = callbacks[shortId]
+		if (!data) return
+		data.chatId = coords.chatId
+		data.messageId = coords.messageId
+		await writeAllCallbacks(file, callbacks)
 	})
 }
 

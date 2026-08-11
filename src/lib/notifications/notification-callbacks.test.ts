@@ -9,7 +9,8 @@ import {
 	getCallbackData,
 	getPendingCallbacksCount,
 	removeCallbackData,
-	storeCallbackData
+	storeCallbackData,
+	updateCallbackMessageData
 } from './notification-callbacks'
 
 async function makeTempFile(): Promise<string> {
@@ -83,6 +84,49 @@ describe('notification-callbacks', () => {
 		expect(await getCallbackData('00000000')).toBeNull()
 		expect(await getCallbackData('000003e7')).not.toBeNull()
 		expect(await getCallbackData(newId)).not.toBeNull()
+	})
+
+	it('persists the base message info passed as options', async () => {
+		const shortId = await storeCallbackData('cont-1', 'nginx:1.2.3', 'es', {
+			containerName: 'web',
+			imageName: 'nginx',
+			currentVersion: '1.0.0',
+			latestVersion: '1.2.3',
+			dockerHubUrl: 'https://hub.docker.com/r/nginx',
+			referenceUrl: 'https://example.com/changelog',
+			lastUpdated: '2026-01-01T00:00:00Z'
+		})
+
+		expect(await getCallbackData(shortId)).toEqual({
+			containerId: 'cont-1',
+			fullImageName: 'nginx:1.2.3',
+			locale: 'es',
+			createdAt: expect.any(Number),
+			containerName: 'web',
+			imageName: 'nginx',
+			currentVersion: '1.0.0',
+			latestVersion: '1.2.3',
+			dockerHubUrl: 'https://hub.docker.com/r/nginx',
+			referenceUrl: 'https://example.com/changelog',
+			lastUpdated: '2026-01-01T00:00:00Z'
+		})
+	})
+
+	it('attaches the sent-message coordinates after the provider sends (R5)', async () => {
+		const shortId = await storeCallbackData('cont-1', 'nginx:1.2.3', 'en')
+
+		await updateCallbackMessageData(shortId, { chatId: 98765, messageId: 42 })
+
+		expect(await getCallbackData(shortId)).toEqual(
+			expect.objectContaining({ chatId: 98765, messageId: 42 })
+		)
+	})
+
+	it('updateCallbackMessageData is a no-op for unknown shortIds', async () => {
+		await expect(
+			updateCallbackMessageData('00000000', { chatId: 1, messageId: 2 })
+		).resolves.toBeUndefined()
+		expect(await getPendingCallbacksCount()).toBe(0)
 	})
 
 	it('removes a single callback by shortId', async () => {

@@ -100,7 +100,10 @@ class ProgressStoreImpl {
 
 	setResult(
 		taskId: string,
-		result?: { newContainerId?: string; newImageId?: string }
+		result?: {
+			newContainerId?: string
+			newImageId?: string
+		}
 	): void {
 		const existing = this.tasks.get(taskId)
 		if (!existing) return

@@ -36,7 +36,6 @@ export interface NotificationMessage {
 }
 
 export interface ContainerUpdate {
-	containerId: string
 	dockerContainerId: string
 	fullImageName: string
 	containerName: string

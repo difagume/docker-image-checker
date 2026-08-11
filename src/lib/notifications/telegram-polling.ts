@@ -1,12 +1,15 @@
 import type { ContainerInspectInfo } from 'dockerode'
-import type { CallbackQuery } from 'node-telegram-bot-api'
+import type { CallbackQuery, InlineKeyboardMarkup } from 'node-telegram-bot-api'
 import TelegramBot from 'node-telegram-bot-api'
 import { runContainerUpdateTask } from '@/lib/container-update-task'
 import docker from '@/lib/docker'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { progressStore } from '@/lib/update-progress-store'
+import type { NotificationMessage } from '@/types/app-state'
+import type { CallbackData } from './notification-callbacks'
 import { getCallbackData, removeCallbackData } from './notification-callbacks'
+import { formatTelegramMessage } from './providers/telegram'
 import { requestRevalidation } from './revalidate-tunnel'
 
 /**
@@ -25,9 +28,24 @@ interface PollerHandle {
 	running: boolean
 }
 
+// The poller only needs these two outbound operations; typing against a narrow
+// Pick keeps the module testable with a structural mock bot.
+export type CallbackBot = Pick<
+	TelegramBot,
+	'editMessageText' | 'answerCallbackQuery'
+>
+
 // Snapshot of allowed chats, parsed once at init. Callback queries from any
 // other chat are ignored (R13).
 let allowedChatIds = new Set<string>()
+
+/**
+ * Replace the allowed-chat set. Used by `initTelegramPolling` from env and
+ * by unit tests that drive `handleCallbackQuery` directly with a mock bot.
+ */
+export function setAllowedChatIds(ids: Iterable<string>): void {
+	allowedChatIds = new Set(ids)
+}
 
 const PHASE_EDIT_INTERVAL_MS = 3000
 
@@ -60,13 +78,20 @@ function isBenignEditError(error: unknown): boolean {
 }
 
 async function safeEditMessage(
-	bot: TelegramBot,
+	bot: CallbackBot,
 	chatId: number,
 	messageId: number,
-	text: string
+	text: string,
+	options?: { reply_markup?: InlineKeyboardMarkup }
 ): Promise<void> {
 	try {
-		await bot.editMessageText(text, { chat_id: chatId, message_id: messageId })
+		await bot.editMessageText(text, {
+			chat_id: chatId,
+			message_id: messageId,
+			parse_mode: 'Markdown',
+			link_preview_options: { is_disabled: true },
+			...(options?.reply_markup ? { reply_markup: options.reply_markup } : {})
+		})
 	} catch (error) {
 		// Benign edit errors (racy taps / identical text) must not surface (D7)
 		if (isBenignEditError(error)) return
@@ -75,7 +100,7 @@ async function safeEditMessage(
 }
 
 async function safeAnswer(
-	bot: TelegramBot,
+	bot: CallbackBot,
 	callbackQueryId: string,
 	text?: string
 ): Promise<void> {
@@ -86,25 +111,110 @@ async function safeAnswer(
 	}
 }
 
-async function handleCallbackQuery(
-	bot: TelegramBot,
+/**
+ * Build the base info block of the notification from the persisted callback
+ * data. It is computed ONCE per tap and reused verbatim for every edit: the
+ * original container/image/version block never changes, only the status below
+ * it evolves (decision — "info muestra el estado de origen; estado confirma el
+ * resultado"; the post-update version is intentionally NOT injected).
+ */
+function buildInfoMessage(callback: CallbackData, locale: Locale): string {
+	const t = getDictionary(locale).notifications
+	const message: NotificationMessage = {
+		containerName: callback.containerName || 'Unnamed',
+		imageName: callback.imageName || callback.fullImageName,
+		dockerContainerId: callback.containerId,
+		fullImageName: callback.fullImageName,
+		currentVersion: callback.currentVersion ?? 'N/A',
+		latestVersion: callback.latestVersion ?? 'N/A',
+		dockerHubUrl: callback.dockerHubUrl,
+		referenceUrl: callback.referenceUrl,
+		lastUpdated: callback.lastUpdated,
+		translations: {
+			title: t.title,
+			container: t.container,
+			image: t.image,
+			current: t.current,
+			latest: t.latest,
+			updated: t.updated,
+			viewReference: t.viewReference,
+			viewOnRegistry: t.viewOnRegistry,
+			update: t.update,
+			updating: t.updating,
+			updateStatusSuccess: t.updateStatusSuccess,
+			updateStatusError: t.updateStatusError,
+			updateStatusAlready: t.updateStatusAlready
+		},
+		locale
+	}
+	return formatTelegramMessage(message)
+}
+
+/**
+ * Info block stays permanently visible; the volatile status (progress / final
+ * state) is appended below it. A blank line keeps the Markdown readable.
+ */
+function composeEditText(baseInfo: string, statusBlock: string): string {
+	return `${baseInfo}\n\n${statusBlock}`
+}
+
+/**
+ * Localized phase label (R14.1 — the phase texts are hardcoded English inside
+ * the shared core, so the poller maps them to the i18n dict instead of echoing
+ * `statusText`). Pulling appends the numeric layer progress.
+ */
+function statusBlockForPhase(
+	locale: Locale,
+	phase: UpdatePhase,
+	data?: {
+		statusText?: string
+		layerProgress?: { currentLayer?: number; totalLayers?: number }
+	}
+): string {
+	const updatingDict = getDictionary(locale).container.updating
+	const label =
+		phase in updatingDict
+			? updatingDict[phase as keyof typeof updatingDict]
+			: phase
+	if (
+		phase === 'pulling' &&
+		typeof data?.layerProgress?.totalLayers === 'number'
+	) {
+		return `${label} ${data.layerProgress.currentLayer ?? 0}/${data.layerProgress.totalLayers}`
+	}
+	return label
+}
+
+/**
+ * Terminal states drop the inline "Update" button so a finished message does
+ * not keep a dead button (taps on it resolve to "stale callback" because the
+ * callback entry is removed on completion).
+ */
+const EMPTY_KEYBOARD: { reply_markup: InlineKeyboardMarkup } = {
+	reply_markup: { inline_keyboard: [] }
+}
+
+export async function handleCallbackQuery(
+	bot: CallbackBot,
 	query: CallbackQuery
 ): Promise<void> {
 	const data = query.data
-	const chatId = query.message?.chat.id
-	const messageId = query.message?.message_id
+	const queryChatId = query.message?.chat.id
+	const queryMessageId = query.message?.message_id
 
 	if (typeof data !== 'string' || !data.startsWith('u:')) {
 		await safeAnswer(bot, query.id)
 		return
 	}
 
-	// R13: only accept chats present in the parsed TELEGRAM_CHAT_ID set, and
-	// require a real message (id) to edit the button's message.
+	// R13: only accept chats present in the parsed TELEGRAM_CHAT_ID set. The
+	// button's message must exist to be edited; the tap metadata is also the
+	// fallback for the edit coordinates when the provider-side coords are
+	// missing (legacy entries).
 	if (
-		chatId === undefined ||
-		messageId === undefined ||
-		!allowedChatIds.has(String(chatId))
+		queryChatId === undefined ||
+		queryMessageId === undefined ||
+		!allowedChatIds.has(String(queryChatId))
 	) {
 		return
 	}
@@ -120,10 +230,28 @@ async function handleCallbackQuery(
 	// Dismiss the button spinner
 	await safeAnswer(bot, query.id)
 
-	const t = getDictionary(callback.locale as Locale).notifications
+	const locale = (callback.locale || 'en') as Locale
+	const t = getDictionary(locale).notifications
 
-	// R5: editing… then the terminal state
-	await safeEditMessage(bot, chatId, messageId, `🔄 ${t.updating}`)
+	// Prefer the message coordinates persisted by the provider at send time —
+	// they reference the exact message that carried the button — and fall back
+	// to the tap metadata (R5).
+	const chatId = callback.chatId ?? queryChatId
+	const messageId = callback.messageId ?? queryMessageId
+	if (chatId === undefined || messageId === undefined) {
+		return
+	}
+
+	const baseInfo = buildInfoMessage(callback, locale)
+
+	// R5: keep the original container info visible; append the "updating…"
+	// status below it. The inline button stays through progress edits.
+	await safeEditMessage(
+		bot,
+		chatId,
+		messageId,
+		composeEditText(baseInfo, `🔄 ${t.updating}`)
+	)
 
 	// R7: dedup — a non-terminal task for this container is already running
 	if (progressStore.isContainerUpdating(callback.containerId)) {
@@ -135,14 +263,26 @@ async function handleCallbackQuery(
 	try {
 		containerInfo = await docker.getContainer(callback.containerId).inspect()
 	} catch {
-		await safeEditMessage(bot, chatId, messageId, `❌ ${t.updateStatusError}`)
+		await safeEditMessage(
+			bot,
+			chatId,
+			messageId,
+			composeEditText(baseInfo, `❌ ${t.updateStatusError}`),
+			EMPTY_KEYBOARD
+		)
 		await removeCallbackData(shortId)
 		return
 	}
 
 	// R8: already up to date — no pull
 	if (containerInfo.Config.Image === callback.fullImageName) {
-		await safeEditMessage(bot, chatId, messageId, `ℹ️ ${t.updateStatusAlready}`)
+		await safeEditMessage(
+			bot,
+			chatId,
+			messageId,
+			composeEditText(baseInfo, `ℹ️ ${t.updateStatusAlready}`),
+			EMPTY_KEYBOARD
+		)
 		await removeCallbackData(shortId)
 		return
 	}
@@ -173,7 +313,7 @@ async function handleCallbackQuery(
 						bot,
 						chatId,
 						messageId,
-						data?.statusText || phase
+						composeEditText(baseInfo, statusBlockForPhase(locale, phase, data))
 					)
 				}
 			}
@@ -181,14 +321,25 @@ async function handleCallbackQuery(
 
 		const result = await handle.done
 		if (result.success) {
+			// Success: keep the ORIGINAL info block untouched (it reflects the
+			// pre-update origin) and only swap the status below to "✅
+			// actualizado". Reading info + status tells the reader which version
+			// was installed and that it was applied.
 			await safeEditMessage(
 				bot,
 				chatId,
 				messageId,
-				`✅ ${t.updateStatusSuccess}`
+				composeEditText(baseInfo, `✅ ${t.updateStatusSuccess}`),
+				EMPTY_KEYBOARD
 			)
 		} else {
-			await safeEditMessage(bot, chatId, messageId, `❌ ${t.updateStatusError}`)
+			await safeEditMessage(
+				bot,
+				chatId,
+				messageId,
+				composeEditText(baseInfo, `❌ ${t.updateStatusError}`),
+				EMPTY_KEYBOARD
+			)
 		}
 		await removeCallbackData(shortId)
 	} catch (error) {
@@ -198,11 +349,22 @@ async function handleCallbackQuery(
 		) {
 			// Race: a concurrent update started between our check and the core.
 			// Keep the button valid — the other task is handling this container.
-			await safeEditMessage(bot, chatId, messageId, `🔄 ${t.updating}`)
+			await safeEditMessage(
+				bot,
+				chatId,
+				messageId,
+				composeEditText(baseInfo, `🔄 ${t.updating}`)
+			)
 			return
 		}
 		console.error('[telegram-polling] update task failed:', error)
-		await safeEditMessage(bot, chatId, messageId, `❌ ${t.updateStatusError}`)
+		await safeEditMessage(
+			bot,
+			chatId,
+			messageId,
+			composeEditText(baseInfo, `❌ ${t.updateStatusError}`),
+			EMPTY_KEYBOARD
+		)
 		await removeCallbackData(shortId)
 	}
 }
@@ -224,7 +386,7 @@ export function initTelegramPolling(): void {
 		return
 	}
 
-	allowedChatIds = parseAllowedChatIds(process.env.TELEGRAM_CHAT_ID)
+	setAllowedChatIds(parseAllowedChatIds(process.env.TELEGRAM_CHAT_ID))
 	if (allowedChatIds.size === 0) {
 		console.log('[telegram-polling] not started (TELEGRAM_CHAT_ID missing)')
 		return
