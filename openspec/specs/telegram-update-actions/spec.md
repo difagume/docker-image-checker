@@ -199,7 +199,7 @@ Callback queries MUST only be accepted when the originating `chat.id` is in the 
 
 ### Requirement: R14 — i18n keys across dicts (Medium)
 
-The `notifications` dict MUST include `update`, `updating`, `updateStatusSuccess`, `updateStatusError` in `en`, `es`, and `pt-BR`. Message locale MUST come from `NotificationMessage.locale`.
+The `notifications` dict MUST include the five `update*` keys — `update`, `updating`, `updateStatusSuccess`, `updateStatusError`, `updateStatusAlready` (the last required by R8.1) — in `en`, `es`, and `pt-BR`. Message locale MUST come from `NotificationMessage.locale`.
 
 #### Scenario: R14.1 — Locale-correct messages
 
@@ -210,7 +210,7 @@ The `notifications` dict MUST include `update`, `updating`, `updateStatusSuccess
 #### Scenario: R14.2 — Dict parity
 
 - GIVEN all three dictionaries
-- THEN all four `update*` keys exist in each with no drift
+- THEN all five `update*` keys exist in each with no drift
 
 ### Requirement: R15 — Polling lifecycle (Low)
 
