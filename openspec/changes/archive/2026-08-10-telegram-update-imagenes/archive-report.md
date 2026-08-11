@@ -64,13 +64,19 @@ Observations read for traceability:
 
 This archive report is persisted to Engram as topic `sdd/telegram-update-imagenes/archive-report` (type architecture, merged if an observation already existed).
 
-## Open Follow-ups (NOT resolved at close — do NOT treat as closed)
+## Follow-ups (OPEN at close, all RESOLVED post-close)
 
-Per final-state facts forwarded by the orchestrator, these verify-report findings were NOT fixed after `verify-report.md` was written; they remain OPEN:
+As recorded at close, these verify-report findings remained open. **ALL were resolved in the post-close fix cycle and are now CLOSED:**
 
-1. **WARNING 1** — `containerId: ''` remains as a vestigial field in `src/lib/notifications/notification-service.ts:99` (dead cosmetic field; `generateContainerId` ignores it; R1.2 scenario passes; `NotificationMessage` emits no `containerId`). Follow-up: drop the field.
-2. **WARNING 2** — No mocked-bot unit test for the `handleCallbackQuery` flow exists yet (source-verified only; design scoped to a manual "real tap" harness). Follow-up: add a mocked-bot unit test.
-3. **SUGGESTION 2** — Spec R14 lists 4 `update*` keys; implementation/tasks use 5 (incl. `updateStatusAlready`, required by R8.1). No drift across dicts was observed. Follow-up: update the canonical spec note to enumerate 5 keys.
+1. **WARNING 1** — `containerId: ''` vestigial field: **RESOLVED** in `fix(notifications)` commit `e22ecb0` (`src/lib/notifications/notification-service.ts` no longer carries the dead field).
+2. **WARNING 2** — Missing mocked-bot unit test for `handleCallbackQuery`: **RESOLVED** in `fix(notifications)` commit `e22ecb0` (`src/lib/notifications/notification-callbacks.test.ts` + extended `telegram-polling.test.ts` cover the callback flow; `pnpm test` 65/65 at gate).
+3. **SUGGESTION 2** — Spec R14 lists 4 `update*` keys: **RESOLVED** — the canonical spec `openspec/specs/telegram-update-actions/spec.md` and the archived delta spec now enumerate the five keys including `updateStatusAlready` (verified post-close).
+
+## Final State (post-close)
+
+- Commits: `e5dc613` (openspec archive), `e22ecb0` (fix(notifications): preserve original message and format on Telegram update flow) on `feat/telegram-update-imagenes`.
+- Pushed to `origin/feat/telegram-update-imagenes`.
+- Working tree clean after close.
 
 ## Notes / Caveats
 
