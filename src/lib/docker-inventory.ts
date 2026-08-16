@@ -15,7 +15,9 @@ import docker from '@/lib/docker'
  */
 export async function listContainersRaw(): Promise<ContainerInfo[]> {
 	const containers = await docker.listContainers({ all: true })
-	return JSON.parse(JSON.stringify(containers))
+	// Detach from dockerode's response buffer so cached scopes never hold a
+	// reference to mutable daemon state
+	return structuredClone(containers)
 }
 
 /**
@@ -24,7 +26,7 @@ export async function listContainersRaw(): Promise<ContainerInfo[]> {
  */
 export async function listImagesRaw(): Promise<ImageInfo[]> {
 	const images = await docker.listImages()
-	return JSON.parse(JSON.stringify(images))
+	return structuredClone(images)
 }
 
 /**
