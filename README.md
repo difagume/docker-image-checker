@@ -1,5 +1,9 @@
 # Docker Image Checker
 
+[![docker](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fhub.docker.com%2Fv2%2Frepositories%2Fdifagume%2Fimage-checker%2Ftags%2F%3Fpage_size%3D1&query=%24.results%5B0%5D.name&label=docker&prefix=difagume%2Fimage-checker%3A&logo=docker&color=blue)](https://hub.docker.com/r/difagume/image-checker)
+[![Arquitecturas](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-informational?logo=docker)](https://hub.docker.com/r/difagume/image-checker/tags)
+[![Next.js](https://img.shields.io/badge/Next.js%2016-16.3.0-black?logo=nextdotjs)](https://nextjs.org)
+
 Un panel moderno para monitorear contenedores Docker y verificar actualizaciones de imágenes disponibles.
 
 ## 🔌 Conexión a Docker
