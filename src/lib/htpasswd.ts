@@ -16,7 +16,7 @@ export async function validateHtpasswd(
 		const [storedUsername, storedHash] = line.split(':')
 
 		if (storedUsername === username) {
-			return await verifyPassword(password, storedHash)
+			return await verifyPassword(username, password, storedHash)
 		}
 	}
 
@@ -24,6 +24,7 @@ export async function validateHtpasswd(
 }
 
 async function verifyPassword(
+	username: string,
 	password: string,
 	hash: string
 ): Promise<boolean> {
@@ -60,9 +61,15 @@ async function verifyPassword(
 		return false
 	}
 
-	// Texto plano (solo para testing, NO usar en producción)
-	console.warn('Comparando en texto plano - NO usar en producción')
-	return password === hash
+	// Formato no reconocido: rechazar. Nunca comparar en texto plano.
+	// El prefijo recibido delata la causa más común: `$$` = la variable no pasó
+	// por interpolación de Compose (Dokploy etc.), resto vacío = `$` interpolado.
+	console.error(
+		`[auth] Hash htpasswd con formato no reconocido para "${username}": prefijo "${hash.slice(0, 6)}", longitud ${hash.length}. ` +
+			`Formatos soportados: $apr1$, bcrypt ($2a$/$2b$/$2y$), {SHA}. ` +
+			'Revisa el escape de $ en la definición de AUTH_HTPASSWD.'
+	)
+	return false
 }
 
 /**
