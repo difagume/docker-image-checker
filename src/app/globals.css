@@ -91,4 +91,8 @@
 	:root {
 		--radius: 7px;
 	}
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
 }
