@@ -1,16 +1,38 @@
 import type { ScheduledTask } from 'node-cron'
 import cron from 'node-cron'
+import { clearOldNotifications } from '@/lib/app-state'
 import { listContainersRaw, listImagesRaw } from '@/lib/docker-inventory'
 import { checkAndNotify } from './notification-service'
 import { validateProviders } from './provider-factory'
 
-let scheduledTask: ScheduledTask | null = null
+// globalThis guard: in dev, module reinstantiation would otherwise create a
+// second cron task alongside the existing one.
+const schedulerStore = globalThis as unknown as {
+	__schedulerTask?: ScheduledTask | null
+	__schedulerInitialCheck?: NodeJS.Timeout | null
+}
+
+/**
+ * Run one notification check (containers + images + notify), then prune
+ * notified updates older than 30 days so the state file does not grow
+ * unboundedly.
+ */
+async function runNotificationCheck(): Promise<void> {
+	const containers = await listContainersRaw()
+	const images = await listImagesRaw()
+	await checkAndNotify(containers, images)
+	try {
+		await clearOldNotifications(30)
+	} catch (error) {
+		console.error('Error pruning old notifications:', error)
+	}
+}
 
 /**
  * Initialize the notification scheduler
  */
 export function initScheduler(): void {
-	if (scheduledTask) {
+	if (schedulerStore.__schedulerTask) {
 		console.log('Notification scheduler already initialized')
 		return
 	}
@@ -43,14 +65,12 @@ export function initScheduler(): void {
 	console.log(`Initializing notification scheduler with schedule: ${schedule}`)
 
 	// Schedule the task
-	scheduledTask = cron.schedule(
+	schedulerStore.__schedulerTask = cron.schedule(
 		schedule,
 		async () => {
 			console.log('Running scheduled notification check...')
 			try {
-				const containers = await listContainersRaw()
-				const images = await listImagesRaw()
-				await checkAndNotify(containers, images)
+				await runNotificationCheck()
 			} catch (error) {
 				console.error('Error during scheduled notification check:', error)
 			}
@@ -64,12 +84,11 @@ export function initScheduler(): void {
 
 	// Run an initial check after a short delay (30 seconds)
 	// This helps verify the setup is working without waiting for the first cron execution
-	setTimeout(async () => {
+	schedulerStore.__schedulerInitialCheck = setTimeout(async () => {
+		schedulerStore.__schedulerInitialCheck = null
 		console.log('Running initial notification check...')
 		try {
-			const containers = await listContainersRaw()
-			const images = await listImagesRaw()
-			await checkAndNotify(containers, images)
+			await runNotificationCheck()
 		} catch (error) {
 			console.error('Error during initial notification check:', error)
 		}
@@ -80,9 +99,13 @@ export function initScheduler(): void {
  * Stop the notification scheduler
  */
 export function stopScheduler(): void {
-	if (scheduledTask) {
-		scheduledTask.stop()
-		scheduledTask = null
+	if (schedulerStore.__schedulerInitialCheck) {
+		clearTimeout(schedulerStore.__schedulerInitialCheck)
+		schedulerStore.__schedulerInitialCheck = null
+	}
+	if (schedulerStore.__schedulerTask) {
+		schedulerStore.__schedulerTask.stop()
+		schedulerStore.__schedulerTask = null
 		console.log('Notification scheduler stopped')
 	}
 }
@@ -101,6 +124,6 @@ export function getSchedulerStatus(): {
 	return {
 		enabled,
 		schedule: enabled ? schedule : undefined,
-		running: scheduledTask !== null
+		running: schedulerStore.__schedulerTask !== null
 	}
 }

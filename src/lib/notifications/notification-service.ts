@@ -6,6 +6,7 @@ import {
 	markAsNotified
 } from '@/lib/app-state'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
+import { parseImageReference } from '@/lib/image-name'
 import { getReferenceUrls } from '@/lib/reference-url-manager'
 import {
 	type CheckImageUpdateResult,
@@ -84,10 +85,9 @@ export async function checkAndNotify(
 				continue
 			}
 
-			// Extract image name without tag and current tag
-			const imageParts = container.Image.split(':')
-			const imageNameOnly = imageParts[0] // e.g., "anoniemerd/prunemate"
-			const currentTag = imageParts[1] || 'latest' // e.g., "latest"
+			// Extract image name without tag and current tag (registry ports safe)
+			const { repository: imageNameOnly, tag: currentTag } =
+				parseImageReference(container.Image)
 
 			// Determine current version: prefer updateInfo.currentVersion, fallback to tag
 			const currentVersion =

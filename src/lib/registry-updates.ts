@@ -6,6 +6,7 @@ import {
 	REGISTRY_REVALIDATE_SECONDS
 } from '@/lib/cache-tags'
 import { getContainers, getImages } from '@/lib/docker-inventory'
+import { parseImageReference } from '@/lib/image-name'
 import { evaluatePolicies } from '@/lib/policies/engine'
 import type {
 	ImageContext,
@@ -51,30 +52,28 @@ export interface ContainerUpdateState {
 }
 
 /**
- * Fetch with timeout. No time APIs on purpose: this helper runs inside
- * "use cache" scopes, where `Date.now()`/`Temporal.Now` would block
- * prerendering (blocking-prerender-current-time).
+ * Fetch with a real abort on timeout so a hung registry request cannot hold
+ * the socket open past the deadline. No time APIs on purpose beyond the
+ * timer: this helper runs inside "use cache" scopes, where
+ * `Date.now()`/`Temporal.Now` would block prerendering
+ * (blocking-prerender-current-time).
  */
-function fetchWithTimeout(
+async function fetchWithTimeout(
 	url: string,
 	options: RequestInit = {},
 	timeout = FETCH_TIMEOUT
 ): Promise<Response> {
-	console.log(`[Docker API] Fetching: ${url}`)
-	let timeoutId: NodeJS.Timeout | null = null
+	const controller = new AbortController()
+	const timeoutId = setTimeout(
+		() => controller.abort(new Error(`Timeout after ${timeout}ms`)),
+		timeout
+	)
 
-	const fetchPromise = fetch(url, options).then((response) => {
-		if (timeoutId) clearTimeout(timeoutId)
-		return response
-	})
-
-	const timeoutPromise = new Promise<Response>((_, reject) => {
-		timeoutId = setTimeout(() => {
-			reject(new Error(`Timeout after ${timeout}ms`))
-		}, timeout)
-	})
-
-	return Promise.race([fetchPromise, timeoutPromise])
+	try {
+		return await fetch(url, { ...options, signal: controller.signal })
+	} finally {
+		clearTimeout(timeoutId)
+	}
 }
 
 interface GhcrPackageVersion {
@@ -368,7 +367,7 @@ export async function getContainerUpdateStates(): Promise<
 
 	const states = await Promise.all(
 		containers.map(async (container) => {
-			const imageTag = container.Image.split(':')[1] || 'latest'
+			const imageTag = parseImageReference(container.Image).tag
 			const isRunning = container.State === 'running'
 			const ports = (container.Ports || [])
 				.filter((p) => p.PublicPort > 0)

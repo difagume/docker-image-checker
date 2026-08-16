@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getPreferredLanguage, loadState } from '@/lib/app-state'
+import { unauthorizedResponseIfEnabled } from '@/lib/auth-guard'
 import {
 	getEnabledProviders,
 	validateProviders
@@ -9,6 +10,9 @@ import {
  * Health check for notification system
  */
 export async function GET() {
+	const unauthorized = await unauthorizedResponseIfEnabled()
+	if (unauthorized) return unauthorized
+
 	try {
 		const state = await loadState()
 		const enabled = process.env.NOTIFICATIONS_ENABLED === 'true'

@@ -11,6 +11,15 @@ import {
 import { BaseNotificationProvider } from './base'
 
 /**
+ * Escape legacy-Markdown special characters inside code spans. Image and
+ * container names are interpolated into `` ` `` spans, where an unescaped
+ * backtick would break parsing and make Telegram reject the send/edit.
+ */
+function escapeCodeSpan(text: string): string {
+	return text.replace(/([\\`])/g, '\\$1')
+}
+
+/**
  * Formats the Markdown info block for an update notification. Shared by the
  * outbound provider (send) and the inbound poller, which resurrects the
  * original info across edits and rebuilds it with the post-update version on
@@ -23,10 +32,10 @@ export function formatTelegramMessage(message: NotificationMessage): string {
 	const lines = [
 		`🐳 *${t.title}*`,
 		'',
-		`*${t.container}:* \`${message.containerName}\``,
-		`*${t.image}:* \`${message.imageName}\``,
-		`*${t.current}:* \`${message.currentVersion}\``,
-		`*${t.latest}:* \`${message.latestVersion}\``
+		`*${t.container}:* \`${escapeCodeSpan(message.containerName)}\``,
+		`*${t.image}:* \`${escapeCodeSpan(message.imageName)}\``,
+		`*${t.current}:* \`${escapeCodeSpan(message.currentVersion)}\``,
+		`*${t.latest}:* \`${escapeCodeSpan(message.latestVersion)}\``
 	]
 
 	if (message.lastUpdated) {

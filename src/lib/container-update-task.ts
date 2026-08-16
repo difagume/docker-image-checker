@@ -1,3 +1,8 @@
+import type {
+	ContainerCreateOptions,
+	ContainerInspectInfo,
+	Container as DockerodeContainer
+} from 'dockerode'
 import { REFRESH_TAGS } from '@/lib/cache-tags'
 import docker from '@/lib/docker'
 import { clearContainerCallbacks } from '@/lib/notifications/notification-callbacks'
@@ -7,6 +12,18 @@ import { progressStore } from '@/lib/update-progress-store'
 export type UpdateRevalidator = (
 	tags: readonly string[]
 ) => Promise<void> | void
+
+/**
+ * Thrown by runContainerUpdateTask when an update is already in flight for
+ * the container. Typed so callers (e.g. the Telegram poller) can branch on
+ * instanceof instead of matching the message string.
+ */
+export class ContainerUpdateInProgressError extends Error {
+	constructor() {
+		super('Container update already in progress')
+		this.name = 'ContainerUpdateInProgressError'
+	}
+}
 
 export type OnPhaseCallback = (
 	phase: UpdatePhase,
@@ -29,28 +46,144 @@ export interface UpdateTaskHandle {
 }
 
 /**
+ * Normalized create options rebuilt from inspect data so the recreated
+ * container keeps its config (env, ports, binds, networks, restart policy).
+ * Used for both the new-image recreation and the rollback to the original
+ * image. `PORT=`/`HOST_PORT=` env vars are dropped because port mappings are
+ * re-specified through PortBindings and stale values would conflict with a
+ * changed image.
+ */
+function buildCreateOptions(
+	containerInfo: ContainerInspectInfo,
+	imageName: string
+): ContainerCreateOptions {
+	const { Config: config, HostConfig: hostConfig } = containerInfo
+	const networkingConfig = containerInfo.NetworkSettings
+	const name = containerInfo.Name.replace(/^\//, '')
+
+	const exposedPorts: Record<string, object> = {}
+	if (config.ExposedPorts) {
+		for (const port of Object.keys(config.ExposedPorts)) {
+			exposedPorts[port] = {}
+		}
+	}
+
+	const binds: string[] = hostConfig.Binds || []
+
+	const restartPolicy: { Name: string; MaximumRetryCount?: number } = {
+		Name: hostConfig.RestartPolicy?.Name || 'no'
+	}
+	if (hostConfig.RestartPolicy?.MaximumRetryCount !== undefined) {
+		restartPolicy.MaximumRetryCount = hostConfig.RestartPolicy.MaximumRetryCount
+	}
+
+	const portBindings: Record<
+		string,
+		Array<{ HostIp: string; HostPort: string }> | undefined
+	> = {}
+	if (hostConfig.PortBindings) {
+		for (const [containerPort, hostPorts] of Object.entries(
+			hostConfig.PortBindings
+		)) {
+			portBindings[containerPort] = hostPorts as Array<{
+				HostIp: string
+				HostPort: string
+			}>
+		}
+	}
+
+	const networks: Record<string, object> = {}
+	if (networkingConfig.Networks) {
+		for (const networkName of Object.keys(networkingConfig.Networks)) {
+			networks[networkName] = {}
+		}
+	}
+
+	const env: string[] = []
+	if (config.Env) {
+		for (const envVar of config.Env) {
+			if (!envVar.startsWith('PORT=') && !envVar.startsWith('HOST_PORT=')) {
+				env.push(envVar)
+			}
+		}
+	}
+
+	return {
+		name,
+		Image: imageName,
+		Cmd: config.Cmd,
+		Env: env.length > 0 ? env : undefined,
+		WorkingDir: config.WorkingDir || undefined,
+		Labels: config.Labels,
+		ExposedPorts:
+			Object.keys(exposedPorts).length > 0 ? exposedPorts : undefined,
+		HostConfig: {
+			Binds: binds.length > 0 ? binds : undefined,
+			PortBindings:
+				Object.keys(portBindings).length > 0 ? portBindings : undefined,
+			RestartPolicy: restartPolicy,
+			NetworkMode: hostConfig.NetworkMode || undefined
+		},
+		NetworkingConfig:
+			Object.keys(networks).length > 0
+				? { EndpointsConfig: networks }
+				: undefined
+	}
+}
+
+/**
+ * Best-effort rollback: after the original container was removed, recreate it
+ * with its original image and config so a failed create/start does not leave
+ * the service destroyed. Failures are logged, never thrown — the original
+ * update error is the one that matters.
+ */
+async function rollbackContainer(
+	containerInfo: ContainerInspectInfo,
+	wasRunning: boolean
+): Promise<void> {
+	const name = containerInfo.Name.replace(/^\//, '')
+	try {
+		console.log(`[Image Update] Rolling back container ${name}...`)
+		const restored = await docker.createContainer(
+			buildCreateOptions(containerInfo, containerInfo.Config.Image)
+		)
+		if (wasRunning) {
+			await restored.start()
+		}
+		console.log(`[Image Update] Rollback of ${name} succeeded`)
+	} catch (rollbackError) {
+		console.error(
+			`[Image Update] Rollback of ${name} failed, container left removed:`,
+			rollbackError
+		)
+	}
+}
+
+/**
  * The actual Docker update pipeline. Moves a container from its current image
  * to `newImageName`, preserving config (env, ports, binds, networks, restart
  * policy). Shared verbatim between the web action and the Telegram polling
- * path so both flows behave identically (R6).
+ * path so both flows behave identically (R6). If recreation or start fails
+ * after the original container was removed, attempts a rollback to the
+ * original image.
  */
 async function doUpdateContainerImage(
 	containerId: string,
 	newImageName: string,
 	onPhase?: OnPhaseCallback
 ): Promise<UpdateTaskResult> {
-	try {
-		const container = docker.getContainer(containerId)
-		const containerInfo = await container.inspect()
+	const container = docker.getContainer(containerId)
+	let containerInfo: ContainerInspectInfo | null = null
+	let wasRunning = false
+	let originalRemoved = false
+	let newContainer: DockerodeContainer | null = null
 
-		const wasRunning = containerInfo.State.Running
-		const config = containerInfo.Config
-		const hostConfig = containerInfo.HostConfig
-		const networkingConfig = containerInfo.NetworkSettings
-		const name = containerInfo.Name.replace(/^\//, '')
+	try {
+		containerInfo = await container.inspect()
+		wasRunning = containerInfo.State.Running
 
 		console.log(
-			`[Image Update] Starting update for container ${containerId}: ${config.Image} -> ${newImageName}`
+			`[Image Update] Starting update for container ${containerId}: ${containerInfo.Config.Image} -> ${newImageName}`
 		)
 
 		if (wasRunning) {
@@ -100,161 +233,66 @@ async function doUpdateContainerImage(
 			onPhase?.('stopping', { statusText: 'Stopping container...' })
 			console.log(`[Image Update] Stopping container ${containerId}...`)
 			await container.stop()
+		}
 
-			console.log(`[Image Update] Removing old container ${containerId}...`)
-			await container.remove()
+		console.log(`[Image Update] Removing old container ${containerId}...`)
+		await container.remove()
+		originalRemoved = true
 
-			// Phase: recreating
-			onPhase?.('recreating', { statusText: 'Recreating container...' })
+		// Phase: recreating
+		onPhase?.('recreating', { statusText: 'Recreating container...' })
 
-			const exposedPorts: Record<string, object> = {}
-			if (config.ExposedPorts) {
-				for (const port of Object.keys(config.ExposedPorts)) {
-					exposedPorts[port] = {}
-				}
-			}
+		console.log(
+			`[Image Update] Creating new container with image ${newImageName}...`
+		)
+		newContainer = await docker.createContainer(
+			buildCreateOptions(containerInfo, newImageName)
+		)
 
-			const binds: string[] = hostConfig.Binds || []
-
-			const restartPolicy: { Name: string; MaximumRetryCount?: number } = {
-				Name: hostConfig.RestartPolicy?.Name || 'no'
-			}
-			if (hostConfig.RestartPolicy?.MaximumRetryCount !== undefined) {
-				restartPolicy.MaximumRetryCount =
-					hostConfig.RestartPolicy.MaximumRetryCount
-			}
-
-			const portBindings: Record<
-				string,
-				Array<{ HostIp: string; HostPort: string }> | undefined
-			> = {}
-			if (hostConfig.PortBindings) {
-				for (const [containerPort, hostPorts] of Object.entries(
-					hostConfig.PortBindings
-				)) {
-					portBindings[containerPort] = hostPorts as Array<{
-						HostIp: string
-						HostPort: string
-					}>
-				}
-			}
-
-			const networks: Record<string, object> = {}
-			if (networkingConfig.Networks) {
-				for (const networkName of Object.keys(networkingConfig.Networks)) {
-					networks[networkName] = {}
-				}
-			}
-
-			const env: string[] = []
-			if (config.Env) {
-				for (const envVar of config.Env) {
-					if (!envVar.startsWith('PORT=') && !envVar.startsWith('HOST_PORT=')) {
-						env.push(envVar)
-					}
-				}
-			}
-
-			console.log(
-				`[Image Update] Creating new container with image ${newImageName}...`
-			)
-			const newContainer = await docker.createContainer({
-				name,
-				Image: newImageName,
-				Cmd: config.Cmd,
-				Env: env.length > 0 ? env : undefined,
-				WorkingDir: config.WorkingDir || undefined,
-				Labels: config.Labels,
-				ExposedPorts:
-					Object.keys(exposedPorts).length > 0 ? exposedPorts : undefined,
-				HostConfig: {
-					Binds: binds.length > 0 ? binds : undefined,
-					PortBindings:
-						Object.keys(portBindings).length > 0 ? portBindings : undefined,
-					RestartPolicy: restartPolicy,
-					NetworkMode: hostConfig.NetworkMode || undefined
-				},
-				NetworkingConfig:
-					Object.keys(networks).length > 0
-						? { EndpointsConfig: networks }
-						: undefined
-			})
-
+		if (wasRunning) {
 			// Phase: starting
 			onPhase?.('starting', { statusText: 'Starting container...' })
 			console.log(`[Image Update] Starting new container ${newContainer.id}...`)
 			await newContainer.start()
-
-			// Phase: verifying
-			onPhase?.('verifying', { statusText: 'Verifying update...' })
-
-			// Inspect the new container to get fresh ImageID
-			const newContainerInfo = await newContainer.inspect()
-
-			console.log(
-				`[Image Update] Successfully updated container ${containerId} -> ${newContainer.id}`
-			)
-
-			return {
-				success: true,
-				newContainerId: newContainer.id.substring(0, 12),
-				newImageId: newContainerInfo.Image
-			}
 		}
-
-		// Container was stopped — still recreate it with the new image
-		console.log(
-			`[Image Update] Container was stopped, recreating with new image...`
-		)
-
-		// Phase: recreating (stopped container)
-		onPhase?.('recreating', { statusText: 'Recreating container...' })
-
-		// Remove old container and create a new one with the new image
-		await container.remove()
-
-		const newContainer = await docker.createContainer({
-			name,
-			Image: newImageName,
-			Cmd: config.Cmd,
-			Env: config.Env,
-			WorkingDir: config.WorkingDir || undefined,
-			Labels: config.Labels,
-			ExposedPorts: config.ExposedPorts || undefined,
-			HostConfig: {
-				Binds: hostConfig.Binds || undefined,
-				PortBindings: hostConfig.PortBindings || undefined,
-				RestartPolicy: hostConfig.RestartPolicy,
-				NetworkMode: hostConfig.NetworkMode || undefined
-			},
-			NetworkingConfig: networkingConfig.Networks
-				? {
-						EndpointsConfig: Object.fromEntries(
-							Object.keys(networkingConfig.Networks).map((n) => [n, {}])
-						)
-					}
-				: undefined
-		})
 
 		// Phase: verifying
 		onPhase?.('verifying', { statusText: 'Verifying update...' })
 
-		const newContainerInfo = await newContainer.inspect()
+		// Inspect the new container to get fresh ImageID
+		const newContainerInspectInfo = await newContainer.inspect()
 
 		console.log(
-			`[Image Update] Successfully updated stopped container ${containerId} -> ${newContainer.id}`
+			`[Image Update] Successfully updated container ${containerId} -> ${newContainer.id}`
 		)
 
 		return {
 			success: true,
 			newContainerId: newContainer.id.substring(0, 12),
-			newImageId: newContainerInfo.Image
+			newImageId: newContainerInspectInfo.Image
 		}
 	} catch (error) {
 		console.error(
 			`[Image Update] Failed to update container ${containerId}:`,
 			error
 		)
+
+		if (originalRemoved && containerInfo) {
+			// The original container is gone; drop any half-created replacement
+			// so the original name is free again, then restore the original.
+			if (newContainer) {
+				try {
+					await newContainer.remove({ force: true })
+				} catch (removeError) {
+					console.error(
+						`[Image Update] Failed to remove half-created replacement:`,
+						removeError
+					)
+				}
+			}
+			await rollbackContainer(containerInfo, wasRunning)
+		}
+
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -295,7 +333,7 @@ export async function runContainerUpdateTask(
 	opts: { revalidate?: UpdateRevalidator; onPhase?: OnPhaseCallback } = {}
 ): Promise<UpdateTaskHandle> {
 	if (progressStore.isContainerUpdating(containerId)) {
-		throw new Error('Container update already in progress')
+		throw new ContainerUpdateInProgressError()
 	}
 
 	const taskId = crypto.randomUUID()

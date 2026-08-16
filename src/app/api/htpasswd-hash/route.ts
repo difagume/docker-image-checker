@@ -1,15 +1,17 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import type { NextRequest } from 'next/server'
+import { unauthorizedResponseIfEnabled } from '@/lib/auth-guard'
 
 // Función para generar hash MD5 APR1 (Apache)
 function generateApr1Md5(password: string, salt?: string): string {
 	if (!salt) {
-		// Generar un salt aleatorio de 8 caracteres
+		// Generar un salt aleatorio de 8 caracteres (CSPRNG)
 		const chars =
 			'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+		const bytes = randomBytes(8)
 		salt = ''
 		for (let i = 0; i < 8; i++) {
-			salt += chars[Math.floor(Math.random() * chars.length)]
+			salt += chars[bytes[i] % chars.length]
 		}
 	}
 
@@ -117,6 +119,9 @@ function generateSha1(password: string): string {
 }
 
 export async function POST(request: NextRequest) {
+	const unauthorized = await unauthorizedResponseIfEnabled()
+	if (unauthorized) return unauthorized
+
 	try {
 		const {
 			username,
@@ -138,11 +143,38 @@ export async function POST(request: NextRequest) {
 		switch (format.toLowerCase()) {
 			case 'apr1':
 			case 'md5':
+				if (salt !== undefined) {
+					if (
+						typeof salt !== 'string' ||
+						salt.length > 8 ||
+						!/^[a-zA-Z0-9./]+$/.test(salt)
+					) {
+						return Response.json(
+							{
+								error:
+									'Salt inválido: máximo 8 caracteres alfanuméricos (a-z, A-Z, 0-9, ".", "/")'
+							},
+							{ status: 400 }
+						)
+					}
+				}
 				hash = generateApr1Md5(password, salt)
 				break
-			case 'bcrypt':
-				hash = await generateBcrypt(password, rounds || 10)
+			case 'bcrypt': {
+				const resolvedRounds = rounds ?? 10
+				if (
+					!Number.isInteger(resolvedRounds) ||
+					resolvedRounds < 4 ||
+					resolvedRounds > 15
+				) {
+					return Response.json(
+						{ error: 'Rounds inválido: debe ser un entero entre 4 y 15' },
+						{ status: 400 }
+					)
+				}
+				hash = await generateBcrypt(password, resolvedRounds)
 				break
+			}
 			case 'sha':
 			case 'sha1':
 				hash = generateSha1(password)

@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { unauthorizedResponseIfEnabled } from '@/lib/auth-guard'
 import { progressStore, type UpdatePhase } from '@/lib/update-progress-store'
 
 interface ProgressEvent {
@@ -14,6 +15,9 @@ interface ProgressEvent {
 }
 
 export async function GET(req: NextRequest) {
+	const unauthorized = await unauthorizedResponseIfEnabled()
+	if (unauthorized) return unauthorized
+
 	const { searchParams } = new URL(req.url)
 	const taskId = searchParams.get('taskId')
 

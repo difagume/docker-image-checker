@@ -10,6 +10,22 @@ import type {
 
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'dashboard-state.json')
 
+// Serialize every read-modify-write cycle on the state file so concurrent
+// mutations (e.g. the notification scheduler racing a dashboard settings
+// save) cannot observe stale state and overwrite each other's changes.
+// writeFileAtomic only serializes writes, not the load → mutate → save cycle.
+const stateStore = globalThis as unknown as {
+	__appStateMutex?: Promise<unknown>
+}
+stateStore.__appStateMutex ??= Promise.resolve()
+
+function runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+	const mutex = stateStore.__appStateMutex as Promise<unknown>
+	const result = mutex.then(operation)
+	stateStore.__appStateMutex = result.catch(() => {})
+	return result
+}
+
 /**
  * Generate a unique ID for a container update
  * Format: containerName:imageName:latestDigest
@@ -19,7 +35,9 @@ export function generateContainerId(update: ContainerUpdate): string {
 }
 
 /**
- * Load notification state from JSON file
+ * Load notification state from JSON file. A corrupt file is moved aside to
+ * `<file>.corrupt-<timestamp>` so the next save does not silently destroy
+ * whatever state was recoverable from it.
  */
 export async function loadState(): Promise<NotificationState> {
 	try {
@@ -39,6 +57,13 @@ export async function loadState(): Promise<NotificationState> {
 			console.log('No existing app state found, creating new state')
 		} else {
 			console.error('Error loading app state:', error)
+			try {
+				const backupPath = `${STATE_FILE_PATH}.corrupt-${Date.now()}`
+				await fs.rename(STATE_FILE_PATH, backupPath)
+				console.error(`Corrupt app state file moved aside: ${backupPath}`)
+			} catch {
+				// Rename is best-effort; fall through to the empty state
+			}
 		}
 		return { notifiedUpdates: {} }
 	}
@@ -83,21 +108,23 @@ export function hasBeenNotified(
  * Mark an update as notified
  */
 export async function markAsNotified(update: ContainerUpdate): Promise<void> {
-	const state = await loadState()
-	const containerId = generateContainerId(update)
+	return runExclusive(async () => {
+		const state = await loadState()
+		const containerId = generateContainerId(update)
 
-	const notifiedUpdate: NotifiedUpdate = {
-		notifiedAt: Temporal.Now.instant().toString(),
-		containerName: update.containerName,
-		imageName: update.imageName,
-		latestVersion: update.latestVersion,
-		latestDigest: update.latestDigest
-	}
+		const notifiedUpdate: NotifiedUpdate = {
+			notifiedAt: Temporal.Now.instant().toString(),
+			containerName: update.containerName,
+			imageName: update.imageName,
+			latestVersion: update.latestVersion,
+			latestDigest: update.latestDigest
+		}
 
-	state.notifiedUpdates[containerId] = notifiedUpdate
-	state.lastCheck = Temporal.Now.instant().toString()
+		state.notifiedUpdates[containerId] = notifiedUpdate
+		state.lastCheck = Temporal.Now.instant().toString()
 
-	await saveState(state)
+		await saveState(state)
+	})
 }
 
 /**
@@ -122,25 +149,27 @@ export async function getLastCheck(): Promise<string | undefined> {
  * Clear old notifications (older than specified days)
  */
 export async function clearOldNotifications(daysOld = 30): Promise<void> {
-	const state = await loadState()
-	const cutoffInstant = Temporal.Now.instant()
-		.toZonedDateTimeISO('UTC')
-		.subtract({ days: daysOld })
-		.toInstant()
+	return runExclusive(async () => {
+		const state = await loadState()
+		const cutoffInstant = Temporal.Now.instant()
+			.toZonedDateTimeISO('UTC')
+			.subtract({ days: daysOld })
+			.toInstant()
 
-	const filteredUpdates: Record<string, NotifiedUpdate> = {}
+		const filteredUpdates: Record<string, NotifiedUpdate> = {}
 
-	for (const [key, value] of Object.entries(state.notifiedUpdates)) {
-		const notifiedInstant = Temporal.Instant.from(value.notifiedAt)
-		if (Temporal.Instant.compare(notifiedInstant, cutoffInstant) > 0) {
-			filteredUpdates[key] = value
+		for (const [key, value] of Object.entries(state.notifiedUpdates)) {
+			const notifiedInstant = Temporal.Instant.from(value.notifiedAt)
+			if (Temporal.Instant.compare(notifiedInstant, cutoffInstant) > 0) {
+				filteredUpdates[key] = value
+			}
 		}
-	}
 
-	state.notifiedUpdates = filteredUpdates
-	await saveState(state)
+		state.notifiedUpdates = filteredUpdates
+		await saveState(state)
 
-	console.log(`Cleared notifications older than ${daysOld} days`)
+		console.log(`Cleared notifications older than ${daysOld} days`)
+	})
 }
 
 /**
@@ -155,9 +184,11 @@ export async function getHiddenContainerIds(): Promise<string[]> {
  * Set hidden container IDs
  */
 export async function setHiddenContainerIds(ids: string[]): Promise<void> {
-	const state = await loadState()
-	state.hiddenContainerIds = ids
-	await saveState(state)
+	return runExclusive(async () => {
+		const state = await loadState()
+		state.hiddenContainerIds = ids
+		await saveState(state)
+	})
 }
 
 export async function isContainerHidden(containerId: string): Promise<boolean> {
@@ -179,9 +210,11 @@ export async function getIgnoredNotificationContainerIds(): Promise<string[]> {
 export async function setIgnoredNotificationContainerIds(
 	ids: string[]
 ): Promise<void> {
-	const state = await loadState()
-	state.ignoredNotificationIds = ids
-	await saveState(state)
+	return runExclusive(async () => {
+		const state = await loadState()
+		state.ignoredNotificationIds = ids
+		await saveState(state)
+	})
 }
 
 /**
@@ -206,9 +239,11 @@ export async function getPreferredLanguage(): Promise<string> {
  * Set preferred language for notifications
  */
 export async function setPreferredLanguage(language: string): Promise<void> {
-	const state = await loadState()
-	state.preferredLanguage = language
-	await saveState(state)
+	return runExclusive(async () => {
+		const state = await loadState()
+		state.preferredLanguage = language
+		await saveState(state)
+	})
 }
 
 /**
@@ -236,12 +271,14 @@ export async function setDashboardSettings(settings: {
 	activeFilters?: FilterStatus[]
 	showHiddenMode?: boolean
 }): Promise<void> {
-	const state = await loadState()
-	if (settings.activeFilters !== undefined) {
-		state.activeFilters = settings.activeFilters
-	}
-	if (settings.showHiddenMode !== undefined) {
-		state.showHiddenMode = settings.showHiddenMode
-	}
-	await saveState(state)
+	return runExclusive(async () => {
+		const state = await loadState()
+		if (settings.activeFilters !== undefined) {
+			state.activeFilters = settings.activeFilters
+		}
+		if (settings.showHiddenMode !== undefined) {
+			state.showHiddenMode = settings.showHiddenMode
+		}
+		await saveState(state)
+	})
 }

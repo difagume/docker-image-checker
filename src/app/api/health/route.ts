@@ -29,7 +29,7 @@ export async function GET() {
 					app: { status: 'up' },
 					docker: {
 						status: 'down',
-						error: error instanceof Error ? error.message : 'Unknown error'
+						error: 'Docker daemon unreachable'
 					}
 				}
 			},

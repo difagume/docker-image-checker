@@ -1,6 +1,7 @@
 'use server'
 
 import { updateTag } from 'next/cache'
+import { requireAuthIfEnabled } from '@/lib/auth-guard'
 import { REFRESH_TAGS } from '@/lib/cache-tags'
 import {
 	runContainerUpdateTask,
@@ -25,6 +26,7 @@ export async function triggerContainerUpdate(
 	containerId: string,
 	newImageName: string
 ): Promise<{ taskId: string }> {
+	await requireAuthIfEnabled()
 	const { taskId } = await runContainerUpdateTask(containerId, newImageName, {
 		revalidate: async () => {
 			for (const tag of REFRESH_TAGS) {
@@ -43,6 +45,7 @@ export async function verifyContainerUpdate(imageName: string): Promise<{
 	policyState?: PolicyState
 	localDigest?: string
 }> {
+	await requireAuthIfEnabled()
 	try {
 		// Get the new digest from the updated image
 		const image = docker.getImage(imageName)

@@ -10,7 +10,9 @@ export async function register() {
 	// Los efectos secundarios deben vivir dentro de register(): se ejecuta una
 	// sola vez al iniciar el servidor, no al importar el módulo.
 	if (process.env.NEXT_RUNTIME === 'nodejs') {
-		const { initScheduler } = await import('./lib/notifications/scheduler')
+		const { initScheduler, stopScheduler } = await import(
+			'./lib/notifications/scheduler'
+		)
 		initScheduler()
 
 		// Inbound long-polling bot for one-tap Telegram image updates. Runs
@@ -23,8 +25,9 @@ export async function register() {
 		// Graceful stop on SIGTERM/SIGINT so getUpdates loops end cleanly (R15).
 		const handleShutdown = async (signal: string) => {
 			console.log(
-				`[instrumentation] ${signal} received, stopping Telegram polling`
+				`[instrumentation] ${signal} received, stopping scheduler and Telegram polling`
 			)
+			stopScheduler()
 			stopTelegramPolling()
 		}
 		process.once('SIGTERM', () => void handleShutdown('SIGTERM'))

@@ -18,7 +18,12 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/docker', () => ({ default: mocks.docker }))
-vi.mock('@/lib/container-update-task', () => mocks.core)
+vi.mock('@/lib/container-update-task', async (importActual) => ({
+	// Keep the real error classes so `instanceof` checks in the poller
+	// work; only the task runner is replaced.
+	...(await importActual<typeof import('@/lib/container-update-task')>()),
+	runContainerUpdateTask: mocks.core.runContainerUpdateTask
+}))
 vi.mock('./notification-callbacks', () => mocks.callbacks)
 vi.mock('./revalidate-tunnel', () => mocks.tunnel)
 
@@ -347,8 +352,11 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 
 	it('keeps the updating status (with info) when the core rethrows the dedup race (R7.1)', async () => {
 		inspectReturns('nginx:1.0.0')
+		const { ContainerUpdateInProgressError } = await import(
+			'@/lib/container-update-task'
+		)
 		mocks.core.runContainerUpdateTask.mockRejectedValue(
-			new Error('Container update already in progress')
+			new ContainerUpdateInProgressError()
 		)
 
 		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
