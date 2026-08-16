@@ -13,6 +13,18 @@ export type UpdateRevalidator = (
 	tags: readonly string[]
 ) => Promise<void> | void
 
+/**
+ * Thrown by runContainerUpdateTask when an update is already in flight for
+ * the container. Typed so callers (e.g. the Telegram poller) can branch on
+ * instanceof instead of matching the message string.
+ */
+export class ContainerUpdateInProgressError extends Error {
+	constructor() {
+		super('Container update already in progress')
+		this.name = 'ContainerUpdateInProgressError'
+	}
+}
+
 export type OnPhaseCallback = (
 	phase: UpdatePhase,
 	data?: {
@@ -321,7 +333,7 @@ export async function runContainerUpdateTask(
 	opts: { revalidate?: UpdateRevalidator; onPhase?: OnPhaseCallback } = {}
 ): Promise<UpdateTaskHandle> {
 	if (progressStore.isContainerUpdating(containerId)) {
-		throw new Error('Container update already in progress')
+		throw new ContainerUpdateInProgressError()
 	}
 
 	const taskId = crypto.randomUUID()

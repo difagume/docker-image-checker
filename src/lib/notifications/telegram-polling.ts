@@ -1,7 +1,10 @@
 import type { ContainerInspectInfo } from 'dockerode'
 import type { CallbackQuery, InlineKeyboardMarkup } from 'node-telegram-bot-api'
 import TelegramBot from 'node-telegram-bot-api'
-import { runContainerUpdateTask } from '@/lib/container-update-task'
+import {
+	ContainerUpdateInProgressError,
+	runContainerUpdateTask
+} from '@/lib/container-update-task'
 import docker from '@/lib/docker'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
 import type { UpdatePhase } from '@/lib/update-progress-store'
@@ -343,10 +346,7 @@ export async function handleCallbackQuery(
 		}
 		await removeCallbackData(shortId)
 	} catch (error) {
-		if (
-			error instanceof Error &&
-			error.message === 'Container update already in progress'
-		) {
+		if (error instanceof ContainerUpdateInProgressError) {
 			// Race: a concurrent update started between our check and the core.
 			// Keep the button valid — the other task is handling this container.
 			await safeEditMessage(
