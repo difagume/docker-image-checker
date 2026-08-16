@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { triggerContainerUpdate, verifyContainerUpdate } from '@/actions/docker'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
+import { withTag } from '@/lib/image-name'
 import type { PolicyState } from '@/lib/policies/types'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import type { FilterStatus } from '@/types/app-state'
@@ -69,9 +70,7 @@ export function useContainerUpdates(
 			[containerId]: { phase: 'pulling', statusText: 'Starting...' }
 		}))
 
-		const imageName = containerImage.includes(':')
-			? `${containerImage.split(':')[0]}:${newVersion}`
-			: `${containerImage}:${newVersion}`
+		const imageName = withTag(containerImage, newVersion)
 
 		const containerName =
 			containers.find((c) => c.container.Id === containerId)?.containerName ||

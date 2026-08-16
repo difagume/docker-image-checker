@@ -6,6 +6,7 @@ import {
 	REGISTRY_REVALIDATE_SECONDS
 } from '@/lib/cache-tags'
 import { getContainers, getImages } from '@/lib/docker-inventory'
+import { parseImageReference } from '@/lib/image-name'
 import { evaluatePolicies } from '@/lib/policies/engine'
 import type {
 	ImageContext,
@@ -368,7 +369,7 @@ export async function getContainerUpdateStates(): Promise<
 
 	const states = await Promise.all(
 		containers.map(async (container) => {
-			const imageTag = container.Image.split(':')[1] || 'latest'
+			const imageTag = parseImageReference(container.Image).tag
 			const isRunning = container.State === 'running'
 			const ports = (container.Ports || [])
 				.filter((p) => p.PublicPort > 0)
