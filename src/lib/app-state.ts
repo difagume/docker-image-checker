@@ -35,7 +35,9 @@ export function generateContainerId(update: ContainerUpdate): string {
 }
 
 /**
- * Load notification state from JSON file
+ * Load notification state from JSON file. A corrupt file is moved aside to
+ * `<file>.corrupt-<timestamp>` so the next save does not silently destroy
+ * whatever state was recoverable from it.
  */
 export async function loadState(): Promise<NotificationState> {
 	try {
@@ -55,6 +57,13 @@ export async function loadState(): Promise<NotificationState> {
 			console.log('No existing app state found, creating new state')
 		} else {
 			console.error('Error loading app state:', error)
+			try {
+				const backupPath = `${STATE_FILE_PATH}.corrupt-${Date.now()}`
+				await fs.rename(STATE_FILE_PATH, backupPath)
+				console.error(`Corrupt app state file moved aside: ${backupPath}`)
+			} catch {
+				// Rename is best-effort; fall through to the empty state
+			}
 		}
 		return { notifiedUpdates: {} }
 	}
