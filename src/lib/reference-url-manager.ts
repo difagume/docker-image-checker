@@ -19,7 +19,9 @@ export interface ReferenceUrlState {
 }
 
 /**
- * Load reference URLs from JSON file
+ * Load reference URLs from JSON file. A corrupt file is moved aside to
+ * `<file>.corrupt-<timestamp>` so the next save does not silently destroy
+ * whatever state was recoverable from it.
  */
 export async function loadReferenceUrls(): Promise<ReferenceUrlState> {
 	try {
@@ -38,6 +40,13 @@ export async function loadReferenceUrls(): Promise<ReferenceUrlState> {
 			console.log('No existing reference URLs found, creating new state')
 		} else {
 			console.error('Error loading reference URLs:', error)
+			try {
+				const backupPath = `${REFERENCE_URLS_FILE_PATH}.corrupt-${Date.now()}`
+				await fs.rename(REFERENCE_URLS_FILE_PATH, backupPath)
+				console.error(`Corrupt reference URLs file moved aside: ${backupPath}`)
+			} catch {
+				// Rename is best-effort; fall through to the empty state
+			}
 		}
 		return {
 			referenceUrls: {}
@@ -78,6 +87,18 @@ export async function saveReferenceUrl(
 		// If URL is empty, remove the entry
 		delete state.referenceUrls[imageName]
 	} else {
+		// Only http(s) URLs are stored: the value ends up in notification
+		// links/actions, so other schemes (javascript:, data:, ...) are rejected.
+		let parsed: URL
+		try {
+			parsed = new URL(url)
+		} catch {
+			throw new Error('Invalid reference URL')
+		}
+		if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+			throw new Error('Reference URL must use http:// or https://')
+		}
+
 		state.referenceUrls[imageName] = {
 			image: imageName,
 			referenceUrl: url,
