@@ -6,6 +6,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState
 } from 'react'
 import {
@@ -65,6 +66,11 @@ export function DashboardProvider({
 	const [referenceUrls, setReferenceUrls] =
 		useState<Record<string, ReferenceUrlData>>(initialReferenceUrls)
 
+	// Mirrors of the latest list state so rapid consecutive toggles compute
+	// from what was actually persisted, not from a stale render closure.
+	const hiddenContainerIdsRef = useRef(initialHiddenIds)
+	const ignoredNotificationIdsRef = useRef(initialIgnoredIds)
+
 	// Load initial state from server on mount
 	useEffect(() => {
 		let isCancelled = false
@@ -81,8 +87,10 @@ export function DashboardProvider({
 
 				if (!isCancelled) {
 					setHiddenContainerIds(hiddenIds)
+					hiddenContainerIdsRef.current = hiddenIds
 					if (notificationsEnabled) {
 						setIgnoredNotificationIds(ignoredIds)
+						ignoredNotificationIdsRef.current = ignoredIds
 					}
 					setReferenceUrls(urls)
 				}
@@ -113,43 +121,29 @@ export function DashboardProvider({
 		]
 	)
 
-	const toggleHideContainer = useCallback(
-		(id: string) => {
-			setHiddenContainerIds((prev) => {
-				const newHiddenIds = prev.includes(id)
-					? prev.filter((i) => i !== id)
-					: [...prev, id]
-				return newHiddenIds
-			})
-			setHiddenContainerIdsAction(
-				hiddenContainerIds.includes(id)
-					? hiddenContainerIds.filter((i) => i !== id)
-					: [...hiddenContainerIds, id]
-			).catch((error) => {
-				console.error('Failed to sync hidden containers:', error)
-			})
-		},
-		[hiddenContainerIds]
-	)
+	const toggleHideContainer = useCallback((id: string) => {
+		const prev = hiddenContainerIdsRef.current
+		const next = prev.includes(id)
+			? prev.filter((i) => i !== id)
+			: [...prev, id]
+		hiddenContainerIdsRef.current = next
+		setHiddenContainerIds(next)
+		setHiddenContainerIdsAction(next).catch((error) => {
+			console.error('Failed to sync hidden containers:', error)
+		})
+	}, [])
 
-	const toggleIgnoreNotification = useCallback(
-		(id: string) => {
-			setIgnoredNotificationIds((prev) => {
-				const newIgnoredIds = prev.includes(id)
-					? prev.filter((i) => i !== id)
-					: [...prev, id]
-				return newIgnoredIds
-			})
-			setIgnoredNotificationContainerIdsAction(
-				ignoredNotificationIds.includes(id)
-					? ignoredNotificationIds.filter((i) => i !== id)
-					: [...ignoredNotificationIds, id]
-			).catch((error) => {
-				console.error('Failed to sync ignored containers:', error)
-			})
-		},
-		[ignoredNotificationIds]
-	)
+	const toggleIgnoreNotification = useCallback((id: string) => {
+		const prev = ignoredNotificationIdsRef.current
+		const next = prev.includes(id)
+			? prev.filter((i) => i !== id)
+			: [...prev, id]
+		ignoredNotificationIdsRef.current = next
+		setIgnoredNotificationIds(next)
+		setIgnoredNotificationContainerIdsAction(next).catch((error) => {
+			console.error('Failed to sync ignored containers:', error)
+		})
+	}, [])
 
 	const saveReferenceUrl = useCallback((imageName: string, url: string) => {
 		setReferenceUrls((prev: Record<string, ReferenceUrlData>) => ({
@@ -159,7 +153,9 @@ export function DashboardProvider({
 				referenceUrl: url
 			}
 		}))
-		saveReferenceUrlAction(imageName, url)
+		saveReferenceUrlAction(imageName, url).catch((error) => {
+			console.error('Failed to save reference URL:', error)
+		})
 	}, [])
 
 	const isHidden = useCallback(
