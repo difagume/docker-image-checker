@@ -10,17 +10,9 @@ import {
 	setIgnoredNotificationContainerIds,
 	setPreferredLanguage
 } from '@/lib/app-state'
+import { requireAuthIfEnabled } from '@/lib/auth-guard'
 import type { Locale } from '@/lib/i18n/dictionaries'
-import { getSession } from '@/lib/session'
 import type { FilterStatus } from '@/types/app-state'
-
-async function requireAuthIfEnabled() {
-	if (!process.env.AUTH_HTPASSWD) return
-	const session = await getSession()
-	if (!session.isLoggedIn) {
-		throw new Error('Unauthorized')
-	}
-}
 
 export async function getHiddenContainerIdsAction(): Promise<string[]> {
 	await requireAuthIfEnabled()

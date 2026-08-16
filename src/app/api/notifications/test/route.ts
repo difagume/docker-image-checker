@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { unauthorizedResponseIfEnabled } from '@/lib/auth-guard'
 import { getContainers, getImages } from '@/lib/docker-inventory'
 import { checkAndNotify } from '@/lib/notifications/notification-service'
 import { checkImageUpdate } from '@/lib/registry-updates'
@@ -8,6 +9,9 @@ import { checkImageUpdate } from '@/lib/registry-updates'
  * Useful for testing the notification system without waiting for cron
  */
 export async function POST() {
+	const unauthorized = await unauthorizedResponseIfEnabled()
+	if (unauthorized) return unauthorized
+
 	try {
 		const enabled = process.env.NOTIFICATIONS_ENABLED === 'true'
 
