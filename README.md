@@ -125,7 +125,7 @@ El panel incluye soporte para autenticación con sesión usando htpasswd y iron-
 
 ### Configuración de Autenticación
 
-1. Genera una entrada htpasswd usando una herramienta como [htpasswd generator](https://www.htaccesstools.com/htpasswd-generator/) o la API incluida en esta aplicación
+1. Genera una entrada htpasswd usando una herramienta como [htpasswd generator](https://www.htaccesstools.com/htpasswd-generator/) o la [API incluida en esta aplicación](#api-para-generar-hashes-htpasswd)
 2. Establece la variable de entorno `AUTH_HTPASSWD` con el contenido generado
 3. Opcionalmente, define `AUTH_SESSION_PASSWORD` para encriptar las cookies de sesión. Si no se define, se usará `AUTH_HTPASSWD` como secreto de sesión
 4. Si no se establece la variable `AUTH_HTPASSWD`, el acceso será automático (sin autenticación)
@@ -135,6 +135,7 @@ El panel incluye soporte para autenticación con sesión usando htpasswd y iron-
 >
 > | Contexto | Cómo definir el `$` |
 > |---|---|
+> | Dokploy (variables de entorno en la UI) | **`$` simple, sin escape**: `AUTH_HTPASSWD=usuario:$2y$10$...` (Dokploy inyecta el valor literal, sin interpolación de Compose) |
 > | Archivo `.env` auto-cargado por `docker compose up` | **Comillas simples** (valor literal, sin escape): `AUTH_HTPASSWD='usuario:$2y$10$...'` |
 > | Bloque `environment:` inline en `compose.yaml` | Duplicar el `$` como `$$`: `AUTH_HTPASSWD=usuario:$$2y$$10$$...` |
 > | Shell Bash / `export docker run -e` en línea de comando | Comillas simples (`AUTH_HTPASSWD='usuario:$2y$10$...'`) o `\$` escapado |
@@ -194,6 +195,22 @@ curl -X POST http://localhost:3000/api/htpasswd-hash \
   -d '{"username": "admin", "password": "mipassword", "format": "sha1"}'
 ```
 
+#### Ejemplo de respuesta:
+
+```json
+{
+  "htpasswd": "admin:$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
+  "format": "bcrypt",
+  "username": "admin",
+  "hash": "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+}
+```
+
+El campo `htpasswd` ya tiene el formato `usuario:hash` listo para usar en la variable `AUTH_HTPASSWD` (recuerda escapar el `$` según el contexto, ver tabla anterior).
+
+> [!NOTE]
+> Si la autenticación está activa (`AUTH_HTPASSWD` definido), este endpoint requiere una sesión iniciada y responde `401 {"error":"Unauthorized"}` sin ella. Para generar el hash antes de configurar la autenticación, haz la petición con el panel aún sin `AUTH_HTPASSWD`.
+
 #### Parámetros
 
 - `username` (requerido): Nombre de usuario
@@ -226,7 +243,8 @@ services:
       - NODE_ENV=production
       - TZ=America/Guayaquil
       # En un bloque environment: el $ se duplica como $$. En un .env usa comillas simples.
-      - AUTH_HTPASSWD=usuario:$$2y$$10$$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
+      # En Dokploy (UI de variables de entorno): $ simple, sin escape.
+      - AUTH_HTPASSWD=usuario:$$2y$$10$$LX4B3Vt2v9Vj2v9Vj2v9V.3v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2v9Vj2
 ```
 
 ## 📊 Monitoreo (Uptime Kuma)
