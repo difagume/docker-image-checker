@@ -105,24 +105,35 @@ This is a Next.js dashboard application for monitoring Docker containers and che
 
 ## Development Commands
 
+This project uses **Bun** (>= 1.4.0) as its package manager (`bun.lock` is the source of truth).
+
+### Installing Dependencies
+```bash
+bun install
+```
+
 ### Starting the Development Server
 ```bash
-pnpm dev
+# Runtime Bun (default; .env passed explicitly via --env-file)
+bun run dev
+
+# Runtime Node (fallback)
+bun run dev:node
 ```
 
 ### Building the Application
 ```bash
-pnpm build
+bun run build
 ```
 
 ### Starting the Production Server
 ```bash
-pnpm start
+bun run start
 ```
 
 ### Running Tests
 ```bash
-pnpm test
+bun run test
 ```
 
 ### Code Formatting and Linting
@@ -130,26 +141,26 @@ This project uses Biome for code formatting and linting:
 
 ```bash
 # Format code
-pnpm exec biome format --write .
+bunx biome format --write .
 
 # Lint code
-pnpm exec biome lint .
+bunx biome lint .
 
 # Format and lint together
-pnpm exec biome check --apply .
+bunx biome check --apply .
 ```
 
 ### Testing
-This project uses Vitest for unit tests (`pnpm test` = `vitest run`). There are 3 test files: `src/lib/policies/engine.test.ts`, `src/lib/cache-tags.test.ts`, and `src/lib/fs-atomic.test.ts`.
+This project uses Vitest for unit tests (`bun run test` = `vitest run`). There are 3 test files: `src/lib/policies/engine.test.ts`, `src/lib/cache-tags.test.ts`, and `src/lib/fs-atomic.test.ts`.
 
 ### Agent DevTools (next-browser)
-The project includes `@vercel/next-browser` (dev dependency) so AI agents can inspect the running app from the terminal (component trees, PPR shells, errors, network, screenshots). Requires Chromium via `pnpm exec playwright install chromium` on first use.
+The project includes `@vercel/next-browser` (dev dependency) so AI agents can inspect the running app from the terminal (component trees, PPR shells, errors, network, screenshots). Requires Chromium via `bunx playwright install chromium` on first use.
 
 ```bash
-pnpm exec next-browser open http://localhost:3000
-pnpm exec next-browser snapshot   # accessibility tree with interactive refs
-pnpm exec next-browser errors     # build/runtime errors for current page
-pnpm exec next-browser close
+bunx next-browser open http://localhost:3000
+bunx next-browser snapshot   # accessibility tree with interactive refs
+bunx next-browser errors     # build/runtime errors for current page
+bunx next-browser close
 ```
 
 Browser console warnings/errors are also forwarded to the dev server terminal automatically (`logging.browserToTerminal: 'warn'` in `next.config.ts`).
@@ -226,7 +237,7 @@ The application includes a configurable notification system for Docker image upd
 
 ### Health Check
 - Check notification system status at `/api/notifications/health`
-- Trigger manual check with POST to `/api/notifications/check`
+- Trigger manual check with POST to `/api/notifications/test`
 
 ## Docker Deployment
 

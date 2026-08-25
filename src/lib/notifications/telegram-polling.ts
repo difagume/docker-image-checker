@@ -1,6 +1,6 @@
 import type { ContainerInspectInfo } from 'dockerode'
 import type { CallbackQuery, InlineKeyboardMarkup } from 'node-telegram-bot-api'
-import TelegramBot from 'node-telegram-bot-api'
+import { type Api, Bot, TelegramApiError } from 'node-telegram-bot-api'
 import {
 	ContainerUpdateInProgressError,
 	runContainerUpdateTask
@@ -20,23 +20,21 @@ import { requestRevalidation } from './revalidate-tunnel'
  * update pipeline as the web dashboard. Started from `instrumentation.ts`
  * `register()` next to the scheduler, gated by env (R4.2) and a `globalThis`
  * singleton so dev HMR never spawns a second `getUpdates` loop (R4.1 — Telegram
- * answers a duplicate poller with HTTP 409). The outbound provider stays
- * `polling: false`; this module is the ONLY poller for the token.
+ * answers a duplicate poller with HTTP 409). The outbound provider builds its
+ * own poll-less `Bot`; this module is the ONLY poller for the token.
  */
 
 const POLLER_GLOBAL_KEY = '__docker_telegram_poller__'
 
 interface PollerHandle {
-	bot: TelegramBot
+	bot: Bot
 	running: boolean
+	polling?: Promise<void>
 }
 
 // The poller only needs these two outbound operations; typing against a narrow
 // Pick keeps the module testable with a structural mock bot.
-export type CallbackBot = Pick<
-	TelegramBot,
-	'editMessageText' | 'answerCallbackQuery'
->
+export type CallbackBot = Pick<Api, 'editMessageText' | 'answerCallbackQuery'>
 
 // Snapshot of allowed chats, parsed once at init. Callback queries from any
 // other chat are ignored (R13).
@@ -71,13 +69,24 @@ function getPollerHandle(): PollerHandle | undefined {
 	return g[POLLER_GLOBAL_KEY]
 }
 
-function isBenignEditError(error: unknown): boolean {
-	const message =
-		error instanceof Error
-			? error.message
-			: (error as { response?: { body?: { description?: string } } }).response
-					?.body?.description
-	return typeof message === 'string' && /message is not modified/i.test(message)
+/**
+ * Errors that mean the operation was already handled correctly by design and
+ * must not surface as failures (D7): racy identical-text edits ("message is
+ * not modified") and stale button taps whose callback query id expired
+ * ("query is too old") — both resolve gracefully without user-visible impact.
+ */
+function isBenignTelegramError(error: unknown): boolean {
+	const description =
+		error instanceof TelegramApiError
+			? error.description
+			: error instanceof Error
+				? error.message
+				: undefined
+	return (
+		typeof description === 'string' &&
+		(/message is not modified/i.test(description) ||
+			/query is too old/i.test(description))
+	)
 }
 
 async function safeEditMessage(
@@ -88,16 +97,17 @@ async function safeEditMessage(
 	options?: { reply_markup?: InlineKeyboardMarkup }
 ): Promise<void> {
 	try {
-		await bot.editMessageText(text, {
+		await bot.editMessageText({
 			chat_id: chatId,
 			message_id: messageId,
+			text,
 			parse_mode: 'Markdown',
 			link_preview_options: { is_disabled: true },
 			...(options?.reply_markup ? { reply_markup: options.reply_markup } : {})
 		})
 	} catch (error) {
 		// Benign edit errors (racy taps / identical text) must not surface (D7)
-		if (isBenignEditError(error)) return
+		if (isBenignTelegramError(error)) return
 		console.error('[telegram-polling] message edit failed:', error)
 	}
 }
@@ -108,8 +118,14 @@ async function safeAnswer(
 	text?: string
 ): Promise<void> {
 	try {
-		await bot.answerCallbackQuery(callbackQueryId, text ? { text } : {})
+		await bot.answerCallbackQuery({
+			callback_query_id: callbackQueryId,
+			...(text ? { text } : {})
+		})
 	} catch (error) {
+		// Stale taps whose callback id expired ("query is too old") resolve
+		// gracefully by design — swallow them instead of spamming the log.
+		if (isBenignTelegramError(error)) return
 		console.error('[telegram-polling] answerCallbackQuery failed:', error)
 	}
 }
@@ -397,22 +413,42 @@ export function initTelegramPolling(): void {
 		return
 	}
 
-	const bot = new TelegramBot(token, { polling: true })
+	const bot = new Bot(token)
 	const g = globalThis as unknown as Record<string, PollerHandle | undefined>
-	g[POLLER_GLOBAL_KEY] = { bot, running: true }
+	const handle: PollerHandle = { bot, running: true }
+	// Store the handle BEFORE starting the pump so a loud failure can clear
+	// the singleton and a later re-init (dev HMR) may retry.
+	g[POLLER_GLOBAL_KEY] = handle
 
-	bot.on('callback_query', (query) => {
-		handleCallbackQuery(bot, query).catch((error) => {
+	bot.on('callback_query', (ctx) => {
+		const query = ctx.callbackQuery
+		if (!query) return
+		handleCallbackQuery(bot.api, query).catch((error) => {
 			console.error('[telegram-polling] callback handler failed:', error)
 		})
+	})
+
+	// v2 routes thrown handler errors here instead of crashing the pump.
+	bot.catch((error) => {
+		console.error('[telegram-polling] bot error:', error)
+	})
+
+	// Fire-and-forget startup: initTelegramPolling stays synchronous and
+	// non-blocking for instrumentation.register() (D3). A rejected pump means
+	// the long-poll loop died — log loudly and release the singleton slot.
+	handle.polling = bot.startPolling().catch((error) => {
+		console.error('[telegram-polling] polling failed:', error)
+		g[POLLER_GLOBAL_KEY] = undefined
 	})
 
 	console.log('[telegram-polling] long polling started')
 }
 
 /**
- * Stop the poller gracefully (SIGTERM/SIGINT). Fire-and-forget: natural
- * process end is otherwise acceptable (R15).
+ * Stop the poller gracefully (SIGTERM/SIGINT). Clears the singleton key first
+ * (idempotent; prevents double-stop and restart races), aborts the pump with a
+ * single `stop()`, then awaits the stored polling promise under a 5 s guard so
+ * the in-flight long-poll is fully terminated before exit (R15).
  */
 export function stopTelegramPolling(): void {
 	const handle = getPollerHandle()
@@ -420,9 +456,16 @@ export function stopTelegramPolling(): void {
 	const g = globalThis as unknown as Record<string, PollerHandle | undefined>
 	g[POLLER_GLOBAL_KEY] = undefined
 	handle.running = false
-	handle.bot.stopPolling().catch((error) => {
-		console.error('[telegram-polling] stopPolling failed:', error)
-	})
+	handle.bot.stop()
+
+	const polling = handle.polling
+	if (!polling) return
+	void Promise.race([
+		polling.catch((error) => {
+			console.error('[telegram-polling] stopPolling failed:', error)
+		}),
+		new Promise<void>((resolve) => setTimeout(resolve, 5000))
+	])
 }
 
 export function getTelegramPollingStatus(): {
