@@ -1,30 +1,38 @@
 # syntax=docker/dockerfile:1
 
 # ============================================
-# Stage 1: Dependencies Installation Stage
+# Stage 0: Base images
+# Bun installs dependencies and builds the app;
+# Node.js executes the `next` binary (via its
+# shebang) and serves the standalone output.
+# The runner stage stays Bun-free on purpose.
 # ============================================
 ARG NODE_VERSION=26-slim
+ARG BUN_VERSION=1
 
 FROM node:${NODE_VERSION} AS base
 
-# Corepack was decoupled from Node.js starting with v25 — install it manually
-RUN npm install -g corepack@latest --force
+# Bun source image; FROM expands ARG while COPY --from cannot
+FROM oven/bun:${BUN_VERSION} AS bun
+
+FROM base AS build-base
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 # ============================================
 # Stage 2: Install dependencies
 # ============================================
-FROM base AS deps
+FROM build-base AS deps
 WORKDIR /app
 
 # Install dependencies with frozen lockfile for reproducible builds
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-  corepack enable pnpm && pnpm install --frozen-lockfile
+COPY package.json bun.lock ./
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+  bun install --frozen-lockfile
 
 # ============================================
 # Stage 3: Build Next.js application in standalone mode
 # ============================================
-FROM base AS builder
+FROM build-base AS builder
 WORKDIR /app
 
 # Copy project dependencies from deps stage
@@ -33,9 +41,11 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build Next.js application
+# Build Next.js application. `bun run build` resolves the `next`
+# binary through its shebang, so the build itself runs on Node.js —
+# the same code path validated in local development.
 RUN --mount=type=cache,target=/app/.next/cache \
-  corepack enable pnpm && pnpm build
+  bun run build
 
 # ============================================
 # Stage 4: Run Next.js application
@@ -69,7 +79,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
-
 EXPOSE 3000
 
 CMD ["node", "server.js"]
