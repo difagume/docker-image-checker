@@ -1,5 +1,5 @@
 import type { SendMessageParams } from 'node-telegram-bot-api'
-import TelegramBot from 'node-telegram-bot-api'
+import { Bot } from 'node-telegram-bot-api'
 import type {
 	NotificationMessage,
 	NotificationTranslations
@@ -66,7 +66,7 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 	enabled: boolean
 	private botToken?: string
 	private chatId?: string
-	private bot?: TelegramBot
+	private bot?: Bot
 
 	constructor() {
 		super()
@@ -76,8 +76,10 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 
 		if (this.enabled && this.validate() && this.botToken) {
 			// Outbound-only: the inbound poller lives in telegram-polling.ts
-			// (single getUpdates loop per token — R4/N1).
-			this.bot = new TelegramBot(this.botToken, { polling: false })
+			// (single getUpdates loop per token — R4/N1). The v2 client has no
+			// `polling` concept; this instance can never start a poll loop and
+			// never calls startPolling() (R4.3 by construction).
+			this.bot = new Bot(this.botToken)
 		}
 	}
 
@@ -147,7 +149,12 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 				}
 			}
 
-			const sent = await this.bot.sendMessage(this.chatId, text, options)
+			// v2 API: single params object through bot.api (R4.4).
+			const sent = await this.bot.api.sendMessage({
+				chat_id: this.chatId,
+				text,
+				...options
+			})
 			console.log(`📨 Telegram notification sent for ${message.containerName}`)
 
 			// The poller edits the EXACT message that carried the button; keep

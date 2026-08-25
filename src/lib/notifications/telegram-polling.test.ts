@@ -1,4 +1,8 @@
-import type { CallbackQuery } from 'node-telegram-bot-api'
+import {
+	type CallbackQuery,
+	type EditMessageTextParams,
+	TelegramApiError
+} from 'node-telegram-bot-api'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -157,8 +161,8 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 	}
 
 	function editTexts(): string[] {
-		return (bot.editMessageText.mock.calls as [string, unknown][]).map(
-			(call) => call[0]
+		return (bot.editMessageText.mock.calls as EditMessageTextParams[][]).map(
+			(call) => call[0].text as string
 		)
 	}
 
@@ -180,6 +184,7 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 	})
 
 	afterEach(() => {
+		vi.restoreAllMocks()
 		setAllowedChatIds([])
 	})
 
@@ -230,23 +235,19 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 
 		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
 
-		const calls = bot.editMessageText.mock.calls as [
-			string,
-			{ reply_markup?: { inline_keyboard: unknown[] } }
-		][]
-		const lastText = calls[calls.length - 1][0]
-		const lastOptions = calls[calls.length - 1][1]
+		const calls = bot.editMessageText.mock.calls as EditMessageTextParams[][]
+		const last = calls[calls.length - 1][0]
 
-		expect(lastText).toContain('✅')
-		expect(lastText).toContain('Update completed')
-		expect(lastText).toContain('web')
+		expect(last.text).toContain('✅')
+		expect(last.text).toContain('Update completed')
+		expect(last.text).toContain('web')
 		// The info block is NEVER rebuilt: the persisted pre-update values stay
 		// verbatim (current = origin, latest = target, original timestamp) and
 		// only the status below changes.
-		expect(lastText).toContain('`1.0.0`')
-		expect(lastText).toContain('`1.2.3`')
-		expect(lastText).toContain('*Updated:*')
-		expect(lastText).toContain(
+		expect(last.text).toContain('`1.0.0`')
+		expect(last.text).toContain('`1.2.3`')
+		expect(last.text).toContain('*Updated:*')
+		expect(last.text).toContain(
 			Temporal.Instant.from(baseCallback().lastUpdated).toLocaleString('en', {
 				year: 'numeric',
 				month: '2-digit',
@@ -255,7 +256,7 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 				minute: '2-digit'
 			})
 		)
-		expect(lastOptions.reply_markup).toEqual({ inline_keyboard: [] })
+		expect(last.reply_markup).toEqual({ inline_keyboard: [] })
 		expect(mocks.callbacks.removeCallbackData).toHaveBeenCalledWith(SHORT_ID)
 	})
 
@@ -318,14 +319,11 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 
 		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
 
-		const calls = bot.editMessageText.mock.calls as [
-			string,
-			{ chat_id: number; message_id: number }
-		][]
+		const calls = bot.editMessageText.mock.calls as EditMessageTextParams[][]
 		expect(calls.length).toBeGreaterThan(0)
-		for (const [, options] of calls) {
-			expect(options.chat_id).toBe(CHAT_ID)
-			expect(options.message_id).toBe(MESSAGE_ID)
+		for (const call of calls) {
+			expect(call[0].chat_id).toBe(CHAT_ID)
+			expect(call[0].message_id).toBe(MESSAGE_ID)
 		}
 	})
 
@@ -367,5 +365,36 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 		expect(lastText).toContain('🔄')
 		expect(lastText).toContain('Updating...')
 		expect(mocks.callbacks.removeCallbackData).not.toHaveBeenCalled()
+	})
+
+	it('swallows a real "message is not modified" TelegramApiError without logging it (R5, D6)', async () => {
+		inspectReturns('nginx:1.0.0')
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		// Racy identical-text edit: Telegram answers with this exact structured
+		// error; the poller must treat it as benign and keep going.
+		bot.editMessageText.mockRejectedValueOnce(
+			new TelegramApiError(400, 'Bad Request: message is not modified')
+		)
+
+		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
+
+		// No error-log spam from the benign rejection...
+		expect(consoleError).not.toHaveBeenCalled()
+		// ...and the flow still reaches the terminal success edit.
+		const texts = editTexts()
+		const lastText = texts[texts.length - 1]
+		expect(lastText).toContain('✅')
+		expect(lastText).toContain('Update completed')
+		expect(mocks.callbacks.removeCallbackData).toHaveBeenCalledWith(SHORT_ID)
+	})
+
+	it('still logs non-benign edit failures', async () => {
+		inspectReturns('nginx:1.0.0')
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		bot.editMessageText.mockRejectedValue(new Error('boom'))
+
+		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
+
+		expect(consoleError).toHaveBeenCalled()
 	})
 })
