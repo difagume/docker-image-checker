@@ -2,18 +2,25 @@
 	"name": "docker-image-checker",
 	"version": "0.2.0",
 	"private": true,
-	"packageManager": "pnpm@11.22.0",
 	"engines": {
 		"node": ">=26.0.0"
 	},
 	"scripts": {
 		"dev": "next dev",
+		"dev:bun": "bun --env-file=.env --bun run dev",
 		"build": "next build",
 		"start": "next start",
-		"audit": "pnpm audit",
-		"audit:fix": "pnpm audit --fix",
+		"audit": "bun audit",
+		"audit:fix": "bun audit fix",
 		"test": "vitest run"
 	},
+	"trustedDependencies": [
+		"cpu-features",
+		"msw",
+		"protobufjs",
+		"sharp",
+		"ssh2"
+	],
 	"dependencies": {
 		"@bprogress/next": "^3.2.12",
 		"@number-flow/react": "^0.6.2",
