@@ -69,7 +69,13 @@ function getPollerHandle(): PollerHandle | undefined {
 	return g[POLLER_GLOBAL_KEY]
 }
 
-function isBenignEditError(error: unknown): boolean {
+/**
+ * Errors that mean the operation was already handled correctly by design and
+ * must not surface as failures (D7): racy identical-text edits ("message is
+ * not modified") and stale button taps whose callback query id expired
+ * ("query is too old") — both resolve gracefully without user-visible impact.
+ */
+function isBenignTelegramError(error: unknown): boolean {
 	const description =
 		error instanceof TelegramApiError
 			? error.description
@@ -78,7 +84,8 @@ function isBenignEditError(error: unknown): boolean {
 				: undefined
 	return (
 		typeof description === 'string' &&
-		/message is not modified/i.test(description)
+		(/message is not modified/i.test(description) ||
+			/query is too old/i.test(description))
 	)
 }
 
@@ -100,7 +107,7 @@ async function safeEditMessage(
 		})
 	} catch (error) {
 		// Benign edit errors (racy taps / identical text) must not surface (D7)
-		if (isBenignEditError(error)) return
+		if (isBenignTelegramError(error)) return
 		console.error('[telegram-polling] message edit failed:', error)
 	}
 }
@@ -116,6 +123,9 @@ async function safeAnswer(
 			...(text ? { text } : {})
 		})
 	} catch (error) {
+		// Stale taps whose callback id expired ("query is too old") resolve
+		// gracefully by design — swallow them instead of spamming the log.
+		if (isBenignTelegramError(error)) return
 		console.error('[telegram-polling] answerCallbackQuery failed:', error)
 	}
 }

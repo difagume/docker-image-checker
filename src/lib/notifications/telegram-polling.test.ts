@@ -397,4 +397,45 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 
 		expect(consoleError).toHaveBeenCalled()
 	})
+
+	it('swallows an expired "query is too old" answer silently and keeps the flow going', async () => {
+		inspectReturns('nginx:1.0.0')
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		// Stale button tap: the callback query id expired, so Telegram answers
+		// the acknowledgement with this exact structured error; the poller must
+		// treat it as benign (stale taps resolve gracefully by design).
+		bot.answerCallbackQuery.mockRejectedValueOnce(
+			new TelegramApiError(
+				400,
+				'Bad Request: query is too old and response timeout expired or query ID invalid'
+			)
+		)
+
+		await expect(
+			handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
+		).resolves.toBeUndefined()
+
+		// No error-log spam from the expired callback id...
+		expect(consoleError).not.toHaveBeenCalled()
+		// ...and the pipeline still runs to the terminal success edit.
+		const texts = editTexts()
+		const lastText = texts[texts.length - 1]
+		expect(lastText).toContain('✅')
+		expect(lastText).toContain('Update completed')
+		expect(mocks.callbacks.removeCallbackData).toHaveBeenCalledWith(SHORT_ID)
+	})
+
+	it('still logs non-benign answerCallbackQuery failures', async () => {
+		inspectReturns('nginx:1.0.0')
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		bot.answerCallbackQuery.mockRejectedValueOnce(
+			new TelegramApiError(400, 'Bad Request: something else')
+		)
+
+		await expect(
+			handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
+		).resolves.toBeUndefined()
+
+		expect(consoleError).toHaveBeenCalled()
+	})
 })
