@@ -237,7 +237,7 @@ The application includes a configurable notification system for Docker image upd
 
 ### Health Check
 - Check notification system status at `/api/notifications/health`
-- Trigger manual check with POST to `/api/notifications/check`
+- Trigger manual check with POST to `/api/notifications/test`
 
 ## Docker Deployment
 

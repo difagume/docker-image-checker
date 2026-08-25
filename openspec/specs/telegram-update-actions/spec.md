@@ -245,7 +245,7 @@ On SIGTERM/SIGINT the poller MUST call `stop()` exactly once per handle and then
 | ID | Priority | Requirement |
 |----|----------|-------------|
 | N1 | High | No new exposed ports, no webhook endpoint, no new dependencies (`node-telegram-bot-api@^2.1.0`, upgraded from `^1.2.0`). |
-| N2 | High | `pnpm build` and `pnpm test` MUST pass; Biome lint clean. |
+| N2 | High | `bun run build` and `bun run test` MUST pass; Biome lint clean. |
 | N3 | High | Cache Components compatibility: the polling path MUST NOT call cached wrappers or `updateTag`/`revalidateTag` outside request context (avoid E279/E872/E263); it MUST use raw readers and the request-context tunnel for revalidation. |
 | N4 | High | Callback store writes MUST be fs-atomic (temp+rename+mutex, Windows retry) and serialize concurrent writes. |
 | N5 | High | `callback_data` MUST stay ≤ 64 bytes (`u:` + 8-char shortId). |
