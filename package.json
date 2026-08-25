@@ -6,10 +6,10 @@
 		"node": ">=26.0.0"
 	},
 	"scripts": {
-		"dev": "next dev",
-		"dev:bun": "bun --env-file=.env --bun run dev",
-		"build": "next build",
-		"start": "next start",
+		"dev": "bun --env-file=.env --bun next dev",
+		"dev:node": "next dev",
+		"build": "bun --env-file=.env --bun next build",
+		"start": "bun --env-file=.env --bun next start",
 		"audit": "bun audit",
 		"audit:fix": "bun audit fix",
 		"test": "vitest run"

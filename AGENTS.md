@@ -114,11 +114,11 @@ bun install
 
 ### Starting the Development Server
 ```bash
-# Runtime Node (default; .env loaded by Next.js)
+# Runtime Bun (default; .env passed explicitly via --env-file)
 bun run dev
 
-# Runtime Bun (opt-in; .env must be passed explicitly with --env-file)
-bun run dev:bun
+# Runtime Node (fallback)
+bun run dev:node
 ```
 
 ### Building the Application

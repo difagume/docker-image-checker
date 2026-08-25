@@ -49,6 +49,13 @@
       },
     },
   },
+  "trustedDependencies": [
+    "cpu-features",
+    "sharp",
+    "msw",
+    "ssh2",
+    "protobufjs",
+  ],
   "overrides": {
     "postcss@8.4.31": {
       ".": "^8.5.19",
