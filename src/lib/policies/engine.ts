@@ -59,6 +59,16 @@ function evaluateLatestPolicy(context: ImageContext): PolicyResult | null {
 	const latestRemote = context.remoteTags.find((t) => t.tag === 'latest')
 	if (!latestRemote) return null // Should not happen if context is valid
 
+	if (!context.currentDigest) {
+		return {
+			policy: 'LatestPolicy',
+			track: 'latest',
+			state: 'UNKNOWN_TAG_STRATEGY',
+			currentTag: context.currentTag,
+			currentDigest: context.currentDigest
+		}
+	}
+
 	return {
 		policy: 'LatestPolicy',
 		track: 'latest',
@@ -97,14 +107,8 @@ function evaluateSemverPolicy(context: ImageContext): PolicyResult | null {
 		.filter((t) => {
 			if (t.ver.major <= currentVer.major) return false
 
-			// Heuristic to avoid date-based tags if current is clearly semver
-			// If current has 3 parts (x.y.z) and is small, avoid massive major jumps (years) with only 1 part
-			if (
-				currentVer.parts >= 2 &&
-				currentVer.major < 1000 &&
-				t.ver.major > 2000 &&
-				t.ver.parts === 1
-			) {
+			// Candidate-based year guard: filter year-like majors (e.g. 2024, 2024.0) regardless of current shape
+			if (t.ver.major > 2000) {
 				return false
 			}
 
@@ -152,7 +156,11 @@ function evaluateSemverPolicy(context: ImageContext): PolicyResult | null {
 	const currentRemoteTag = context.remoteTags.find(
 		(t) => t.tag === context.currentTag
 	)
-	if (currentRemoteTag && context.currentDigest !== currentRemoteTag.digest) {
+	if (
+		currentRemoteTag &&
+		context.currentDigest &&
+		context.currentDigest !== currentRemoteTag.digest
+	) {
 		return {
 			policy: 'SemverPolicy',
 			track: `semver:${currentVer.major}`,
@@ -181,6 +189,16 @@ function evaluateDevTagPolicy(context: ImageContext): PolicyResult | null {
 	const remoteTag = context.remoteTags.find((t) => t.tag === context.currentTag)
 	if (!remoteTag) return null
 
+	if (!context.currentDigest) {
+		return {
+			policy: 'DevTagPolicy',
+			track: 'dev',
+			state: 'UNKNOWN_TAG_STRATEGY',
+			currentTag: context.currentTag,
+			currentDigest: context.currentDigest
+		}
+	}
+
 	return {
 		policy: 'DevTagPolicy',
 		track: 'dev',
@@ -198,6 +216,16 @@ function evaluateCustomTagPolicy(context: ImageContext): PolicyResult {
 	const remoteTag = context.remoteTags.find((t) => t.tag === context.currentTag)
 
 	if (!remoteTag) {
+		return {
+			policy: 'CustomTagPolicy',
+			track: 'custom',
+			state: 'UNKNOWN_TAG_STRATEGY',
+			currentTag: context.currentTag,
+			currentDigest: context.currentDigest
+		}
+	}
+
+	if (!context.currentDigest) {
 		return {
 			policy: 'CustomTagPolicy',
 			track: 'custom',

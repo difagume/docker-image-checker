@@ -6,7 +6,7 @@ import {
 	REGISTRY_REVALIDATE_SECONDS
 } from '@/lib/cache-tags'
 import { getContainers, getImages } from '@/lib/docker-inventory'
-import { parseImageReference } from '@/lib/image-name'
+import { parseImageReference, resolveLocalDigest } from '@/lib/image-name'
 import { evaluatePolicies } from '@/lib/policies/engine'
 import type {
 	ImageContext,
@@ -110,12 +110,12 @@ export async function checkImageUpdateRaw(
 	}
 
 	try {
-		const parts = imageName.split(':')
-		let repo = parts[0]
-		const tag = parts[1] || 'latest'
-		const originalRepo = repo
+		const parsed = parseImageReference(imageName)
+		const originalRepo = parsed.repository
+		let repo = originalRepo
+		const tag = parsed.tag
 
-		if (!repo.includes('/')) {
+		if (!parsed.isDigest && !repo.includes('/')) {
 			repo = `library/${repo}`
 		}
 
@@ -164,13 +164,39 @@ export async function checkImageUpdateRaw(
 			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
 			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
 
+		if (policyResult.state === 'UNKNOWN_TAG_STRATEGY') {
+			return {
+				hasUpdate: false,
+				latestDigest: undefined,
+				lastUpdated: undefined,
+				currentVersion: tag,
+				latestVersion: tag,
+				dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
+				isLocal: false,
+				policyResult
+			}
+		}
+
 		const targetTag =
 			policyResult.details?.latestCompatible ||
 			policyResult.details?.majorAvailable ||
 			tag
 
-		const targetRemote =
-			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
+		const targetRemote = remoteTags.find((r) => r.tag === targetTag)
+
+		// UNKNOWN guard: no fallback to remoteTags[0]
+		if (!targetRemote) {
+			return {
+				hasUpdate: false,
+				latestDigest: undefined,
+				lastUpdated: undefined,
+				currentVersion: tag,
+				latestVersion: targetTag,
+				dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
+				isLocal: false,
+				policyResult
+			}
+		}
 
 		const result = {
 			hasUpdate,
@@ -195,8 +221,9 @@ export async function checkGhcrUpdateRaw(
 	localDigest?: string
 ): Promise<CheckImageUpdateResult> {
 	try {
-		const nameWithTag = fullImageName.replace('ghcr.io/', '')
-		const [imagePath, tag = 'latest'] = nameWithTag.split(':')
+		const parsedGhcr = parseImageReference(fullImageName.replace('ghcr.io/', ''))
+		const imagePath = parsedGhcr.repository
+		const tag = parsedGhcr.tag
 		const parts = imagePath.split('/')
 
 		if (parts.length < 2) {
@@ -280,13 +307,38 @@ export async function checkGhcrUpdateRaw(
 			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
 			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
 
+		if (policyResult.state === 'UNKNOWN_TAG_STRATEGY') {
+			return {
+				hasUpdate: false,
+				latestDigest: undefined,
+				lastUpdated: undefined,
+				currentVersion: tag,
+				latestVersion: tag,
+				dockerHubUrl: `https://github.com/${owner}/${repo}/pkgs/container/${packageName}`,
+				isLocal: false,
+				policyResult
+			}
+		}
+
 		const targetTag =
 			policyResult.details?.latestCompatible ||
 			policyResult.details?.majorAvailable ||
 			tag
 
-		const targetRemote =
-			remoteTags.find((r) => r.tag === targetTag) || remoteTags[0]
+		const targetRemote = remoteTags.find((r) => r.tag === targetTag)
+
+		if (!targetRemote) {
+			return {
+				hasUpdate: false,
+				latestDigest: undefined,
+				lastUpdated: undefined,
+				currentVersion: tag,
+				latestVersion: targetTag,
+				dockerHubUrl: `https://github.com/${owner}/${repo}/pkgs/container/${packageName}`,
+				isLocal: false,
+				policyResult
+			}
+		}
 
 		const ghcrResult = {
 			hasUpdate,
@@ -376,10 +428,7 @@ export async function getContainerUpdateStates(): Promise<
 			const containerName = container.Names?.[0]?.replace('/', '') || 'Unnamed'
 
 			const localImage = images.find((img) => img.Id === container.ImageID)
-			let localDigest = localImage?.RepoDigests?.[0]?.split('@')[1]
-			if (!localDigest && container.ImageID) {
-				localDigest = container.ImageID
-			}
+			const localDigest = resolveLocalDigest(localImage)
 
 			const result = await checkImageUpdate(container.Image, localDigest)
 
@@ -388,12 +437,13 @@ export async function getContainerUpdateStates(): Promise<
 					? result.currentVersion
 					: imageTag
 
-			let updateStatus: FilterStatus | 'local' = 'unknown'
-			if (result.isLocal) {
-				updateStatus = 'local'
-			} else if (result.latestDigest) {
-				updateStatus = result.hasUpdate ? 'available' : 'updated'
-			}
+			const updateStatus: FilterStatus | 'local' = result.isLocal
+				? 'local'
+				: result.latestDigest
+					? result.hasUpdate
+						? 'available'
+						: 'updated'
+					: 'unknown'
 
 			return {
 				containerId: container.Id,

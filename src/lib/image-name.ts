@@ -39,3 +39,9 @@ export function parseImageReference(image: string): ImageReference {
 export function withTag(image: string, tag: string): string {
 	return `${parseImageReference(image).repository}:${tag}`
 }
+
+export function resolveLocalDigest(
+	img: { RepoDigests?: string[] | null } | undefined
+): string | undefined {
+	return img?.RepoDigests?.[0]?.split('@')[1]
+}

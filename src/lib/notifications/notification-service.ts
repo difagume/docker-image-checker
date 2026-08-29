@@ -6,7 +6,7 @@ import {
 	markAsNotified
 } from '@/lib/app-state'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
-import { parseImageReference } from '@/lib/image-name'
+import { parseImageReference, resolveLocalDigest } from '@/lib/image-name'
 import { getReferenceUrls } from '@/lib/reference-url-manager'
 import {
 	type CheckImageUpdateResult,
@@ -64,12 +64,7 @@ export async function checkAndNotify(
 
 			// Find local image details
 			const localImage = images.find((img) => img.Id === container.ImageID)
-			let localDigest = localImage?.RepoDigests?.[0]?.split('@')[1]
-
-			// Fallback to ImageID if no repo digest
-			if (!localDigest && container.ImageID) {
-				localDigest = container.ImageID
-			}
+			const localDigest = resolveLocalDigest(localImage)
 
 			// Check for updates (scheduler path uses the raw reader; request-context
 			// callers may pass a cached wrapper)
