@@ -59,3 +59,28 @@ describe('SemverPolicy latestCompatible (mismo núcleo semver, distinto sufijo)'
 		expect(r.details?.latestCompatible).toBe('16.13-alpine')
 	})
 })
+
+describe('B-13 year guard (candidate-based)', () => {
+	it('16-alpine vs only 2024.0 -> NO_CHANGES (year filtered)', () => {
+		const ctx: ImageContext = {
+			imageName: 'postgres:16-alpine',
+			currentTag: '16-alpine',
+			currentDigest: 'sha256:local',
+			remoteTags: remoteTagList(['2024.0'])
+		}
+		const r = evaluatePolicies(ctx)
+		expect(r.state).toBe('NO_CHANGES')
+	})
+
+	it('16-alpine vs [16.13-alpine,2024.0] -> latestCompatible 16.13-alpine (year stays filtered)', () => {
+		const ctx: ImageContext = {
+			imageName: 'postgres:16-alpine',
+			currentTag: '16-alpine',
+			currentDigest: 'sha256:local',
+			remoteTags: remoteTagList(['16.13-alpine', '2024.0'])
+		}
+		const r = evaluatePolicies(ctx)
+		expect(r.state).toBe('NEW_COMPATIBLE_VERSION_AVAILABLE')
+		expect(r.details?.latestCompatible).toBe('16.13-alpine')
+	})
+})
