@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { idsEqual } from '@/lib/container-id'
 import { writeFileAtomic } from '@/lib/fs-atomic'
 import type {
 	ContainerUpdate,
@@ -7,6 +8,8 @@ import type {
 	NotificationState,
 	NotifiedUpdate
 } from '@/types/app-state'
+
+export { idsEqual }
 
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'dashboard-state.json')
 
@@ -19,7 +22,7 @@ const stateStore = globalThis as unknown as {
 }
 stateStore.__appStateMutex ??= Promise.resolve()
 
-function runExclusive<T>(operation: () => Promise<T>): Promise<T> {
+export function runExclusive<T>(operation: () => Promise<T>): Promise<T> {
 	const mutex = stateStore.__appStateMutex as Promise<unknown>
 	const result = mutex.then(operation)
 	stateStore.__appStateMutex = result.catch(() => {})
@@ -193,7 +196,55 @@ export async function setHiddenContainerIds(ids: string[]): Promise<void> {
 
 export async function isContainerHidden(containerId: string): Promise<boolean> {
 	const hiddenIds = await getHiddenContainerIds()
-	return hiddenIds.includes(containerId)
+	return hiddenIds.some((id) => idsEqual(id, containerId))
+}
+
+export async function remapHiddenIds(
+	oldId: string,
+	newId: string
+): Promise<void> {
+	if (!oldId || !newId || idsEqual(oldId, newId)) return
+	return runExclusive(async () => {
+		const state = await loadState()
+		const list = state.hiddenContainerIds || []
+		const oldIdx = list.findIndex((id) => idsEqual(id, oldId))
+		if (oldIdx === -1) return
+		const newIdx = list.findIndex((id) => idsEqual(id, newId))
+		let next: string[]
+		if (newIdx !== -1) {
+			next = list.filter((_, i) => i !== oldIdx)
+		} else {
+			next = [...list]
+			next[oldIdx] = newId
+		}
+		if (
+			next.length === list.length &&
+			next.every((v, i) => v === list[i])
+		) {
+			return
+		}
+		state.hiddenContainerIds = next
+		await saveState(state)
+	})
+}
+
+export async function gcHiddenIds(liveIds: string[]): Promise<boolean> {
+	return runExclusive(async () => {
+		const state = await loadState()
+		const list = state.hiddenContainerIds || []
+		const filtered = list.filter((id) =>
+			liveIds.some((live) => idsEqual(live, id))
+		)
+		if (
+			filtered.length === list.length &&
+			filtered.every((v, i) => v === list[i])
+		) {
+			return false
+		}
+		state.hiddenContainerIds = filtered
+		await saveState(state)
+		return true
+	})
 }
 
 /**
@@ -224,7 +275,55 @@ export async function isContainerIgnored(
 	containerId: string
 ): Promise<boolean> {
 	const ignoredIds = await getIgnoredNotificationContainerIds()
-	return ignoredIds.includes(containerId)
+	return ignoredIds.some((id) => idsEqual(id, containerId))
+}
+
+export async function remapIgnoredIds(
+	oldId: string,
+	newId: string
+): Promise<void> {
+	if (!oldId || !newId || idsEqual(oldId, newId)) return
+	return runExclusive(async () => {
+		const state = await loadState()
+		const list = state.ignoredNotificationIds || []
+		const oldIdx = list.findIndex((id) => idsEqual(id, oldId))
+		if (oldIdx === -1) return
+		const newIdx = list.findIndex((id) => idsEqual(id, newId))
+		let next: string[]
+		if (newIdx !== -1) {
+			next = list.filter((_, i) => i !== oldIdx)
+		} else {
+			next = [...list]
+			next[oldIdx] = newId
+		}
+		if (
+			next.length === list.length &&
+			next.every((v, i) => v === list[i])
+		) {
+			return
+		}
+		state.ignoredNotificationIds = next
+		await saveState(state)
+	})
+}
+
+export async function gcIgnoredIds(liveIds: string[]): Promise<boolean> {
+	return runExclusive(async () => {
+		const state = await loadState()
+		const list = state.ignoredNotificationIds || []
+		const filtered = list.filter((id) =>
+			liveIds.some((live) => idsEqual(live, id))
+		)
+		if (
+			filtered.length === list.length &&
+			filtered.every((v, i) => v === list[i])
+		) {
+			return false
+		}
+		state.ignoredNotificationIds = filtered
+		await saveState(state)
+		return true
+	})
 }
 
 /**

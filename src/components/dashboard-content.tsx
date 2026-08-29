@@ -1,9 +1,14 @@
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
-import { getDashboardSettings } from '@/lib/app-state'
+import {
+	getDashboardSettings,
+	getHiddenContainerIds,
+	getIgnoredNotificationContainerIds
+} from '@/lib/app-state'
 import { getDockerConnectionInfo } from '@/lib/docker-connection'
 import { getDockerConnected } from '@/lib/docker-inventory'
+import { getReferenceUrls } from '@/lib/reference-url-manager'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import {
@@ -33,12 +38,19 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 	let updateStates: ContainerUpdateState[] = []
 	let settings: Awaited<ReturnType<typeof getDashboardSettings>> | undefined
 	let dockerConnected = false
+	let hiddenIds: string[] = []
+	let ignoredIds: string[] = []
+	let referenceUrls: Awaited<ReturnType<typeof getReferenceUrls>> = {}
 	try {
-		;[updateStates, settings, dockerConnected] = await Promise.all([
-			getContainerUpdateStates(),
-			getDashboardSettings(),
-			getDockerConnected()
-		])
+		;[updateStates, settings, dockerConnected, hiddenIds, ignoredIds, referenceUrls] =
+			await Promise.all([
+				getContainerUpdateStates(),
+				getDashboardSettings(),
+				getDockerConnected(),
+				getHiddenContainerIds(),
+				getIgnoredNotificationContainerIds(),
+				getReferenceUrls()
+			])
 	} catch (error) {
 		console.error(
 			'[Dashboard] Docker connection failed, degrading to empty state:',
@@ -72,6 +84,9 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 	return (
 		<DashboardProvider
 			notificationsEnabled={process.env.NOTIFICATIONS_ENABLED === 'true'}
+			initialHiddenIds={hiddenIds}
+			initialIgnoredIds={ignoredIds}
+			initialReferenceUrls={referenceUrls}
 		>
 			<ContainerDashboard
 				processedContainers={processedContainers}

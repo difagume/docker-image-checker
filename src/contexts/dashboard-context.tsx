@@ -4,21 +4,16 @@ import {
 	createContext,
 	useCallback,
 	useContext,
-	useEffect,
 	useMemo,
 	useRef,
 	useState
 } from 'react'
 import {
-	getHiddenContainerIdsAction,
-	getIgnoredNotificationContainerIdsAction,
 	setHiddenContainerIdsAction,
 	setIgnoredNotificationContainerIdsAction
 } from '@/actions/app-state'
-import {
-	getReferenceUrlsAction,
-	saveReferenceUrlAction
-} from '@/actions/reference-url'
+import { saveReferenceUrlAction } from '@/actions/reference-url'
+import { idsEqual } from '@/lib/container-id'
 import type { ReferenceUrlData } from '@/hooks/use-container-updates'
 
 interface DashboardState {
@@ -70,41 +65,6 @@ export function DashboardProvider({
 	// from what was actually persisted, not from a stale render closure.
 	const hiddenContainerIdsRef = useRef(initialHiddenIds)
 	const ignoredNotificationIdsRef = useRef(initialIgnoredIds)
-
-	// Load initial state from server on mount
-	useEffect(() => {
-		let isCancelled = false
-
-		const loadInitialState = async () => {
-			try {
-				const [hiddenIds, ignoredIds, urls] = await Promise.all([
-					getHiddenContainerIdsAction(),
-					notificationsEnabled
-						? getIgnoredNotificationContainerIdsAction()
-						: Promise.resolve<string[]>([]),
-					getReferenceUrlsAction()
-				])
-
-				if (!isCancelled) {
-					setHiddenContainerIds(hiddenIds)
-					hiddenContainerIdsRef.current = hiddenIds
-					if (notificationsEnabled) {
-						setIgnoredNotificationIds(ignoredIds)
-						ignoredNotificationIdsRef.current = ignoredIds
-					}
-					setReferenceUrls(urls)
-				}
-			} catch (error) {
-				console.error('Failed to load dashboard state:', error)
-			}
-		}
-
-		loadInitialState()
-
-		return () => {
-			isCancelled = true
-		}
-	}, [notificationsEnabled])
 
 	const state = useMemo<DashboardState>(
 		() => ({
@@ -159,12 +119,12 @@ export function DashboardProvider({
 	}, [])
 
 	const isHidden = useCallback(
-		(id: string) => hiddenContainerIds.includes(id),
+		(id: string) => hiddenContainerIds.some((hid) => idsEqual(hid, id)),
 		[hiddenContainerIds]
 	)
 
 	const isIgnored = useCallback(
-		(id: string) => ignoredNotificationIds.includes(id),
+		(id: string) => ignoredNotificationIds.some((iid) => idsEqual(iid, id)),
 		[ignoredNotificationIds]
 	)
 

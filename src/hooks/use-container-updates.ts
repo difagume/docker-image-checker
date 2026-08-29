@@ -1,7 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import {
+	gcHiddenIdsAction,
+	gcIgnoredIdsAction,
+	remapHiddenIdsAction,
+	remapIgnoredIdsAction
+} from '@/actions/app-state'
 import { triggerContainerUpdate, verifyContainerUpdate } from '@/actions/docker'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import { withTag } from '@/lib/image-name'
@@ -43,6 +49,21 @@ export function useContainerUpdates(
 ) {
 	const [containers, setContainers] =
 		useState<ContainerData[]>(processedContainers)
+
+	const liveIds = useMemo(
+		() => processedContainers.map((c) => c.container.Id),
+		[processedContainers]
+	)
+
+	// GC hidden/ignored against liveIds on mount and on refresh (processedContainers change)
+	useEffect(() => {
+		gcHiddenIdsAction(liveIds).catch((err) =>
+			console.warn('[GC] gcHiddenIds failed:', err)
+		)
+		gcIgnoredIdsAction(liveIds).catch((err) =>
+			console.warn('[GC] gcIgnoredIds failed:', err)
+		)
+	}, [liveIds])
 
 	const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(
 		null
@@ -158,6 +179,16 @@ export function useContainerUpdates(
 						)
 					)
 
+					// Orphan remap: migrate hidden/ignored Ids when container was recreated
+					if (newContainerId !== containerId) {
+						remapHiddenIdsAction(containerId, newContainerId).catch(
+							(err) => console.warn('[Remap] remapHiddenIds failed:', err)
+						)
+						remapIgnoredIdsAction(containerId, newContainerId).catch(
+							(err) => console.warn('[Remap] remapIgnoredIds failed:', err)
+						)
+					}
+
 					// Verify in background (async IIFE inside non-async callback)
 					;(async () => {
 						try {
@@ -244,6 +275,7 @@ export function useContainerUpdates(
 		updatingContainerId,
 		updateError,
 		updatePhases,
-		handleUpdateClick
+		handleUpdateClick,
+		liveIds
 	}
 }

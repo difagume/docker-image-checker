@@ -1,10 +1,14 @@
 'use server'
 
 import {
+	gcHiddenIds,
+	gcIgnoredIds,
 	getDashboardSettings,
 	getHiddenContainerIds,
 	getIgnoredNotificationContainerIds,
 	getPreferredLanguage,
+	remapHiddenIds,
+	remapIgnoredIds,
 	setDashboardSettings,
 	setHiddenContainerIds,
 	setIgnoredNotificationContainerIds,
@@ -88,4 +92,42 @@ export async function setPreferredLanguageAction(
 		throw new Error('Invalid language')
 	}
 	await setPreferredLanguage(language)
+}
+
+export async function remapHiddenIdsAction(
+	oldId: string,
+	newId: string
+): Promise<void> {
+	await requireAuthIfEnabled()
+	if (typeof oldId !== 'string' || typeof newId !== 'string') {
+		throw new Error('remapHiddenIds: ids must be strings')
+	}
+	await remapHiddenIds(oldId, newId)
+}
+
+export async function remapIgnoredIdsAction(
+	oldId: string,
+	newId: string
+): Promise<void> {
+	await requireAuthIfEnabled()
+	if (typeof oldId !== 'string' || typeof newId !== 'string') {
+		throw new Error('remapIgnoredIds: ids must be strings')
+	}
+	await remapIgnoredIds(oldId, newId)
+}
+
+export async function gcHiddenIdsAction(liveIds: string[]): Promise<boolean> {
+	await requireAuthIfEnabled()
+	if (!Array.isArray(liveIds) || !liveIds.every((id) => typeof id === 'string')) {
+		throw new Error('gcHiddenIds: liveIds must be a string array')
+	}
+	return gcHiddenIds(liveIds)
+}
+
+export async function gcIgnoredIdsAction(liveIds: string[]): Promise<boolean> {
+	await requireAuthIfEnabled()
+	if (!Array.isArray(liveIds) || !liveIds.every((id) => typeof id === 'string')) {
+		throw new Error('gcIgnoredIds: liveIds must be a string array')
+	}
+	return gcIgnoredIds(liveIds)
 }
