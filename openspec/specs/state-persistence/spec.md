@@ -31,22 +31,48 @@ El sistema DEBE (MUST) extraer el patrón temp+rename+mutex (hoy en `src/lib/cac
 - THEN el mutex los serializa y el archivo final refleja el último guardado completo
 - AND no hay contenido interleaved ni corrupción
 
-### Requirement: REQ-02 — Aplicación a los stores legítimos
+### Requirement: REQ-02 — Aplicación a los stores legítimos + remap y GC
 
-`saveState` (`src/lib/app-state.ts`) DEBE (MUST) usar el helper para escribir `data/dashboard-state.json`. `saveReferenceUrls` (`src/lib/reference-url-manager.ts`) DEBE (MUST) usar el helper para `data/reference-urls.json`. La escritura directa con `fs.writeFile` sobre esos archivos DEBE (MUST) desaparecer.
+`saveState` (`src/lib/app-state.ts`) MUST use `writeFileAtomic` for `data/dashboard-state.json` and `saveReferenceUrls` MUST use it for `data/reference-urls.json`; direct `fs.writeFile` on those paths MUST disappear. Additionally, `setHiddenContainerIds` / `setIgnoredNotificationContainerIds` MUST support atomic Id migration (`remapHiddenIds(oldId→newId)`) and orphan GC (`gcHiddenIds(liveIds)` intersecting with live `container.Id`s, prefix-aware 12 vs 64). All mutations MUST run inside `runExclusive` so concurrent load→mutate→save cycles serialise; `writeFileAtomic` serialises writes but NOT the read-modify-write cycle.
+
+(Previously: only atomic save via writeFileAtomic; no remap or GC behaviour specified)
 
 #### Scenario: ESC-04 — Guardado del dashboard-state
 
-- GIVEN el scheduler marca un update como notificado (`markAsNotified` → `saveState`)
-- WHEN se guarda con el helper
-- THEN `data/dashboard-state.json` se actualiza atómicamente
-- AND los lectores concurrentes (dashboard, dedupe) ven una versión completa, vieja o nueva
+- GIVEN scheduler marks an update as notified (`markAsNotified` → `saveState`)
+- WHEN it saves via helper
+- THEN `data/dashboard-state.json` updates atomically
+- AND concurrent readers see a complete old or new version
 
 #### Scenario: ESC-05 — Guardado de reference-urls
 
-- GIVEN el dashboard registra un reference URL (`saveReferenceUrl` → `saveReferenceUrls`)
-- WHEN se guarda con el helper
-- THEN `data/reference-urls.json` se actualiza atómicamente sin pérdida de entradas existentes
+- GIVEN dashboard registers a reference URL (`saveReferenceUrl` → `saveReferenceUrls`)
+- WHEN it saves via helper
+- THEN `data/reference-urls.json` updates atomically without losing entries
+
+#### Scenario: ESC-04b — Remap atómico preserva orden y deduplica
+
+- GIVEN `hiddenContainerIds=["a","old-64","c"]` y `phase:done {old-64→new-64}`
+- WHEN `remapHiddenIds` runs inside `runExclusive`
+- THEN list becomes `["a","new-64","c"]`
+- AND if `new-64` already present result deduplicates to single `new-64`
+
+#### Scenario: ESC-05b — GC contra Ids vivos
+
+- GIVEN `hidden=["live-64","orphan-64"]` with live ids `["live-64"]`
+- WHEN `gcHiddenIds(liveIds)` runs
+- THEN persisted `hiddenContainerIds` shrinks to `["live-64"]`
+- AND GC is idempotent on re-run with same live set
+
+#### Scenario: ESC-05c — Truncation 12 vs 64
+
+- GIVEN stored id is 12-char prefix and live id is 64-char
+- WHEN comparing for `isHidden` or GC
+- THEN they match when one is prefix of the other
+- AND remap stores canonical 64-char `newContainerId`
+
+## ADDED Requirements
+
 
 ### Requirement: REQ-03 — Manejo en Windows (rename con destino abierto)
 
