@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { idsEqual } from '@/lib/container-id'
 import { listContainersRaw } from '@/lib/docker-inventory'
@@ -12,7 +13,20 @@ import type {
 
 export { idsEqual }
 
-const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'dashboard-state.json')
+// Resolved per call (not at import time). Under NODE_ENV=test (vitest sets it
+// automatically) the default lands in the OS temp dir so tests never touch the
+// real data/ file; STATE_FILE_PATH still overrides in any environment.
+function getStateFilePath(): string {
+	if (process.env.STATE_FILE_PATH) return process.env.STATE_FILE_PATH
+	if (process.env.NODE_ENV === 'test') {
+		return path.join(
+			os.tmpdir(),
+			'docker-image-checker-test',
+			'dashboard-state.json'
+		)
+	}
+	return path.join(process.cwd(), 'data', 'dashboard-state.json')
+}
 
 /**
  * B-16: orphan GC must validate liveness against the daemon, never against a
@@ -57,11 +71,11 @@ export function generateContainerId(update: ContainerUpdate): string {
 export async function loadState(): Promise<NotificationState> {
 	try {
 		// Ensure data directory exists
-		const dataDir = path.dirname(STATE_FILE_PATH)
+		const dataDir = path.dirname(getStateFilePath())
 		await fs.mkdir(dataDir, { recursive: true })
 
 		// Try to read existing state
-		const data = await fs.readFile(STATE_FILE_PATH, 'utf-8')
+		const data = await fs.readFile(getStateFilePath(), 'utf-8')
 		if (!data || data.trim() === '') {
 			return { notifiedUpdates: {} }
 		}
@@ -73,8 +87,8 @@ export async function loadState(): Promise<NotificationState> {
 		} else {
 			console.error('Error loading app state:', error)
 			try {
-				const backupPath = `${STATE_FILE_PATH}.corrupt-${Date.now()}`
-				await fs.rename(STATE_FILE_PATH, backupPath)
+				const backupPath = `${getStateFilePath()}.corrupt-${Date.now()}`
+				await fs.rename(getStateFilePath(), backupPath)
 				console.error(`Corrupt app state file moved aside: ${backupPath}`)
 			} catch {
 				// Rename is best-effort; fall through to the empty state
@@ -90,13 +104,13 @@ export async function loadState(): Promise<NotificationState> {
 export async function saveState(state: NotificationState): Promise<void> {
 	try {
 		// Atomic write (temp + rename); creates the data directory if missing
-		await writeFileAtomic(STATE_FILE_PATH, JSON.stringify(state, null, 2))
+		await writeFileAtomic(getStateFilePath(), JSON.stringify(state, null, 2))
 		console.log('App state saved successfully')
 	} catch (error) {
 		const err = error as NodeJS.ErrnoException
 		if (err.code === 'EACCES') {
 			console.error(
-				`Error saving app state: Permission denied at ${STATE_FILE_PATH}.`
+				`Error saving app state: Permission denied at ${getStateFilePath()}.`
 			)
 			console.error(
 				'Tip: If using Docker bind mounts, ensure the host directory has the correct permissions (e.g., sudo chown -R 1001:1001 ./notifications-data)'
@@ -243,10 +257,7 @@ export async function remapHiddenIds(
 			next = [...list]
 			next[oldIdx] = newId
 		}
-		if (
-			next.length === list.length &&
-			next.every((v, i) => v === list[i])
-		) {
+		if (next.length === list.length && next.every((v, i) => v === list[i])) {
 			return
 		}
 		state.hiddenContainerIds = next
@@ -322,10 +333,7 @@ export async function remapIgnoredIds(
 			next = [...list]
 			next[oldIdx] = newId
 		}
-		if (
-			next.length === list.length &&
-			next.every((v, i) => v === list[i])
-		) {
+		if (next.length === list.length && next.every((v, i) => v === list[i])) {
 			return
 		}
 		state.ignoredNotificationIds = next

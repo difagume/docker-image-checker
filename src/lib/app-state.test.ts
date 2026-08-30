@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -17,6 +18,23 @@ import {
 	setHiddenContainerIds,
 	setIgnoredNotificationContainerIds
 } from './app-state'
+
+// Under NODE_ENV=test (set automatically by vitest) app-state resolves its
+// default file to the OS temp dir, so tests never touch the real data/ file.
+// Only cleanup between tests is needed since the path is fixed per run.
+const TEST_STATE_FILE = path.join(
+	os.tmpdir(),
+	'docker-image-checker-test',
+	'dashboard-state.json'
+)
+
+beforeEach(async () => {
+	await fs.rm(TEST_STATE_FILE, { force: true })
+})
+
+afterEach(async () => {
+	await fs.rm(TEST_STATE_FILE, { force: true })
+})
 
 describe('idsEqual', () => {
 	it('matches identical 64-char ids', () => {
@@ -219,9 +237,6 @@ describe('gcIgnoredIds', () => {
 })
 
 describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
-	const STATE = path.join(process.cwd(), 'data', 'dashboard-state.json')
-	let backup: string | null = null
-
 	const update = {
 		containerName: 'fresh-test',
 		imageName: 'nginx',
@@ -231,17 +246,6 @@ describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
 		dockerContainerId: 'deadbeefcafe1234',
 		fullImageName: 'nginx:1.2.3'
 	}
-
-	beforeEach(async () => {
-		backup = await fs.readFile(STATE, 'utf-8')
-	})
-
-	afterEach(async () => {
-		if (backup !== null) {
-			await fs.writeFile(STATE, backup, 'utf-8')
-			backup = null
-		}
-	})
 
 	it('is false before markAsNotified and true after (fresh read, not snapshot)', async () => {
 		const snapshot = await loadState()
