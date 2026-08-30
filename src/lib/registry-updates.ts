@@ -115,6 +115,12 @@ export async function checkImageUpdateRaw(
 		let repo = originalRepo
 		const tag = parsed.tag
 
+		// B-11: official images (no owner) get the canonical /_/name link,
+		// not /r/library/name.
+		const hubLinkUrl = originalRepo.includes('/')
+			? `https://hub.docker.com/r/${originalRepo}/tags`
+			: `https://hub.docker.com/_/${originalRepo}`
+
 		if (!parsed.isDigest && !repo.includes('/')) {
 			repo = `library/${repo}`
 		}
@@ -171,7 +177,7 @@ export async function checkImageUpdateRaw(
 				lastUpdated: undefined,
 				currentVersion: tag,
 				latestVersion: tag,
-				dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
+				dockerHubUrl: hubLinkUrl,
 				isLocal: false,
 				policyResult
 			}
@@ -192,7 +198,7 @@ export async function checkImageUpdateRaw(
 				lastUpdated: undefined,
 				currentVersion: tag,
 				latestVersion: targetTag,
-				dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
+				dockerHubUrl: hubLinkUrl,
 				isLocal: false,
 				policyResult
 			}
@@ -204,7 +210,7 @@ export async function checkImageUpdateRaw(
 			lastUpdated: targetRemote.publishedAt,
 			currentVersion: tag,
 			latestVersion: targetTag,
-			dockerHubUrl: `https://hub.docker.com/r/${repo}/tags`,
+			dockerHubUrl: hubLinkUrl,
 			isLocal: false,
 			policyResult
 		}

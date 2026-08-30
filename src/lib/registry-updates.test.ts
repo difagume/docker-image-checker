@@ -138,3 +138,41 @@ describe('B-10 Hub unknown tag -> unknown (not green updated)', () => {
 		expect(updateStatus).toBe('unknown')
 	})
 })
+
+describe('B-11 canonical Hub links for official images', () => {
+	async function withTagsFetch<T>(fn: () => Promise<T>): Promise<T> {
+		const originalFetch = global.fetch
+		global.fetch = vi.fn(async () => ({
+			ok: true,
+			json: async () => ({
+				results: [
+					{ name: '8.4.0', digest: 'sha256:a', last_updated: '2024-01-01' },
+					{ name: '8.10.1', digest: 'sha256:b', last_updated: '2024-06-01' }
+				]
+			})
+		}) as unknown as Response) as unknown as typeof fetch
+		try {
+			return await fn()
+		} finally {
+			global.fetch = originalFetch
+		}
+	}
+
+	it('official image (no owner) links to /_/redis, not /r/library/redis', async () => {
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		await withTagsFetch(async () => {
+			const r = await checkImageUpdateRaw('redis:8.4.0', 'sha256:local')
+			expect(r.dockerHubUrl).toBe('https://hub.docker.com/_/redis')
+		})
+	})
+
+	it('namespaced image keeps /r/{owner}/{repo}/tags', async () => {
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		await withTagsFetch(async () => {
+			const r = await checkImageUpdateRaw('valkey/valkey:9.0.3-alpine')
+			expect(r.dockerHubUrl).toBe(
+				'https://hub.docker.com/r/valkey/valkey/tags'
+			)
+		})
+	})
+})
