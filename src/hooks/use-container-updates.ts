@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
 	gcHiddenIdsAction,
@@ -50,20 +50,19 @@ export function useContainerUpdates(
 	const [containers, setContainers] =
 		useState<ContainerData[]>(processedContainers)
 
-	const liveIds = useMemo(
-		() => processedContainers.map((c) => c.container.Id),
-		[processedContainers]
-	)
-
-	// GC hidden/ignored against liveIds on mount and on refresh (processedContainers change)
+	// GC orphaned hidden/ignored prefs on mount and on refresh. B-16: the
+	// actions derive liveness server-side from the daemon — a client-supplied
+	// list comes from the (possibly stale) cached inventory and would purge
+	// prefs of live containers.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: rerun GC whenever the dashboard receives a fresh (post-refresh) container list
 	useEffect(() => {
-		gcHiddenIdsAction(liveIds).catch((err) =>
+		gcHiddenIdsAction().catch((err) =>
 			console.warn('[GC] gcHiddenIds failed:', err)
 		)
-		gcIgnoredIdsAction(liveIds).catch((err) =>
+		gcIgnoredIdsAction().catch((err) =>
 			console.warn('[GC] gcIgnoredIds failed:', err)
 		)
-	}, [liveIds])
+	}, [processedContainers])
 
 	const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(
 		null
@@ -275,7 +274,6 @@ export function useContainerUpdates(
 		updatingContainerId,
 		updateError,
 		updatePhases,
-		handleUpdateClick,
-		liveIds
+		handleUpdateClick
 	}
 }

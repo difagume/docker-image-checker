@@ -1,6 +1,7 @@
 'use server'
 
 import {
+	collectLiveContainerIds,
 	gcHiddenIds,
 	gcIgnoredIds,
 	getDashboardSettings,
@@ -116,18 +117,16 @@ export async function remapIgnoredIdsAction(
 	await remapIgnoredIds(oldId, newId)
 }
 
-export async function gcHiddenIdsAction(liveIds: string[]): Promise<boolean> {
+// B-16: liveness is derived server-side from the daemon; the client never
+// supplies the list (a cache-derived list purges prefs of live containers).
+export async function gcHiddenIdsAction(): Promise<boolean> {
 	await requireAuthIfEnabled()
-	if (!Array.isArray(liveIds) || !liveIds.every((id) => typeof id === 'string')) {
-		throw new Error('gcHiddenIds: liveIds must be a string array')
-	}
+	const liveIds = await collectLiveContainerIds()
 	return gcHiddenIds(liveIds)
 }
 
-export async function gcIgnoredIdsAction(liveIds: string[]): Promise<boolean> {
+export async function gcIgnoredIdsAction(): Promise<boolean> {
 	await requireAuthIfEnabled()
-	if (!Array.isArray(liveIds) || !liveIds.every((id) => typeof id === 'string')) {
-		throw new Error('gcIgnoredIds: liveIds must be a string array')
-	}
+	const liveIds = await collectLiveContainerIds()
 	return gcIgnoredIds(liveIds)
 }

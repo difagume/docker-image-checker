@@ -18,19 +18,14 @@ describe('useContainerUpdates remap/GC OR-01/OR-02', () => {
 		expect(content).toMatch(/phase.*done[\s\S]*remapHiddenIds/)
 	})
 
-	it('triggers gcHiddenIds/gcIgnoredIds on mount and on processedContainers change with liveIds', async () => {
+	it('triggers gcHiddenIds/gcIgnoredIds WITHOUT client-supplied liveIds (B-16: liveness is server-derived)', async () => {
 		const content = await fs.readFile(HOOK_PATH, 'utf-8')
 		expect(content).toContain('gcHiddenIds')
 		expect(content).toContain('gcIgnoredIds')
-		// liveIds derived from containers
-		expect(content).toMatch(/liveIds.*containers\.map|processedContainers\.map/)
-		// useEffect watching processedContainers
-		expect(content).toMatch(/useEffect[\s\S]*gcHiddenIds|gcHiddenIds[\s\S]*useEffect/)
-	})
-
-	it('exposes liveIds derived from processedContainers', async () => {
-		const content = await fs.readFile(HOOK_PATH, 'utf-8')
-		// liveIds should be exposed or used internally; check that liveIds variable exists
-		expect(content).toMatch(/liveIds/)
+		// No-arg invocation: the client must not hand a cache-derived list to GC
+		expect(content).toMatch(/gcHiddenIdsAction\(\)/)
+		expect(content).toMatch(/gcIgnoredIdsAction\(\)/)
+		// And must not build or pass a liveIds list from the (possibly stale) props
+		expect(content).not.toMatch(/liveIds\s*=\s*useMemo|gcHiddenIdsAction\(liveIds\)/)
 	})
 })

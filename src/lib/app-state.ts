@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { idsEqual } from '@/lib/container-id'
+import { listContainersRaw } from '@/lib/docker-inventory'
 import { writeFileAtomic } from '@/lib/fs-atomic'
 import type {
 	ContainerUpdate,
@@ -12,6 +13,17 @@ import type {
 export { idsEqual }
 
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'dashboard-state.json')
+
+/**
+ * B-16: orphan GC must validate liveness against the daemon, never against a
+ * client- or cache-derived list — within the cacheComponents stale window the
+ * cached inventory misses recently created containers and GC would purge the
+ * preferences of live ones.
+ */
+export async function collectLiveContainerIds(): Promise<string[]> {
+	const containers = await listContainersRaw()
+	return containers.map((c) => c.Id)
+}
 
 // Serialize every read-modify-write cycle on the state file so concurrent
 // mutations (e.g. the notification scheduler racing a dashboard settings
