@@ -64,6 +64,25 @@ El sistema DEBE (MUST) extraer el patrón temp+rename+mutex (hoy en `src/lib/cac
 - THEN persisted `hiddenContainerIds` shrinks to `["live-64"]`
 - AND GC is idempotent on re-run with same live set
 
+#### Scenario: ESC-05d — GC con liveness del daemon, no del cliente (B-16)
+
+- GIVEN a hidden id of a LIVE container and the page served from a stale cached inventory missing it
+- WHEN `gcHiddenIdsAction()`/`gcIgnoredIdsAction()` run (no-arg)
+- THEN liveness is derived server-side via `collectLiveContainerIds()` (`listContainersRaw`, all:true)
+- AND the live container's preference survives
+- AND if the daemon is unreachable the actions throw and nothing is pruned (fail-safe)
+
+### Requirement: REQ-04 — Sin escritura de ajustes en la hidratación (B-14)
+
+`useSettingsSync` MUST skip its first effect run (hydration): server-rendered settings already mirror the persisted file, so a page load with zero interaction MUST NOT call `setDashboardSettingsAction` nor rewrite `dashboard-state.json`.
+
+#### Scenario: ESC-06 — Carga sin interacción no reescribe
+
+- GIVEN the dashboard loads with zero user interaction
+- WHEN the hydration effect runs
+- THEN no `setDashboardSettingsAction` fires and the state file mtime is unchanged
+- AND a later chip toggle persists as before (≤~300 ms debounce)
+
 #### Scenario: ESC-05c — Truncation 12 vs 64
 
 - GIVEN stored id is 12-char prefix and live id is 64-char
