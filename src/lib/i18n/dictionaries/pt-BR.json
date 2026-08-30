@@ -15,7 +15,10 @@
 		"description": "Monitore seus contêineres e o status de suas imagens.",
 		"noContainers": "Nenhum contêiner encontrado. Certifique-se de que o Docker esteja em execução e que o socket esteja acessível.",
 		"selectCategory": "Selecione uma categoria acima para filtrar os contêineres.",
-		"noContainersFiltered": "Nenhum contêiner encontrado para os filtros selecionados."
+		"noContainersFiltered": "Nenhum contêiner encontrado para os filtros selecionados.",
+		"refreshAriaLabel": "Atualizar painel",
+		"refreshing": "Atualizando contêineres",
+		"upToDate": "Painel atualizado"
 	},
 	"filter": {
 		"placeholder": "Filtrar contêineres por nome, imagem ou versão...",
@@ -26,7 +29,6 @@
 	},
 	"container": {
 		"updated": "Atualizado",
-		"checking": "Verificando atualização...",
 		"updateAvailable": "Atualização disponível",
 		"newMajorAvailable": "Nova versão major disponível",
 		"unknown": "Imagem desconhecida",
@@ -64,7 +66,8 @@
 		"editReference": "Editar link de referência",
 		"save": "Salvar",
 		"open": "Abrir",
-		"delete": "Excluir"
+		"delete": "Excluir",
+		"transient": "Erro transitório"
 	},
 	"logs": {
 		"viewLogs": "Ver logs",

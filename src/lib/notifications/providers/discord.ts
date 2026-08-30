@@ -1,4 +1,5 @@
 import type { NotificationMessage } from '@/types/app-state'
+import { getSendDeadlineMs } from '../send-deadline'
 import { BaseNotificationProvider } from './base'
 
 interface DiscordEmbed {
@@ -28,7 +29,9 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 	}
 
 	validate(): boolean {
-		if (!this.enabled) return true
+		// Parity with Telegram/ntfy: a disabled provider is not valid, so the
+		// factory never picks it up and send() fails closed.
+		if (!this.enabled) return false
 		return !!this.webhookUrl
 	}
 
@@ -113,6 +116,9 @@ export class DiscordNotificationProvider extends BaseNotificationProvider {
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				// Defense-in-depth: the dispatch boundary also enforces a
+				// deadline; this signal aborts the actual socket.
+				signal: AbortSignal.timeout(getSendDeadlineMs()),
 				body: JSON.stringify({
 					embeds: [embed]
 				})

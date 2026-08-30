@@ -66,7 +66,13 @@ export async function DashboardGate() {
 						)}
 
 						<form action={refresh} noValidate>
-							<RefreshButton />
+							<RefreshButton
+								strings={{
+									refreshAriaLabel: dict.dashboard.refreshAriaLabel,
+									refreshing: dict.dashboard.refreshing,
+									upToDate: dict.dashboard.upToDate
+								}}
+							/>
 						</form>
 					</div>
 				</div>

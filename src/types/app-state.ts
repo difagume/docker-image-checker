@@ -3,7 +3,7 @@ export type FilterStatus =
 	| 'available'
 	| 'unknown'
 	| 'local'
-	| 'checking'
+	| 'transient'
 
 export interface NotificationTranslations {
 	title: string

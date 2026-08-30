@@ -15,6 +15,7 @@ import {
 } from '@/lib/registry-updates'
 import type { ContainerUpdate, NotificationMessage } from '@/types/app-state'
 import { getEnabledProviders } from './provider-factory'
+import { getSendDeadlineMs, withDeadline } from './send-deadline'
 
 /**
  * Check for container updates and send notifications.
@@ -175,9 +176,16 @@ export async function checkAndNotify(
 		}
 		await markAsNotified(update)
 
-		// Send to all providers
+		// Send to all providers. Each send is bounded by a deadline (B-08): a
+		// hung endpoint cannot block the round — the deadline rejection lands
+		// in the allSettled failure logging and the round continues. Marking
+		// above happens BEFORE dispatch, so the dedup entry stays marked even
+		// on a deadline failure (ND-01 / NOTIF-07 unchanged).
+		const sendDeadlineMs = getSendDeadlineMs()
 		const results = await Promise.allSettled(
-			providers.map((provider) => provider.send(message))
+			providers.map((provider) =>
+				withDeadline(provider.send(message), sendDeadlineMs, provider.name)
+			)
 		)
 
 		// Log results

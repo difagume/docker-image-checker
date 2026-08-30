@@ -18,6 +18,37 @@ import type { FilterStatus } from '@/types/app-state'
 
 const FETCH_TIMEOUT = 8000
 
+/**
+ * B-04: classifies a registry-check error as transient (true) or terminal
+ * (false). Transient = timeout abort from `fetchWithTimeout` ("Timeout after
+ * Xms" marker), a fetch/network `TypeError` (DNS/connection failure), or an
+ * HTTP 429 rate-limit response. Everything else — including 404 not-found
+ * paths, which never reach the classifier — is terminal.
+ */
+export function classifyRegistryError(error: unknown): boolean {
+	if (!(error instanceof Error)) return false
+	return (
+		/Timeout after \d+ms/.test(error.message) ||
+		error instanceof TypeError ||
+		/\(429\)/.test(error.message)
+	)
+}
+
+/**
+ * Pure status mapper over a check result. Closed vocabulary: the mapper never
+ * emits `checking`; a transient failure surfaces as `'transient'` instead of
+ * collapsing into `'unknown'`.
+ */
+export function resolveUpdateStatus(
+	result: CheckImageUpdateResult
+): FilterStatus | 'local' {
+	if (result.isLocal) return 'local'
+	if (result.latestDigest) {
+		return result.hasUpdate ? 'available' : 'updated'
+	}
+	return result.transient ? 'transient' : 'unknown'
+}
+
 export interface CheckImageUpdateResult {
 	hasUpdate: boolean
 	latestDigest?: string
@@ -26,6 +57,9 @@ export interface CheckImageUpdateResult {
 	latestVersion?: string
 	dockerHubUrl?: string
 	isLocal?: boolean
+	/** B-04: true when the check failed on a transient condition (timeout,
+	 * rate limit, network error) rather than a genuine not-found/unknown. */
+	transient?: boolean
 	policyResult?: PolicyResult
 	ghcrError?: 'invalid_token'
 	ghcrImageName?: string
@@ -135,6 +169,9 @@ export async function checkImageUpdateRaw(
 				const isLocal = !originalRepo.includes('/')
 				return { hasUpdate: false, isLocal }
 			}
+			if (tagsResponse.status === 429) {
+				throw new Error('Docker Hub API rate limited (429)')
+			}
 			throw new Error(`Docker Hub API error: ${tagsResponse.statusText}`)
 		}
 
@@ -216,9 +253,15 @@ export async function checkImageUpdateRaw(
 		}
 
 		return result
+		// B-04: a registry error must not silently collapse into the not-found
+		// verdict; transient conditions (timeout, rate limit, network) are marked.
 	} catch (error) {
 		console.error('Failed to check image update:', error)
-		return { hasUpdate: false, isLocal: false }
+		return {
+			hasUpdate: false,
+			isLocal: false,
+			transient: classifyRegistryError(error)
+		}
 	}
 }
 
@@ -226,8 +269,13 @@ export async function checkGhcrUpdateRaw(
 	fullImageName: string,
 	localDigest?: string
 ): Promise<CheckImageUpdateResult> {
+	// B-04: 429 in the endpoint loop is transient even though the loop does
+	// not throw; tracked here and honored in the catch below.
+	let sawRateLimit = false
 	try {
-		const parsedGhcr = parseImageReference(fullImageName.replace('ghcr.io/', ''))
+		const parsedGhcr = parseImageReference(
+			fullImageName.replace('ghcr.io/', '')
+		)
 		const imagePath = parsedGhcr.repository
 		const tag = parsedGhcr.tag
 		const parts = imagePath.split('/')
@@ -269,6 +317,9 @@ export async function checkGhcrUpdateRaw(
 				data = (await response.json()) as GhcrPackageVersion[]
 				success = true
 				break
+			}
+			if (response.status === 429) {
+				sawRateLimit = true
 			}
 		}
 
@@ -363,7 +414,11 @@ export async function checkGhcrUpdateRaw(
 			`Failed to check GHCR image update for ${fullImageName}:`,
 			error
 		)
-		return { hasUpdate: false, isLocal: false }
+		return {
+			hasUpdate: false,
+			isLocal: false,
+			transient: sawRateLimit || classifyRegistryError(error)
+		}
 	}
 }
 
@@ -443,13 +498,7 @@ export async function getContainerUpdateStates(): Promise<
 					? result.currentVersion
 					: imageTag
 
-			const updateStatus: FilterStatus | 'local' = result.isLocal
-				? 'local'
-				: result.latestDigest
-					? result.hasUpdate
-						? 'available'
-						: 'updated'
-					: 'unknown'
+			const updateStatus: FilterStatus | 'local' = resolveUpdateStatus(result)
 
 			return {
 				containerId: container.Id,

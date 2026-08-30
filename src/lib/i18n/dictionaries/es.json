@@ -15,7 +15,10 @@
 		"description": "Supervisa tus contenedores y el estado de sus imágenes.",
 		"noContainers": "No se encontraron contenedores. Asegúrate de que Docker esté ejecutándose y el socket sea accesible.",
 		"selectCategory": "Selecciona una categoría arriba para filtrar los contenedores.",
-		"noContainersFiltered": "No se encontraron contenedores para los filtros seleccionados."
+		"noContainersFiltered": "No se encontraron contenedores para los filtros seleccionados.",
+		"refreshAriaLabel": "Actualizar panel",
+		"refreshing": "Actualizando contenedores",
+		"upToDate": "Panel al día"
 	},
 	"filter": {
 		"placeholder": "Filtrar contenedores por nombre, imagen o versión...",
@@ -26,7 +29,6 @@
 	},
 	"container": {
 		"updated": "Actualizado",
-		"checking": "Comprobando actualización...",
 		"updateAvailable": "Actualización disponible",
 		"newMajorAvailable": "Nueva versión mayor disponible",
 		"unknown": "Imagen desconocida",
@@ -64,7 +66,8 @@
 		"editReference": "Editar link de referencia",
 		"save": "Guardar",
 		"open": "Abrir",
-		"delete": "Eliminar"
+		"delete": "Eliminar",
+		"transient": "Error transitorio"
 	},
 	"logs": {
 		"viewLogs": "Ver logs",

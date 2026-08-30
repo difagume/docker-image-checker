@@ -1,5 +1,6 @@
+import net from 'node:net'
 import type { ContainerInfo } from 'dockerode'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NotificationMessage } from '@/types/app-state'
 
 vi.mock('@/lib/app-state', () => ({
@@ -169,5 +170,76 @@ describe('checkAndNotify overlap (B-07 / fix-notify-race)', () => {
 		])
 
 		expect(sent).toHaveLength(1)
+	})
+})
+
+describe('checkAndNotify per-send deadline (B-08 / fix-provider-robustness)', () => {
+	beforeEach(() => {
+		vi.mocked(markAsNotified).mockClear()
+	})
+
+	afterEach(() => {
+		vi.unstubAllEnvs()
+		vi.mocked(markAsNotified).mockResolvedValue(undefined)
+	})
+
+	// Local server that accepts the TCP connection and NEVER responds —
+	// the hung-endpoint repro from the spec.
+	function makeHungServer(): Promise<{ url: string; close: () => void }> {
+		return new Promise((resolve) => {
+			const server = net.createServer((socket) => {
+				// Deliberately never write an HTTP response.
+				socket.on('error', () => {})
+			})
+			server.listen(0, '127.0.0.1', () => {
+				const address = server.address()
+				if (typeof address !== 'object' || !address) {
+					throw new Error('no address')
+				}
+				resolve({
+					url: `http://127.0.0.1:${address.port}`,
+					close: () => server.close()
+				})
+			})
+		})
+	}
+
+	it('fails the hung send within the deadline while remaining providers still dispatch', async () => {
+		vi.stubEnv('NOTIFICATIONS_SEND_TIMEOUT_MS', '300')
+		const hung = await makeHungServer()
+
+		// A provider whose send performs a real fetch against the hung endpoint.
+		const hungProvider = {
+			name: 'hung',
+			enabled: true,
+			validate: () => true,
+			send: vi.fn(async () => {
+				await fetch(hung.url, { method: 'POST' })
+			})
+		} as unknown as ReturnType<typeof getEnabledProviders>[number]
+
+		const { provider: goodProvider, sent } = makeCapturingProvider()
+		vi.mocked(getEnabledProviders).mockReturnValue([hungProvider, goodProvider])
+		vi.mocked(checkImageUpdateRaw).mockResolvedValue({
+			hasUpdate: true,
+			latestDigest: 'sha256:newdigest',
+			latestVersion: '1.2.3',
+			currentVersion: '1.0.0'
+		})
+
+		const startedAt = Date.now()
+		await checkAndNotify([makeContainer()], [])
+		const elapsed = Date.now() - startedAt
+
+		hung.close()
+
+		// The round completed — no hang past the deadline.
+		expect(elapsed).toBeLessThan(10_000)
+		// Remaining providers still dispatched.
+		expect(sent).toHaveLength(1)
+		expect(sent[0].containerName).toBe('web')
+		// Deadline failure did not abort marking (ND-01 reserve-before-send):
+		// the dedup entry stays marked (NOTIF-07).
+		expect(vi.mocked(markAsNotified)).toHaveBeenCalledTimes(1)
 	})
 })

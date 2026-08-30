@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import {
 	Activity,
+	AlertTriangle,
 	ArrowUpCircle,
 	Bell,
 	BellOff,
@@ -212,14 +213,17 @@ function StatusUnknown({ label }: StatusUnknownProps) {
 	return <span className='text-muted-foreground font-medium'>{label}</span>
 }
 
-interface StatusCheckingProps {
+interface StatusTransientProps {
 	label: string
 }
 
-function StatusChecking({ label }: StatusCheckingProps) {
+function StatusTransient({ label }: StatusTransientProps) {
 	return (
-		<span className='text-muted-foreground font-medium flex items-center gap-1.5'>
-			<Loader2 className='h-3.5 w-3.5 animate-spin' aria-hidden='true' />
+		<span
+			className='text-amber-500 font-medium flex items-center gap-1.5'
+			title={label}
+		>
+			<AlertTriangle className='h-3.5 w-3.5' aria-hidden='true' />
 			{label}
 		</span>
 	)
@@ -399,8 +403,8 @@ export const ContainerCard = React.memo(function ContainerCard({
 				return <StatusLocal label={dict.container.local} />
 			case 'unknown':
 				return <StatusUnknown label={dict.container.unknown} />
-			case 'checking':
-				return <StatusChecking label={dict.container.checking} />
+			case 'transient':
+				return <StatusTransient label={dict.container.transient} />
 			default:
 				return null
 		}

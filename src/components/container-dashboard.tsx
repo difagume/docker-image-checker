@@ -88,7 +88,7 @@ export function ContainerDashboard({
 				(c) =>
 					c.updateStatus === 'unknown' ||
 					c.updateStatus === 'local' ||
-					c.updateStatus === 'checking'
+					c.updateStatus === 'transient'
 			).length
 		}
 	}, [containers])
@@ -103,8 +103,10 @@ export function ContainerDashboard({
 
 	const filteredContainers = useMemo(() => {
 		return containers.filter((item) => {
+			// `local` and `transient` have no dedicated filter chip; they ride
+			// the `unknown` (degraded) bucket so they stay visible by default.
 			const statusForFilter =
-				item.updateStatus === 'local' || item.updateStatus === 'checking'
+				item.updateStatus === 'local' || item.updateStatus === 'transient'
 					? 'unknown'
 					: item.updateStatus
 			const isStatusMatch = activeFilters.includes(

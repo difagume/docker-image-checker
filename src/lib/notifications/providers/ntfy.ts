@@ -2,6 +2,7 @@ import type {
 	NotificationMessage,
 	NotificationTranslations
 } from '@/types/app-state'
+import { getSendDeadlineMs } from '../send-deadline'
 import { BaseNotificationProvider } from './base'
 
 interface NtfyAction {
@@ -125,6 +126,9 @@ export class NtfyNotificationProvider extends BaseNotificationProvider {
 			const response = await fetch(`${this.server}`, {
 				method: 'POST',
 				headers,
+				// Defense-in-depth: the dispatch boundary also enforces a
+				// deadline; this signal aborts the actual socket.
+				signal: AbortSignal.timeout(getSendDeadlineMs()),
 				body: JSON.stringify(payload)
 			})
 
