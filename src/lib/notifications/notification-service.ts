@@ -1,5 +1,6 @@
 import type { ContainerInfo, ImageInfo } from 'dockerode'
 import {
+	alreadyNotifiedFresh,
 	getPreferredLanguage,
 	hasBeenNotified,
 	loadState,
@@ -160,6 +161,20 @@ export async function checkAndNotify(
 			locale: language
 		}
 
+		// B-07: decide-and-reserve atomically. A concurrent round may have
+		// marked this digest after our round-start snapshot; re-check fresh
+		// state and reserve (mark) BEFORE sending so overlapping rounds can
+		// never duplicate the same notification. Marking before send also
+		// preserves the NOTIF-07 behavior: the entry stays marked even when
+		// providers fail.
+		if (await alreadyNotifiedFresh(update)) {
+			console.log(
+				`⏭️ ${update.containerName} was notified by a concurrent check, skipping`
+			)
+			continue
+		}
+		await markAsNotified(update)
+
 		// Send to all providers
 		const results = await Promise.allSettled(
 			providers.map((provider) => provider.send(message))
@@ -176,10 +191,6 @@ export async function checkAndNotify(
 				)
 			}
 		})
-
-		// Mark as notified even if some providers failed
-		// (to avoid spam if one provider is temporarily down)
-		await markAsNotified(update)
 	}
 
 	console.log('🏁 Notification check completed')

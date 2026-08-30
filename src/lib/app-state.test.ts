@@ -1,14 +1,20 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-	idsEqual,
-	runExclusive,
-	remapHiddenIds,
-	remapIgnoredIds,
+	alreadyNotifiedFresh,
 	gcHiddenIds,
 	gcIgnoredIds,
 	getHiddenContainerIds,
-	setHiddenContainerIds,
 	getIgnoredNotificationContainerIds,
+	hasBeenNotified,
+	idsEqual,
+	loadState,
+	markAsNotified,
+	remapHiddenIds,
+	remapIgnoredIds,
+	runExclusive,
+	setHiddenContainerIds,
 	setIgnoredNotificationContainerIds
 } from './app-state'
 
@@ -140,7 +146,11 @@ describe('remapIgnoredIds', () => {
 	it('preserves order and dedup for ignored list', async () => {
 		await setIgnoredNotificationContainerIds(['a', 'old', 'c'])
 		await remapIgnoredIds('old', 'new')
-		expect(await getIgnoredNotificationContainerIds()).toEqual(['a', 'new', 'c'])
+		expect(await getIgnoredNotificationContainerIds()).toEqual([
+			'a',
+			'new',
+			'c'
+		])
 
 		await setIgnoredNotificationContainerIds(['old', 'new'])
 		await remapIgnoredIds('old', 'new')
@@ -205,5 +215,40 @@ describe('gcIgnoredIds', () => {
 		const mutated = await gcIgnoredIds([longLive])
 		expect(mutated).toBe(true)
 		expect(await getIgnoredNotificationContainerIds()).toEqual([shortStored])
+	})
+})
+
+describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
+	const STATE = path.join(process.cwd(), 'data', 'dashboard-state.json')
+	let backup: string | null = null
+
+	const update = {
+		containerName: 'fresh-test',
+		imageName: 'nginx',
+		currentVersion: '1.0.0',
+		latestVersion: '1.2.3',
+		latestDigest: 'sha256:freshdigest',
+		dockerContainerId: 'deadbeefcafe1234',
+		fullImageName: 'nginx:1.2.3'
+	}
+
+	beforeEach(async () => {
+		backup = await fs.readFile(STATE, 'utf-8')
+	})
+
+	afterEach(async () => {
+		if (backup !== null) {
+			await fs.writeFile(STATE, backup, 'utf-8')
+			backup = null
+		}
+	})
+
+	it('is false before markAsNotified and true after (fresh read, not snapshot)', async () => {
+		const snapshot = await loadState()
+		expect(hasBeenNotified(snapshot, update)).toBe(false)
+		expect(await alreadyNotifiedFresh(update)).toBe(false)
+
+		await markAsNotified(update)
+		expect(await alreadyNotifiedFresh(update)).toBe(true)
 	})
 })

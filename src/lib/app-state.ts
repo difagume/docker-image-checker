@@ -120,6 +120,20 @@ export function hasBeenNotified(
 }
 
 /**
+ * B-07: dedup gate at send time. A concurrent check round may have marked
+ * this update after our round-start snapshot was taken; re-read the state
+ * under the store mutex so overlapping rounds cannot duplicate sends.
+ */
+export async function alreadyNotifiedFresh(
+	update: ContainerUpdate
+): Promise<boolean> {
+	return runExclusive(async () => {
+		const state = await loadState()
+		return hasBeenNotified(state, update)
+	})
+}
+
+/**
  * Mark an update as notified
  */
 export async function markAsNotified(update: ContainerUpdate): Promise<void> {
