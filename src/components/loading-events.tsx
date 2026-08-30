@@ -3,7 +3,7 @@
 /**
  * Client-side store that broadcasts the refresh loading state.
  *
- * The only source is the server action (`revalidatePath`) pending state
+ * The only source is the server action (`updateTag`) pending state
  * reported by the refresh button via `useFormStatus().pending`.
  */
 
