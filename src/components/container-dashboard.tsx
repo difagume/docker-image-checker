@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { ContainerCard } from '@/components/container-card'
+import { GhcrTokenToast } from '@/components/ghcr-token-toast'
 import { SearchBar } from '@/components/search-bar'
 import { useDashboard } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
@@ -63,6 +64,16 @@ export function ContainerDashboard({
 		updatePhases,
 		handleUpdateClick
 	} = useContainerUpdates(processedContainers, dict)
+
+	// B-09: surface degraded GHCR tokens — the server already flags images it
+	// could not verify because GITHUB_GHCR_TOKEN is invalid/expired.
+	const invalidTokenImages = useMemo(
+		() =>
+			containers
+				.filter((c) => c.ghcrError === 'invalid_token')
+				.map((c) => c.container.Image),
+		[containers]
+	)
 
 	useSettingsSync(activeFilters, showHiddenMode)
 	useLanguageSync(locale, notificationsEnabled)
@@ -132,6 +143,7 @@ export function ContainerDashboard({
 
 	return (
 		<>
+			<GhcrTokenToast imageNames={invalidTokenImages} dict={dict} />
 			<StatsSummary
 				updatedCount={dynamicStats.updated}
 				availableCount={dynamicStats.available}

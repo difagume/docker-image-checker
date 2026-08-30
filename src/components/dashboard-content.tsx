@@ -8,9 +8,9 @@ import {
 } from '@/lib/app-state'
 import { getDockerConnectionInfo } from '@/lib/docker-connection'
 import { getDockerConnected } from '@/lib/docker-inventory'
-import { getReferenceUrls } from '@/lib/reference-url-manager'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
+import { getReferenceUrls } from '@/lib/reference-url-manager'
 import {
 	type ContainerUpdateState,
 	getContainerUpdateStates
@@ -42,15 +42,21 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 	let ignoredIds: string[] = []
 	let referenceUrls: Awaited<ReturnType<typeof getReferenceUrls>> = {}
 	try {
-		;[updateStates, settings, dockerConnected, hiddenIds, ignoredIds, referenceUrls] =
-			await Promise.all([
-				getContainerUpdateStates(),
-				getDashboardSettings(),
-				getDockerConnected(),
-				getHiddenContainerIds(),
-				getIgnoredNotificationContainerIds(),
-				getReferenceUrls()
-			])
+		;[
+			updateStates,
+			settings,
+			dockerConnected,
+			hiddenIds,
+			ignoredIds,
+			referenceUrls
+		] = await Promise.all([
+			getContainerUpdateStates(),
+			getDashboardSettings(),
+			getDockerConnected(),
+			getHiddenContainerIds(),
+			getIgnoredNotificationContainerIds(),
+			getReferenceUrls()
+		])
 	} catch (error) {
 		console.error(
 			'[Dashboard] Docker connection failed, degrading to empty state:',
@@ -73,7 +79,8 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 		lastUpdated: state.lastUpdated,
 		dockerHubUrl: state.dockerHubUrl,
 		isUpToDate: state.isUpToDate,
-		policyState: state.policyState
+		policyState: state.policyState,
+		ghcrError: state.ghcrError
 	}))
 
 	const elapsed = performance.now() - startTime

@@ -41,6 +41,7 @@ export interface ContainerData {
 	isUpToDate: boolean
 	policyState?: PolicyState
 	localDigest?: string
+	ghcrError?: 'invalid_token'
 }
 
 export function useContainerUpdates(
@@ -180,14 +181,13 @@ export function useContainerUpdates(
 
 					// Orphan remap: migrate hidden/ignored Ids when container was recreated
 					if (newContainerId !== containerId) {
-						remapHiddenIdsAction(containerId, newContainerId).catch(
-							(err) => console.warn('[Remap] remapHiddenIds failed:', err)
+						remapHiddenIdsAction(containerId, newContainerId).catch((err) =>
+							console.warn('[Remap] remapHiddenIds failed:', err)
 						)
-						remapIgnoredIdsAction(containerId, newContainerId).catch(
-							(err) => console.warn('[Remap] remapIgnoredIds failed:', err)
+						remapIgnoredIdsAction(containerId, newContainerId).catch((err) =>
+							console.warn('[Remap] remapIgnoredIds failed:', err)
 						)
 					}
-
 					// Verify in background (async IIFE inside non-async callback)
 					;(async () => {
 						try {

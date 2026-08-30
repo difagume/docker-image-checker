@@ -236,13 +236,14 @@ describe('gcIgnoredIds', () => {
 	})
 })
 
-describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
+	describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
 	const update = {
 		containerName: 'fresh-test',
 		imageName: 'nginx',
 		currentVersion: '1.0.0',
 		latestVersion: '1.2.3',
 		latestDigest: 'sha256:freshdigest',
+		imageDigest: 'sha256:localdigest',
 		dockerContainerId: 'deadbeefcafe1234',
 		fullImageName: 'nginx:1.2.3'
 	}
