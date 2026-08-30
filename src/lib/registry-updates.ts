@@ -170,9 +170,13 @@ export async function checkImageUpdateRaw(
 				return { hasUpdate: false, isLocal }
 			}
 			if (tagsResponse.status === 429) {
-				throw new Error('Docker Hub API rate limited (429)')
+				throw new Error(
+					`Docker Hub API rate limited (429) for image "${imageName}"`
+				)
 			}
-			throw new Error(`Docker Hub API error: ${tagsResponse.statusText}`)
+			throw new Error(
+				`Docker Hub API error: ${tagsResponse.statusText} (status ${tagsResponse.status}) for image "${imageName}" (url: ${tagsUrl})`
+			)
 		}
 
 		const tagsData = await tagsResponse.json()
@@ -256,7 +260,7 @@ export async function checkImageUpdateRaw(
 		// B-04: a registry error must not silently collapse into the not-found
 		// verdict; transient conditions (timeout, rate limit, network) are marked.
 	} catch (error) {
-		console.error('Failed to check image update:', error)
+		console.error(`Failed to check image update for "${imageName}":`, error)
 		return {
 			hasUpdate: false,
 			isLocal: false,
