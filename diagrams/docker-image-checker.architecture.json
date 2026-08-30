@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Docker Image Checker",
+    "output": "docker-image-checker.architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "request-path",
+        "label": "Primary request path",
+        "focus": [
+          "users",
+          "proxy",
+          "dashboard",
+          "actions",
+          "docker",
+          "daemon"
+        ],
+        "note": "Follow a dashboard request from the browser to the Docker daemon."
+      },
+      {
+        "id": "registry-checks",
+        "label": "Registry update checks",
+        "focus": [
+          "actions",
+          "registry",
+          "hub",
+          "ghcr"
+        ],
+        "note": "How cached readers compare local digests against Docker Hub and GHCR."
+      },
+      {
+        "id": "notifications",
+        "label": "Notification pipeline",
+        "focus": [
+          "scheduler",
+          "state",
+          "providers"
+        ],
+        "note": "Cron-driven update checks and deduplicated delivery to providers."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "User",
+      "sublabel": "Browser",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "proxy",
+      "type": "security",
+      "label": "Auth Proxy",
+      "sublabel": "src/proxy.ts",
+      "pos": [
+        240,
+        380
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "tag": "htpasswd + iron-session"
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "Dashboard",
+      "sublabel": "App Router RSC",
+      "pos": [
+        460,
+        380
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "static shell + Suspense"
+    },
+    {
+      "id": "actions",
+      "type": "backend",
+      "label": "Server Actions & Cached Readers",
+      "sublabel": "'use cache' + updateTag",
+      "pos": [
+        680,
+        380
+      ],
+      "size": [
+        220,
+        64
+      ]
+    },
+    {
+      "id": "docker",
+      "type": "backend",
+      "label": "Dockerode Client",
+      "sublabel": "src/lib/docker.ts",
+      "pos": [
+        930,
+        380
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "singleton"
+    },
+    {
+      "id": "daemon",
+      "type": "external",
+      "label": "Docker Daemon",
+      "sublabel": "local / tcp / tls / ssh",
+      "pos": [
+        1160,
+        380
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "Registry Update Checks",
+      "sublabel": "src/lib/registry-updates.ts",
+      "pos": [
+        680,
+        190
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "tag": "semver policy engine"
+    },
+    {
+      "id": "hub",
+      "type": "external",
+      "label": "Docker Hub API",
+      "pos": [
+        930,
+        190
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "ghcr",
+      "type": "external",
+      "label": "GHCR",
+      "sublabel": "optional PAT",
+      "pos": [
+        1160,
+        190
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "scheduler",
+      "type": "backend",
+      "label": "Notification Scheduler",
+      "sublabel": "node-cron / instrumentation",
+      "pos": [
+        460,
+        590
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "state",
+      "type": "database",
+      "label": "dashboard-state.json",
+      "sublabel": "dedup + persistence",
+      "pos": [
+        680,
+        590
+      ],
+      "size": [
+        180,
+        60
+      ]
+    },
+    {
+      "id": "providers",
+      "type": "external",
+      "label": "Telegram / ntfy / Discord",
+      "pos": [
+        930,
+        590
+      ],
+      "size": [
+        180,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Next.js 16 Server (App Router)",
+      "wraps": [
+        "proxy",
+        "dashboard",
+        "actions",
+        "docker",
+        "registry",
+        "scheduler",
+        "state"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Optional auth",
+      "wraps": [
+        "proxy"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-to-proxy",
+      "from": "users",
+      "to": "proxy",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "proxy-to-dashboard",
+      "from": "proxy",
+      "to": "dashboard",
+      "label": "session cookie"
+    },
+    {
+      "id": "dashboard-to-actions",
+      "from": "dashboard",
+      "to": "actions",
+      "label": "RSC fetch / refresh action",
+      "labelDy": -26
+    },
+    {
+      "id": "actions-to-docker",
+      "from": "actions",
+      "to": "docker",
+      "label": "list containers & images",
+      "labelDy": -26
+    },
+    {
+      "id": "docker-to-daemon",
+      "from": "docker",
+      "to": "daemon",
+      "label": "socket / DOCKER_HOST",
+      "labelDy": -26
+    },
+    {
+      "id": "actions-to-registry",
+      "from": "actions",
+      "to": "registry",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "compare digests"
+    },
+    {
+      "id": "registry-to-hub",
+      "from": "registry",
+      "to": "hub",
+      "label": "REST"
+    },
+    {
+      "id": "registry-to-ghcr",
+      "from": "registry",
+      "to": "ghcr",
+      "variant": "dashed",
+      "label": "packages API",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          770,
+          140
+        ],
+        [
+          1235,
+          140
+        ]
+      ],
+      "labelDy": -26
+    },
+    {
+      "id": "scheduler-to-actions",
+      "from": "scheduler",
+      "to": "actions",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "cron check (raw readers)"
+    },
+    {
+      "id": "scheduler-to-state",
+      "from": "scheduler",
+      "to": "state",
+      "label": "persist dedup",
+      "labelDy": -33
+    },
+    {
+      "id": "scheduler-to-providers",
+      "from": "scheduler",
+      "to": "providers",
+      "label": "send alerts",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          550,
+          700
+        ],
+        [
+          1020,
+          700
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Request path",
+      "items": [
+        "Static shell streams data via Suspense",
+        "Manual refresh revalidates cache tags via updateTag"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Docker & registries",
+      "items": [
+        "Dockerode singleton over socket, TCP, TLS or SSH",
+        "Digest comparison against Docker Hub and GHCR",
+        "Semver policy: stable preferred over RC/beta"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Auth & notifications",
+      "items": [
+        "Optional htpasswd auth behind the proxy guard",
+        "node-cron scheduler dedupes state in dashboard-state.json",
+        "Providers: Telegram, ntfy and Discord"
+      ]
+    }
+  ]
+}

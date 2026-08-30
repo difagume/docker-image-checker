@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Image Update Lifecycle",
+    "output": "docker-image-checker.updates.lifecycle.html",
+    "viewBox": [
+      1085,
+      630
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "main-rail",
+        "label": "Check rail",
+        "focus": [
+          "unknown",
+          "checking",
+          "evaluated",
+          "available",
+          "current"
+        ],
+        "note": "Follow one image from an unknown state to a concrete verdict."
+      },
+      {
+        "id": "policy-gate",
+        "label": "Policy gate",
+        "focus": [
+          "evaluated",
+          "available",
+          "suppressed",
+          "notifying"
+        ],
+        "note": "How the semver policy suppresses unwanted updates before notifying."
+      },
+      {
+        "id": "recovery",
+        "label": "Failure recovery",
+        "focus": [
+          "checking",
+          "error"
+        ],
+        "note": "A failed registry check retries on the next cron run."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Check phases"
+    },
+    {
+      "id": "policy",
+      "label": "Policy gate"
+    },
+    {
+      "id": "notify",
+      "label": "Notifier"
+    },
+    {
+      "id": "terminal",
+      "label": "Outcomes"
+    }
+  ],
+  "states": [
+    {
+      "id": "unknown",
+      "type": "start",
+      "label": "Unknown",
+      "sublabel": "no check yet",
+      "lane": "main",
+      "col": 0,
+      "step": "01",
+      "tag": "fresh"
+    },
+    {
+      "id": "checking",
+      "type": "active",
+      "label": "Checking",
+      "sublabel": "registry query",
+      "lane": "main",
+      "col": 1,
+      "step": "02",
+      "tag": "running"
+    },
+    {
+      "id": "evaluated",
+      "type": "decision",
+      "label": "Evaluated",
+      "sublabel": "digest diff",
+      "lane": "main",
+      "col": 2,
+      "step": "03",
+      "tag": "gate"
+    },
+    {
+      "id": "available",
+      "type": "waiting",
+      "label": "Update Available",
+      "sublabel": "newer remote digest",
+      "lane": "main",
+      "col": 3,
+      "step": "04",
+      "tag": "actionable"
+    },
+    {
+      "id": "current",
+      "type": "success",
+      "label": "Up to Date",
+      "sublabel": "digests equal",
+      "lane": "main",
+      "col": 4,
+      "step": "05",
+      "tag": "success"
+    },
+    {
+      "id": "suppressed",
+      "type": "waiting",
+      "label": "Policy Skip",
+      "sublabel": "major / rc / beta",
+      "lane": "policy",
+      "col": 1,
+      "tag": "muted"
+    },
+    {
+      "id": "notifying",
+      "type": "active",
+      "label": "Notifying",
+      "sublabel": "providers fan-out",
+      "lane": "notify",
+      "col": 2,
+      "tag": "deduped"
+    },
+    {
+      "id": "notified",
+      "type": "success",
+      "label": "Notified",
+      "sublabel": "alerts delivered",
+      "lane": "terminal",
+      "col": 2,
+      "tag": "terminal"
+    },
+    {
+      "id": "error",
+      "type": "failure",
+      "label": "Check Failed",
+      "sublabel": "registry unreachable",
+      "lane": "terminal",
+      "col": 0,
+      "tag": "retries"
+    }
+  ],
+  "transitions": [
+    {
+      "from": "evaluated",
+      "to": "current",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          402,
+          88
+        ],
+        [
+          710,
+          88
+        ]
+      ]
+    },
+    {
+      "from": "available",
+      "to": "notifying",
+      "variant": "emphasis"
+    },
+    {
+      "from": "notifying",
+      "to": "notified",
+      "variant": "emphasis"
+    },
+    {
+      "from": "evaluated",
+      "to": "suppressed",
+      "variant": "security"
+    },
+    {
+      "from": "checking",
+      "to": "error",
+      "variant": "security"
+    },
+    {
+      "from": "error",
+      "to": "checking",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Check rail",
+      "items": [
+        "Every tracked image starts unknown until its first registry check",
+        "The verdict is a digest comparison, not a tag string match"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Policy gate",
+      "items": [
+        "Major bumps and rc/beta tags can be suppressed",
+        "Suppressed updates still render, but never alert"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Outcomes",
+      "items": [
+        "Notified is the terminal success of the deduped fan-out",
+        "A failed check is recoverable: the next cron run retries"
+      ]
+    }
+  ]
+}

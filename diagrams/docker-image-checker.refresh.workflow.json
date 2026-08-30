@@ -1,0 +1,309 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Manual Refresh & Update Check",
+    "quality_profile": "showcase",
+    "output": "docker-image-checker.refresh.workflow.html",
+    "views": [
+      {
+        "id": "happy-path",
+        "label": "Click to verdict",
+        "focus": [
+          "user",
+          "refresh",
+          "revalidate",
+          "readers",
+          "dockerode",
+          "daemon",
+          "policy",
+          "cards"
+        ],
+        "note": "Follow the manual refresh from the button click to the rendered update verdict."
+      },
+      {
+        "id": "inventory-leg",
+        "label": "Docker inventory leg",
+        "focus": [
+          "readers",
+          "dockerode",
+          "daemon"
+        ],
+        "note": "How containers and local image digests are listed."
+      },
+      {
+        "id": "notify-leg",
+        "label": "Notification leg",
+        "focus": [
+          "policy",
+          "dedupe",
+          "providers"
+        ],
+        "note": "How new updates reach the notification providers."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "ui",
+      "label": "Dashboard UI"
+    },
+    {
+      "id": "server",
+      "label": "Next.js Server"
+    },
+    {
+      "id": "docker",
+      "label": "Docker"
+    },
+    {
+      "id": "registry",
+      "label": "Registries"
+    },
+    {
+      "id": "notify",
+      "label": "Notifications"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "Trigger",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "gather",
+      "label": "Invalidate + fetch",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "verdict",
+      "label": "Compare + report",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "user",
+    "refresh",
+    "revalidate",
+    "readers",
+    "dockerode",
+    "daemon",
+    "policy",
+    "cards"
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "lane": "ui",
+      "col": 0,
+      "type": "external",
+      "label": "User",
+      "sublabel": "wants fresh status",
+      "width": 116
+    },
+    {
+      "id": "refresh",
+      "lane": "ui",
+      "col": 1,
+      "type": "frontend",
+      "label": "Refresh Button",
+      "sublabel": "dashboard-gate.tsx",
+      "width": 116
+    },
+    {
+      "id": "cards",
+      "lane": "ui",
+      "col": 5,
+      "type": "frontend",
+      "label": "Stats & Container Cards",
+      "sublabel": "re-rendered RSC",
+      "width": 170
+    },
+    {
+      "id": "revalidate",
+      "lane": "server",
+      "col": 1,
+      "type": "backend",
+      "label": "updateTag()",
+      "sublabel": "revalidate cache tags",
+      "width": 116
+    },
+    {
+      "id": "readers",
+      "lane": "server",
+      "col": 2,
+      "type": "backend",
+      "label": "Cached Readers",
+      "sublabel": "'use cache' scopes",
+      "width": 116
+    },
+    {
+      "id": "policy",
+      "lane": "server",
+      "col": 4,
+      "type": "backend",
+      "label": "Policy Engine",
+      "sublabel": "semver compare",
+      "width": 116
+    },
+    {
+      "id": "dockerode",
+      "lane": "docker",
+      "col": 2,
+      "type": "backend",
+      "label": "Dockerode",
+      "sublabel": "singleton client",
+      "width": 116
+    },
+    {
+      "id": "daemon",
+      "lane": "docker",
+      "col": 3,
+      "type": "external",
+      "label": "Docker Daemon",
+      "sublabel": "containers + images",
+      "width": 116
+    },
+    {
+      "id": "hub",
+      "lane": "registry",
+      "col": 3,
+      "type": "external",
+      "label": "Docker Hub / GHCR",
+      "sublabel": "remote digests",
+      "width": 116
+    },
+    {
+      "id": "dedupe",
+      "lane": "notify",
+      "col": 4,
+      "type": "database",
+      "label": "Dedup State",
+      "sublabel": "dashboard-state.json",
+      "width": 116
+    },
+    {
+      "id": "providers",
+      "lane": "notify",
+      "col": 5,
+      "type": "external",
+      "label": "Telegram / ntfy / Discord",
+      "width": 180
+    }
+  ],
+  "edges": [
+    {
+      "id": "user-click",
+      "from": "user",
+      "to": "refresh",
+      "label": "click refresh",
+      "variant": "emphasis"
+    },
+    {
+      "id": "refresh-revalidate",
+      "from": "refresh",
+      "to": "revalidate",
+      "label": "server action",
+      "variant": "emphasis"
+    },
+    {
+      "id": "revalidate-readers",
+      "from": "revalidate",
+      "to": "readers",
+      "label": "invalidate tags",
+      "variant": "default"
+    },
+    {
+      "id": "readers-dockerode",
+      "from": "readers",
+      "to": "dockerode",
+      "label": "inventory",
+      "variant": "default"
+    },
+    {
+      "id": "dockerode-daemon",
+      "from": "dockerode",
+      "to": "daemon",
+      "label": "list containers / images",
+      "variant": "default"
+    },
+    {
+      "id": "daemon-return",
+      "from": "daemon",
+      "to": "policy",
+      "variant": "emphasis",
+      "role": "return",
+      "fromSide": "right",
+      "toSide": "right",
+      "route": "outside-right",
+      "width": 1.2
+    },
+    {
+      "id": "readers-hub",
+      "from": "readers",
+      "to": "hub",
+      "label": "fetch remote digests",
+      "variant": "default"
+    },
+    {
+      "id": "hub-return",
+      "from": "hub",
+      "to": "policy",
+      "label": "diff digests",
+      "variant": "emphasis",
+      "role": "return"
+    },
+    {
+      "id": "policy-cards",
+      "from": "policy",
+      "to": "cards",
+      "label": "verdict",
+      "variant": "emphasis",
+      "role": "return",
+      "fromSide": "right",
+      "toSide": "right",
+      "route": "outside-right",
+      "width": 1.2
+    },
+    {
+      "id": "policy-dedupe",
+      "from": "policy",
+      "to": "dedupe",
+      "label": "record update",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "dedupe-providers",
+      "from": "dedupe",
+      "to": "providers",
+      "label": "send if new",
+      "variant": "dashed",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Cache contract",
+      "items": [
+        "updateTag revalidates inventory and registry tags",
+        "Cached readers recompute on the next request"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Verdict semantics",
+      "items": [
+        "Policy engine prefers stable over RC/beta versions",
+        "Dedup state suppresses repeated notifications"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Update Detection Data Flow",
+    "output": "docker-image-checker.updates.dataflow.html",
+    "viewBox": [
+      1085,
+      656
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "inventory-path",
+        "label": "Inventory path",
+        "focus": [
+          "daemon",
+          "config",
+          "readers"
+        ],
+        "note": "Local state and configuration flow into the cached inventory readers."
+      },
+      {
+        "id": "compare-path",
+        "label": "Compare path",
+        "focus": [
+          "readers",
+          "hub",
+          "ghcr",
+          "policy"
+        ],
+        "note": "Local digests are enriched with registry digests and compared by the policy engine."
+      },
+      {
+        "id": "consumer-path",
+        "label": "Consumer path",
+        "focus": [
+          "policy",
+          "ui",
+          "state",
+          "providers"
+        ],
+        "note": "Verdicts reach the dashboard, and new findings reach the notification providers."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Sources"
+    },
+    {
+      "label": "Collect"
+    },
+    {
+      "label": "Enrich"
+    },
+    {
+      "label": "Decide"
+    },
+    {
+      "label": "Consume"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "daemon",
+      "type": "external",
+      "label": "Docker Daemon",
+      "sublabel": "local inventory",
+      "stage": 0,
+      "row": 1,
+      "tag": "image digests"
+    },
+    {
+      "id": "config",
+      "type": "database",
+      "label": "Env & Config",
+      "sublabel": "env vars",
+      "stage": 0,
+      "row": 3,
+      "tag": "connection + providers"
+    },
+    {
+      "id": "readers",
+      "type": "backend",
+      "label": "Cached Readers",
+      "sublabel": "'use cache' scopes",
+      "stage": 1,
+      "row": 2,
+      "tag": "cache tags"
+    },
+    {
+      "id": "hub",
+      "type": "external",
+      "label": "Docker Hub",
+      "sublabel": "registry API",
+      "stage": 2,
+      "row": 0,
+      "tag": "remote digests"
+    },
+    {
+      "id": "ghcr",
+      "type": "external",
+      "label": "GHCR",
+      "sublabel": "packages API",
+      "stage": 2,
+      "row": 3,
+      "tag": "optional PAT"
+    },
+    {
+      "id": "policy",
+      "type": "backend",
+      "label": "Policy Engine",
+      "sublabel": "semver + digest diff",
+      "stage": 3,
+      "row": 2,
+      "tag": "stable > rc/beta"
+    },
+    {
+      "id": "state",
+      "type": "database",
+      "label": "Dedup State",
+      "sublabel": "dashboard-state.json",
+      "stage": 3,
+      "row": 3,
+      "tag": "seen updates"
+    },
+    {
+      "id": "ui",
+      "type": "frontend",
+      "label": "Dashboard Cards",
+      "sublabel": "RSC stream",
+      "stage": 4,
+      "row": 0,
+      "tag": "verdicts"
+    },
+    {
+      "id": "providers",
+      "type": "external",
+      "label": "Alert Providers",
+      "stage": 4,
+      "row": 3,
+      "tag": "alerts"
+    }
+  ],
+  "flows": [
+    {
+      "id": "inventory-flow",
+      "from": "daemon",
+      "to": "readers",
+      "label": "containers + local digests",
+      "classification": "read-only",
+      "variant": "emphasis"
+    },
+    {
+      "id": "config-flow",
+      "from": "config",
+      "to": "readers",
+      "label": "connection + provider config",
+      "classification": "settings",
+      "variant": "default"
+    },
+    {
+      "id": "hub-query",
+      "from": "readers",
+      "to": "hub",
+      "label": "digest query",
+      "classification": "public API",
+      "variant": "default"
+    },
+    {
+      "id": "ghcr-query",
+      "from": "readers",
+      "to": "ghcr",
+      "label": "packages query",
+      "classification": "PAT optional",
+      "variant": "dashed"
+    },
+    {
+      "id": "hub-digests",
+      "from": "hub",
+      "to": "policy",
+      "label": "remote digests",
+      "classification": "registry data",
+      "variant": "default"
+    },
+    {
+      "id": "ghcr-digests",
+      "from": "ghcr",
+      "to": "policy",
+      "label": "remote digests",
+      "classification": "registry data",
+      "variant": "dashed"
+    },
+    {
+      "id": "verdicts-flow",
+      "from": "policy",
+      "to": "ui",
+      "label": "update verdicts",
+      "classification": "computed",
+      "variant": "emphasis"
+    },
+    {
+      "id": "record-flow",
+      "from": "policy",
+      "to": "state",
+      "label": "record findings",
+      "classification": "persisted",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "alerts-flow",
+      "from": "state",
+      "to": "providers",
+      "label": "new updates only",
+      "classification": "deduplicated",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Primary path",
+      "items": [
+        "Daemon inventory and registry digests meet in the policy engine",
+        "Verdicts stream into dashboard cards as computed data"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Registry access",
+      "items": [
+        "Docker Hub is queried anonymously",
+        "GHCR optionally uses a PAT for private packages"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Notification guard",
+      "items": [
+        "Findings are persisted in dashboard-state.json",
+        "Providers only receive updates not seen before"
+      ]
+    }
+  ]
+}

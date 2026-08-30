@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Dashboard Request & Update Check",
+    "output": "docker-image-checker.request.sequence.html",
+    "viewBox": [
+      1085,
+      650
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "session-render",
+        "label": "Session and first render",
+        "focus": [
+          "user",
+          "proxy",
+          "rsc",
+          "readers"
+        ],
+        "note": "Follow the authenticated dashboard request into the cached readers."
+      },
+      {
+        "id": "registry-compare",
+        "label": "Registry compare",
+        "focus": [
+          "readers",
+          "daemon",
+          "hub"
+        ],
+        "note": "Local digests from the daemon are compared against registry digests."
+      },
+      {
+        "id": "manual-refresh",
+        "label": "Manual refresh",
+        "focus": [
+          "user",
+          "rsc",
+          "readers"
+        ],
+        "note": "The refresh button invalidates cache tags and recomputes."
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "User",
+      "sublabel": "browser"
+    },
+    {
+      "id": "proxy",
+      "type": "security",
+      "label": "Auth Proxy",
+      "sublabel": "iron-session"
+    },
+    {
+      "id": "rsc",
+      "type": "frontend",
+      "label": "Dashboard RSC",
+      "sublabel": "App Router"
+    },
+    {
+      "id": "readers",
+      "type": "backend",
+      "label": "Readers",
+      "sublabel": "'use cache'"
+    },
+    {
+      "id": "daemon",
+      "type": "external",
+      "label": "Docker Daemon",
+      "sublabel": "local inventory"
+    },
+    {
+      "id": "hub",
+      "type": "external",
+      "label": "Registries",
+      "sublabel": "Docker Hub / GHCR"
+    }
+  ],
+  "segments": [
+    {
+      "from": 140,
+      "to": 207,
+      "label": "Session"
+    },
+    {
+      "from": 227,
+      "to": 407,
+      "label": "Fetch + compare"
+    },
+    {
+      "from": 427,
+      "to": 497,
+      "label": "Stream"
+    },
+    {
+      "from": 492,
+      "to": 585,
+      "label": "Manual refresh"
+    }
+  ],
+  "messages": [
+    {
+      "id": "open",
+      "from": "user",
+      "to": "proxy",
+      "y": 160,
+      "label": "open dashboard",
+      "variant": "default"
+    },
+    {
+      "id": "session-ok",
+      "from": "proxy",
+      "to": "rsc",
+      "y": 195,
+      "label": "session valid",
+      "variant": "return"
+    },
+    {
+      "id": "suspense-fetch",
+      "from": "rsc",
+      "to": "readers",
+      "y": 235,
+      "label": "Suspense fetch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "list-containers",
+      "from": "readers",
+      "to": "daemon",
+      "y": 275,
+      "label": "list containers + image digests",
+      "variant": "default"
+    },
+    {
+      "id": "inventory",
+      "from": "daemon",
+      "to": "readers",
+      "y": 310,
+      "label": "local inventory",
+      "variant": "return"
+    },
+    {
+      "id": "remote-digests",
+      "from": "readers",
+      "to": "hub",
+      "y": 350,
+      "label": "fetch remote digest",
+      "variant": "default"
+    },
+    {
+      "id": "registry-reply",
+      "from": "hub",
+      "to": "readers",
+      "y": 385,
+      "label": "remote digests",
+      "variant": "return"
+    },
+    {
+      "id": "verdicts",
+      "from": "readers",
+      "to": "rsc",
+      "y": 445,
+      "label": "update verdicts",
+      "variant": "emphasis"
+    },
+    {
+      "id": "stream",
+      "from": "rsc",
+      "to": "user",
+      "y": 475,
+      "label": "stream cards",
+      "variant": "return"
+    },
+    {
+      "id": "click-refresh",
+      "from": "user",
+      "to": "rsc",
+      "y": 503,
+      "label": "click refresh",
+      "variant": "default"
+    },
+    {
+      "id": "update-tags",
+      "from": "rsc",
+      "to": "readers",
+      "y": 531,
+      "label": "updateTag()",
+      "variant": "dashed"
+    },
+    {
+      "id": "recompute",
+      "from": "readers",
+      "to": "rsc",
+      "y": 565,
+      "label": "recompute + re-render",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "proxy",
+      "from": 155,
+      "to": 206,
+      "type": "security"
+    },
+    {
+      "participant": "rsc",
+      "from": 197,
+      "to": 578,
+      "type": "frontend"
+    },
+    {
+      "participant": "readers",
+      "from": 237,
+      "to": 578,
+      "type": "backend"
+    },
+    {
+      "participant": "daemon",
+      "from": 272,
+      "to": 318,
+      "type": "external"
+    },
+    {
+      "participant": "hub",
+      "from": 347,
+      "to": 392,
+      "type": "external"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Main path",
+      "items": [
+        "Static shell streams data via Suspense",
+        "Verdicts compare local vs remote digests"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Security",
+      "items": [
+        "Unauthenticated requests are redirected to /login",
+        "Session lives in an HTTP-only iron-session cookie"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Refresh",
+      "items": [
+        "updateTag invalidates inventory and registry tags",
+        "Next request recomputes through the same readers"
+      ]
+    }
+  ]
+}

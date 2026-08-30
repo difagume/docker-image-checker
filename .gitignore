@@ -57,3 +57,6 @@ next-env.d.ts
 data
 skills-lock.json
 notifications-data/
+
+# diagramas archify: sidecars de verificación visual (regenerables)
+diagrams/*.visual-check.*
