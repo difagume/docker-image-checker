@@ -40,7 +40,8 @@ describe('parseImageReference', () => {
 		)
 		expect(ref.repository).toBe('nginx')
 		expect(ref.isDigest).toBe(true)
-		expect(ref.tag).toBe(
+		expect(ref.tag).toBe('latest')
+		expect(ref.digest).toBe(
 			'sha256:abc123def456abc123def456abc123def456abc123def456abc123def456abcd'
 		)
 	})

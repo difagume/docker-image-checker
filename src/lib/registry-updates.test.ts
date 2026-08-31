@@ -50,7 +50,8 @@ describe('B-05 parseImageReference (registry port + digest)', () => {
 	it('parses digest-pinned reference isDigest true', () => {
 		const ref = parseImageReference('myorg/app@sha256:abc123')
 		expect(ref.repository).toBe('myorg/app')
-		expect(ref.tag).toBe('sha256:abc123')
+		expect(ref.tag).toBe('latest')
+		expect(ref.digest).toBe('sha256:abc123')
 		expect(ref.isDigest).toBe(true)
 	})
 

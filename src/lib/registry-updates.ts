@@ -154,6 +154,7 @@ export async function checkImageUpdateRaw(
 		const originalRepo = parsed.repository
 		let repo = originalRepo
 		const tag = parsed.tag
+		const pinnedDigest = parsed.digest
 
 		// B-11: official images (no owner) get the canonical /_/name link,
 		// not /r/library/name.
@@ -211,7 +212,7 @@ export async function checkImageUpdateRaw(
 		const context: ImageContext = {
 			imageName,
 			currentTag: tag,
-			currentDigest: localDigest || '',
+			currentDigest: localDigest || pinnedDigest || '',
 			remoteTags
 		}
 
@@ -294,6 +295,7 @@ export async function checkGhcrUpdateRaw(
 		)
 		const imagePath = parsedGhcr.repository
 		const tag = parsedGhcr.tag
+		const pinnedDigest = parsedGhcr.digest
 		const parts = imagePath.split('/')
 
 		if (parts.length < 2) {
@@ -369,7 +371,7 @@ export async function checkGhcrUpdateRaw(
 		const context: ImageContext = {
 			imageName: fullImageName,
 			currentTag: tag,
-			currentDigest: localDigest || '',
+			currentDigest: localDigest || pinnedDigest || '',
 			remoteTags
 		}
 
@@ -496,7 +498,8 @@ export async function getContainerUpdateStates(): Promise<
 
 	const states = await Promise.all(
 		containers.map(async (container) => {
-			const imageTag = parseImageReference(container.Image).tag
+			const parsed = parseImageReference(container.Image)
+			let imageTag = parsed.tag
 			const isRunning = container.State === 'running'
 			const ports = (container.Ports || [])
 				.filter((p) => p.PublicPort > 0)
@@ -506,6 +509,21 @@ export async function getContainerUpdateStates(): Promise<
 
 			const localImage = images.find((img) => img.Id === container.ImageID)
 			const localDigest = resolveLocalDigest(localImage)
+
+			// Fallback for short hash / digest-only refs (e.g. c7612cb64700, ubuntu@sha256:abc):
+			// try first RepoTag from the resolved image to get a friendly tag
+			if (imageTag === 'latest') {
+				const repoTag = localImage?.RepoTags?.[0]
+				if (repoTag) {
+					const parsedRepoTag = parseImageReference(repoTag)
+					// Use repo tag if it provides a non-latest friendly tag; otherwise keep 'latest'
+					if (parsedRepoTag.tag !== 'latest') {
+						imageTag = parsedRepoTag.tag
+					} else if (repoTag.includes(':')) {
+						imageTag = parsedRepoTag.tag
+					}
+				}
+			}
 
 			const result = await checkImageUpdate(container.Image, localDigest)
 
