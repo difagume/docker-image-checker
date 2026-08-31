@@ -14,8 +14,20 @@ export interface ImageReference {
 export function parseImageReference(image: string): ImageReference {
 	const digestIndex = image.indexOf('@')
 	if (digestIndex > -1) {
+		const beforeDigest = image.slice(0, digestIndex)
+		const lastColonBeforeDigest = beforeDigest.lastIndexOf(':')
+		if (
+			lastColonBeforeDigest > -1 &&
+			!beforeDigest.slice(lastColonBeforeDigest + 1).includes('/')
+		) {
+			return {
+				repository: beforeDigest.slice(0, lastColonBeforeDigest),
+				tag: image.slice(digestIndex + 1),
+				isDigest: true
+			}
+		}
 		return {
-			repository: image.slice(0, digestIndex),
+			repository: beforeDigest,
 			tag: image.slice(digestIndex + 1),
 			isDigest: true
 		}

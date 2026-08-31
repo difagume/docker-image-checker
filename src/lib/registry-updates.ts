@@ -142,6 +142,12 @@ export async function checkImageUpdateRaw(
 	if (imageName.startsWith('docker.hyperdx.io/')) {
 		imageName = imageName.replace('docker.hyperdx.io/', '')
 	}
+	if (imageName.startsWith('docker.io/')) {
+		imageName = imageName.replace('docker.io/', '')
+	}
+	if (imageName.startsWith('registry-1.docker.io/')) {
+		imageName = imageName.replace('registry-1.docker.io/', '')
+	}
 
 	try {
 		const parsed = parseImageReference(imageName)
@@ -155,7 +161,7 @@ export async function checkImageUpdateRaw(
 			? `https://hub.docker.com/r/${originalRepo}/tags`
 			: `https://hub.docker.com/_/${originalRepo}`
 
-		if (!parsed.isDigest && !repo.includes('/')) {
+		if (!repo.includes('/')) {
 			repo = `library/${repo}`
 		}
 
@@ -168,6 +174,12 @@ export async function checkImageUpdateRaw(
 				// Detect if it's likely a local image (no slash in original name suggests docker-compose naming)
 				const isLocal = !originalRepo.includes('/')
 				return { hasUpdate: false, isLocal }
+			}
+			if (tagsResponse.status === 400) {
+				console.warn(
+					`Docker Hub API 400 for image "${imageName}" (url: ${tagsUrl}) - treating as unknown`
+				)
+				return { hasUpdate: false, isLocal: false }
 			}
 			if (tagsResponse.status === 429) {
 				throw new Error(
