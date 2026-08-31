@@ -56,6 +56,9 @@ export interface NotifiedUpdate {
 	latestDigest: string
 }
 
+export type SortBy = 'name' | 'status'
+export type SortDir = 'asc' | 'desc'
+
 export interface NotificationState {
 	notifiedUpdates: Record<string, NotifiedUpdate>
 	lastCheck?: string
@@ -64,6 +67,8 @@ export interface NotificationState {
 	preferredLanguage?: string // User's preferred language for notifications (en, es, pt)
 	activeFilters?: string[] // Active filters for the dashboard
 	showHiddenMode?: boolean // Whether to show hidden containers
+	sortBy?: SortBy // Persisted sort field (name/status), defaults to 'name' if missing
+	sortDir?: SortDir // Persisted sort direction (asc/desc), defaults to 'asc' if missing
 }
 
 export interface NotificationConfig {

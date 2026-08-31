@@ -15,7 +15,7 @@ import {
 	type ContainerUpdateState,
 	getContainerUpdateStates
 } from '@/lib/registry-updates'
-import type { FilterStatus } from '@/types/app-state'
+import type { FilterStatus, SortBy, SortDir } from '@/types/app-state'
 
 const DEFAULT_ACTIVE_FILTERS: FilterStatus[] = [
 	'updated',
@@ -104,6 +104,8 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 					(settings?.activeFilters ?? DEFAULT_ACTIVE_FILTERS) as FilterStatus[]
 				}
 				initialShowHiddenMode={settings?.showHiddenMode ?? false}
+				initialSortBy={(settings?.sortBy ?? 'name') as SortBy}
+				initialSortDir={(settings?.sortDir ?? 'asc') as SortDir}
 				dockerConnected={dockerConnected}
 			/>
 

@@ -17,7 +17,7 @@ import {
 } from '@/lib/app-state'
 import { requireAuthIfEnabled } from '@/lib/auth-guard'
 import type { Locale } from '@/lib/i18n/dictionaries'
-import type { FilterStatus } from '@/types/app-state'
+import type { FilterStatus, SortBy, SortDir } from '@/types/app-state'
 
 export async function getHiddenContainerIdsAction(): Promise<string[]> {
 	await requireAuthIfEnabled()
@@ -54,6 +54,8 @@ export async function setIgnoredNotificationContainerIdsAction(
 export async function getDashboardSettingsAction(): Promise<{
 	activeFilters: FilterStatus[]
 	showHiddenMode: boolean
+	sortBy: SortBy
+	sortDir: SortDir
 }> {
 	await requireAuthIfEnabled()
 	return getDashboardSettings()
@@ -62,6 +64,8 @@ export async function getDashboardSettingsAction(): Promise<{
 export async function setDashboardSettingsAction(settings: {
 	activeFilters?: FilterStatus[]
 	showHiddenMode?: boolean
+	sortBy?: SortBy
+	sortDir?: SortDir
 }): Promise<void> {
 	await requireAuthIfEnabled()
 	if (
@@ -76,6 +80,18 @@ export async function setDashboardSettingsAction(settings: {
 		typeof settings.showHiddenMode !== 'boolean'
 	) {
 		throw new Error('showHiddenMode must be boolean')
+	}
+	if (
+		settings.sortBy !== undefined &&
+		!['name', 'status'].includes(settings.sortBy)
+	) {
+		throw new Error('sortBy must be one of name, status')
+	}
+	if (
+		settings.sortDir !== undefined &&
+		!['asc', 'desc'].includes(settings.sortDir)
+	) {
+		throw new Error('sortDir must be one of asc, desc')
 	}
 	await setDashboardSettings(settings)
 }
