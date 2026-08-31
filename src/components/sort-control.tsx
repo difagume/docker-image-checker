@@ -42,7 +42,7 @@ export function SortControl({
 				>
 					<SelectTrigger
 						size='default'
-						className='w-full flex-1 rounded-md'
+						className='w-full flex-1 rounded-sm'
 						aria-label='Ordenar por'
 					>
 						<SelectValue placeholder='Ordenar' />
@@ -65,13 +65,13 @@ export function SortControl({
 				onValueChange={(v) => {
 					if (v) onSortByChange(v as SortBy)
 				}}
-				className='hidden md:flex rounded-md'
+				className='hidden md:flex rounded-sm'
 				aria-label='Ordenar por'
 			>
 				<ToggleGroupItem
 					value='name'
 					aria-label='Ordenar por nombre'
-					className='rounded-md'
+					className='rounded-sm'
 				>
 					<Type data-icon='inline-start' />
 					Nombre
@@ -79,7 +79,7 @@ export function SortControl({
 				<ToggleGroupItem
 					value='status'
 					aria-label='Ordenar por estado'
-					className='rounded-md'
+					className='rounded-sm'
 				>
 					<Activity data-icon='inline-start' />
 					Estado
@@ -89,7 +89,7 @@ export function SortControl({
 			<Button
 				variant='outline'
 				size='icon-sm'
-				className='shrink-0 rounded-md'
+				className='shrink-0 rounded-sm'
 				onClick={handleToggleDir}
 				aria-label={
 					sortDir === 'asc'
