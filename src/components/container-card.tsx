@@ -160,8 +160,11 @@ function StatusAvailable({
 				</Tooltip>
 			)}
 			<div className='absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2'>
-				{updateError && isUpdating ? (
-					<span className='text-xs text-destructive text-center'>
+				{updateError && !isUpdating ? (
+					<span
+						className='text-xs text-destructive text-center'
+						role='alert'
+					>
 						{updateError}
 					</span>
 				) : null}

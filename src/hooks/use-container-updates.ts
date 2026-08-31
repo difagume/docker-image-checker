@@ -69,6 +69,9 @@ export function useContainerUpdates(
 		null
 	)
 	const [updateError, setUpdateError] = useState<string | null>(null)
+	const [updateErrorContainerId, setUpdateErrorContainerId] = useState<
+		string | null
+	>(null)
 	const [updatePhases, setUpdatePhases] = useState<
 		Record<string, { phase: UpdatePhase; statusText: string; error?: string }>
 	>({})
@@ -84,13 +87,6 @@ export function useContainerUpdates(
 		containerImage: string,
 		newVersion: string
 	) => {
-		setUpdatingContainerId(containerId)
-		setUpdateError(null)
-		setUpdatePhases((prev) => ({
-			...prev,
-			[containerId]: { phase: 'pulling', statusText: 'Starting...' }
-		}))
-
 		const imageName = withTag(containerImage, newVersion)
 
 		const containerName =
@@ -99,6 +95,17 @@ export function useContainerUpdates(
 
 		try {
 			const { taskId } = await triggerContainerUpdate(containerId, imageName)
+
+			// B-18: only enter updating state after server confirmed task creation
+			// so a trigger failure (auth, red, ContainerUpdateInProgressError) never
+			// leaves a ghost "Pulling image..." without a backing progressStore task.
+			setUpdatingContainerId(containerId)
+			setUpdateError(null)
+			setUpdateErrorContainerId(null)
+			setUpdatePhases((prev) => ({
+				...prev,
+				[containerId]: { phase: 'pulling', statusText: 'Starting...' }
+			}))
 
 			const eventSource = new EventSource(
 				`/api/update-progress?taskId=${taskId}`
@@ -125,9 +132,15 @@ export function useContainerUpdates(
 				if (data.phase === 'error') {
 					eventSource.close()
 					delete activeEventSources.current[containerId]
-					setUpdatingContainerId(null)
+					setUpdatingContainerId((prev) =>
+						prev === containerId ? null : prev
+					)
 					setUpdateError(data.error || 'Update failed')
-					setTimeout(() => setUpdateError(null), 5000)
+					setUpdateErrorContainerId(containerId)
+					setTimeout(() => {
+						setUpdateError(null)
+						setUpdateErrorContainerId(null)
+					}, 5000)
 					toast.error(
 						dict.toast.updateError.replace('{container}', containerName)
 					)
@@ -136,7 +149,9 @@ export function useContainerUpdates(
 				if (data.phase === 'done') {
 					eventSource.close()
 					delete activeEventSources.current[containerId]
-					setUpdatingContainerId(null)
+					setUpdatingContainerId((prev) =>
+						prev === containerId ? null : prev
+					)
 
 					// Clean up updatePhase — the update is complete
 					setUpdatePhases((prev) => {
@@ -242,19 +257,32 @@ export function useContainerUpdates(
 					delete next[containerId]
 					return next
 				})
-				setUpdatingContainerId(null)
+				setUpdatingContainerId((prev) =>
+					prev === containerId ? null : prev
+				)
 				setUpdateError('Connection lost')
-				setTimeout(() => setUpdateError(null), 5000)
+				setUpdateErrorContainerId(containerId)
+				setTimeout(() => {
+					setUpdateError(null)
+					setUpdateErrorContainerId(null)
+				}, 5000)
 			})
 		} catch (err) {
-			setUpdatingContainerId(null)
+			// B-18: trigger failed before task creation — ensure no ghost spinner remains
+			setUpdatingContainerId((prev) =>
+				prev === containerId ? null : prev
+			)
 			setUpdatePhases((prev) => {
 				const next = { ...prev }
 				delete next[containerId]
 				return next
 			})
 			setUpdateError(err instanceof Error ? err.message : 'Unknown error')
-			setTimeout(() => setUpdateError(null), 5000)
+			setUpdateErrorContainerId(containerId)
+			setTimeout(() => {
+				setUpdateError(null)
+				setUpdateErrorContainerId(null)
+			}, 5000)
 			toast.error(dict.toast.updateError.replace('{container}', containerName))
 		}
 	}
@@ -273,6 +301,7 @@ export function useContainerUpdates(
 		containers,
 		updatingContainerId,
 		updateError,
+		updateErrorContainerId,
 		updatePhases,
 		handleUpdateClick
 	}

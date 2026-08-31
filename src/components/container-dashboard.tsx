@@ -61,6 +61,7 @@ export function ContainerDashboard({
 		containers,
 		updatingContainerId,
 		updateError,
+		updateErrorContainerId,
 		updatePhases,
 		handleUpdateClick
 	} = useContainerUpdates(processedContainers, dict)
@@ -182,7 +183,11 @@ export function ContainerDashboard({
 							dict={dict}
 							locale={locale}
 							updatingContainerId={updatingContainerId}
-							updateError={updateError}
+							updateError={
+								updateErrorContainerId === item.container.Id
+									? updateError
+									: null
+							}
 							updatePhase={updatePhases[item.container.Id] ?? null}
 							onSetConfirmUpdate={setConfirmUpdateState}
 							onSaveReferenceUrl={actions.saveReferenceUrl}
