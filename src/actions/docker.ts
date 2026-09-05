@@ -7,9 +7,10 @@ import {
 	runContainerUpdateTask,
 	updateContainerImage
 } from '@/lib/container-update-task'
-import docker from '@/lib/docker'
+import { listImagesRaw } from '@/lib/docker-inventory'
+import { resolveLocalDigest } from '@/lib/image-name'
 import type { PolicyState } from '@/lib/policies/types'
-import { checkImageUpdate } from '@/lib/registry-updates'
+import { checkImageUpdateRaw } from '@/lib/registry-updates'
 
 export type { OnPhaseCallback } from '@/lib/container-update-task'
 export { updateContainerImage }
@@ -47,14 +48,21 @@ export async function verifyContainerUpdate(imageName: string): Promise<{
 }> {
 	await requireAuthIfEnabled()
 	try {
-		// Get the new digest from the updated image
-		const image = docker.getImage(imageName)
-		const imageInfo = await image.inspect()
-		const localDigest = imageInfo.Id
+		// Resolve local digest consistently with getContainerUpdateStates:
+		// list images and find by RepoTags containing the exact imageName,
+		// then derive digest from RepoDigests via resolveLocalDigest.
+		// This avoids using docker.getImage(imageName).inspect().Id which
+		// returns the image config ID, not the registry content digest,
+		// causing false-positive "update available" after a successful pull.
+		const images = await listImagesRaw()
+		const localImage = images.find((img) => img.RepoTags?.includes(imageName))
+		const localDigest = resolveLocalDigest(localImage)
 
-		// Check for updates with the new image (cached registry scope; the new
-		// digest is a cache miss, so this queries fresh)
-		const updateInfo = await checkImageUpdate(imageName, localDigest)
+		// Bypass the cached registry scope (900s revalidate) to ensure
+		// read-your-writes: after a pull the new digest must be checked
+		// fresh, otherwise the stale cached result would still report
+		// hasUpdate=true for up to 15 minutes.
+		const updateInfo = await checkImageUpdateRaw(imageName, localDigest)
 
 		return {
 			hasUpdate: updateInfo.hasUpdate,

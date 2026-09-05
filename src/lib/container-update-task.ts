@@ -361,16 +361,19 @@ export async function runContainerUpdateTask(
 			)
 
 			if (result.success) {
-				progressStore.setResult(taskId, {
-					newContainerId: result.newContainerId,
-					newImageId: result.newImageId
-				})
-
+				// Invalidate cached readers BEFORE delivering done via SSE,
+				// so the client refresh after receiving "done" never hits
+				// stale cache (otherwise done arrives before updateTag).
 				// After a successful update the daemon already has the new
 				// digest; invalidate the cached readers so they re-scan
 				// instead of serving stale container/image/registry data
 				// (web: read-your-writes via updateTag; Telegram: tunnel).
 				await opts.revalidate?.(REFRESH_TAGS)
+
+				progressStore.setResult(taskId, {
+					newContainerId: result.newContainerId,
+					newImageId: result.newImageId
+				})
 
 				// Purge stale inline buttons so a tap on an old button for
 				// this container cannot re-trigger a pull (R11).
