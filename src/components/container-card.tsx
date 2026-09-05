@@ -32,6 +32,7 @@ import {
 import { useDashboard } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
+import { parseImageReference } from '@/lib/image-name'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
 import { ContainerLogsDialog } from './container-logs-dialog'
@@ -541,15 +542,21 @@ export const ContainerCard = React.memo(function ContainerCard({
 									</span>
 									<ReferenceUrlPopover
 										key={
-											referenceUrls[container.Image.split(':')[0]]
-												?.referenceUrl ?? ''
+											referenceUrls[
+												parseImageReference(container.Image).repository
+											]?.referenceUrl ?? ''
 										}
-										imageName={container.Image.split(':')[0]}
+										imageName={parseImageReference(container.Image).repository}
 										currentUrl={
-											referenceUrls[container.Image.split(':')[0]]?.referenceUrl
+											referenceUrls[
+												parseImageReference(container.Image).repository
+											]?.referenceUrl
 										}
 										onSave={(url: string) => {
-											onSaveReferenceUrl(container.Image.split(':')[0], url)
+											onSaveReferenceUrl(
+												parseImageReference(container.Image).repository,
+												url
+											)
 										}}
 										dict={dict.container}
 									/>
@@ -561,7 +568,7 @@ export const ContainerCard = React.memo(function ContainerCard({
 
 							<div className='space-y-1 pl-6 pt-1'>
 								<div className='text-foreground pb-1'>
-									{container.Image.split(':')[0]}
+									{parseImageReference(container.Image).repository}
 								</div>
 								<div className='flex items-center justify-between'>
 									<span className='text-muted-foreground font-semibold tracking-wider text-[11px]'>

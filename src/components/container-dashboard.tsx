@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { ContainerCard } from '@/components/container-card'
 import { GhcrTokenToast } from '@/components/ghcr-token-toast'
 import { SearchBar } from '@/components/search-bar'
+import { SortControl } from '@/components/sort-control'
 import { useDashboard } from '@/contexts/dashboard-context'
 import type { ContainerData } from '@/hooks/use-container-updates'
 import { useContainerUpdates } from '@/hooks/use-container-updates'
@@ -13,7 +14,7 @@ import { useLanguageSync } from '@/hooks/use-language-sync'
 import { useSettingsSync } from '@/hooks/use-settings-sync'
 import type { DockerConnectionInfo } from '@/lib/docker-connection'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
-import type { FilterStatus } from '@/types/app-state'
+import type { FilterStatus, SortBy, SortDir } from '@/types/app-state'
 import { StatsSummary } from './stats-summary'
 import { UpdateConfirmDialog } from './update-confirm-dialog'
 
@@ -24,6 +25,8 @@ interface ContainerDashboardProps {
 	connectionInfo: DockerConnectionInfo
 	initialActiveFilters?: FilterStatus[]
 	initialShowHiddenMode?: boolean
+	initialSortBy?: SortBy
+	initialSortDir?: SortDir
 	dockerConnected?: boolean
 }
 
@@ -34,12 +37,16 @@ export function ContainerDashboard({
 	connectionInfo,
 	initialActiveFilters = ['updated', 'available', 'unknown'],
 	initialShowHiddenMode = false,
+	initialSortBy = 'name',
+	initialSortDir = 'asc',
 	dockerConnected = true
 }: ContainerDashboardProps) {
 	const [activeFilters, setActiveFilters] =
 		useState<FilterStatus[]>(initialActiveFilters)
 	const [showHiddenMode, setShowHiddenMode] = useState(initialShowHiddenMode)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [sortBy, setSortBy] = useState<SortBy>(initialSortBy)
+	const [sortDir, setSortDir] = useState<SortDir>(initialSortDir)
 	const [confirmUpdateState, setConfirmUpdateState] = useState<{
 		containerId: string
 		containerName: string
@@ -76,7 +83,7 @@ export function ContainerDashboard({
 		[containers]
 	)
 
-	useSettingsSync(activeFilters, showHiddenMode)
+	useSettingsSync(activeFilters, showHiddenMode, sortBy, sortDir)
 	useLanguageSync(locale, notificationsEnabled)
 
 	// Derive stats dynamically from containers state
@@ -144,6 +151,32 @@ export function ContainerDashboard({
 		showHiddenMode
 	])
 
+	const sortedContainers = useMemo(() => {
+		const dir = sortDir === 'asc' ? 1 : -1
+		const statusRank: Record<string, number> = {
+			available: 0,
+			transient: 1,
+			unknown: 2,
+			local: 2,
+			updated: 3
+		}
+		return [...filteredContainers].sort((a, b) => {
+			if (sortBy === 'name') {
+				const cmp = a.containerName.localeCompare(b.containerName, undefined, {
+					sensitivity: 'base'
+				})
+				return cmp * dir
+			}
+			const rankA = statusRank[a.updateStatus] ?? 99
+			const rankB = statusRank[b.updateStatus] ?? 99
+			if (rankA !== rankB) return (rankA - rankB) * dir
+			const cmp = a.containerName.localeCompare(b.containerName, undefined, {
+				sensitivity: 'base'
+			})
+			return cmp * dir
+		})
+	}, [filteredContainers, sortBy, sortDir])
+
 	return (
 		<>
 			<GhcrTokenToast imageNames={invalidTokenImages} dict={dict} />
@@ -171,12 +204,23 @@ export function ContainerDashboard({
 				dict={dict.filter}
 			/>
 
+			<div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6'>
+				<div className='flex w-full items-center gap-2 md:ml-auto md:w-auto'>
+					<SortControl
+						sortBy={sortBy}
+						onSortByChange={setSortBy}
+						sortDir={sortDir}
+						onSortDirChange={setSortDir}
+					/>
+				</div>
+			</div>
+
 			<motion.div
 				layout={!prefersReducedMotion}
 				className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'
 			>
 				<AnimatePresence mode='popLayout'>
-					{filteredContainers.map((item) => (
+					{sortedContainers.map((item) => (
 						<ContainerCard
 							key={item.container.Id}
 							item={item}
@@ -198,7 +242,7 @@ export function ContainerDashboard({
 			</motion.div>
 
 			<AnimatePresence>
-				{filteredContainers.length === 0 && dockerConnected && (
+				{sortedContainers.length === 0 && dockerConnected && (
 					<motion.div
 						initial={prefersReducedMotion ? undefined : { opacity: 0, y: 10 }}
 						animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}

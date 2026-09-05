@@ -8,7 +8,9 @@ import type {
 	ContainerUpdate,
 	FilterStatus,
 	NotificationState,
-	NotifiedUpdate
+	NotifiedUpdate,
+	SortBy,
+	SortDir
 } from '@/types/app-state'
 
 export { idsEqual }
@@ -380,20 +382,26 @@ export async function setPreferredLanguage(language: string): Promise<void> {
 }
 
 /**
- * Get dashboard settings (filters, show hidden)
+ * Get dashboard settings (filters, show hidden, sorting)
  */
 export async function getDashboardSettings(): Promise<{
 	activeFilters: FilterStatus[]
 	showHiddenMode: boolean
+	sortBy: SortBy
+	sortDir: SortDir
 }> {
 	const state = await loadState()
+	const rawSortBy = state.sortBy
+	const rawSortDir = state.sortDir
 	return {
 		activeFilters: (state.activeFilters as FilterStatus[]) || [
 			'updated',
 			'available',
 			'unknown'
 		],
-		showHiddenMode: state.showHiddenMode || false
+		showHiddenMode: state.showHiddenMode || false,
+		sortBy: rawSortBy === 'status' ? 'status' : 'name',
+		sortDir: rawSortDir === 'desc' ? 'desc' : 'asc'
 	}
 }
 
@@ -403,6 +411,8 @@ export async function getDashboardSettings(): Promise<{
 export async function setDashboardSettings(settings: {
 	activeFilters?: FilterStatus[]
 	showHiddenMode?: boolean
+	sortBy?: SortBy
+	sortDir?: SortDir
 }): Promise<void> {
 	return runExclusive(async () => {
 		const state = await loadState()
@@ -411,6 +421,12 @@ export async function setDashboardSettings(settings: {
 		}
 		if (settings.showHiddenMode !== undefined) {
 			state.showHiddenMode = settings.showHiddenMode
+		}
+		if (settings.sortBy !== undefined) {
+			state.sortBy = settings.sortBy
+		}
+		if (settings.sortDir !== undefined) {
+			state.sortDir = settings.sortDir
 		}
 		await saveState(state)
 	})

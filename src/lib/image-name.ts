@@ -5,46 +5,36 @@
 export interface ImageReference {
 	/** Image name without tag or digest (may include registry host/port). */
 	repository: string
-	/** Tag, or the digest when the reference uses `@sha256:...`. */
+	/** Tag friendly (e.g. `v0.30.3`, `16`, `latest`). Never a digest. */
 	tag: string
-	/** True when the reference pins a digest instead of a tag. */
+	/** Digest without `@` (e.g. `sha256:abc`) when the reference pins one. */
+	digest?: string
+	/** True when the reference pins a digest (`@sha256:...`). */
 	isDigest: boolean
 }
 
 export function parseImageReference(image: string): ImageReference {
 	const digestIndex = image.indexOf('@')
+	let digest: string | undefined
+	let withoutDigest = image
 	if (digestIndex > -1) {
-		const beforeDigest = image.slice(0, digestIndex)
-		const lastColonBeforeDigest = beforeDigest.lastIndexOf(':')
-		if (
-			lastColonBeforeDigest > -1 &&
-			!beforeDigest.slice(lastColonBeforeDigest + 1).includes('/')
-		) {
-			return {
-				repository: beforeDigest.slice(0, lastColonBeforeDigest),
-				tag: image.slice(digestIndex + 1),
-				isDigest: true
-			}
-		}
-		return {
-			repository: beforeDigest,
-			tag: image.slice(digestIndex + 1),
-			isDigest: true
-		}
+		digest = image.slice(digestIndex + 1)
+		withoutDigest = image.slice(0, digestIndex)
 	}
 
 	// The last `:` only separates a tag when what follows contains no `/`
 	// (otherwise it is a registry port, e.g. `registry.local:5000/img`).
-	const lastColon = image.lastIndexOf(':')
-	if (lastColon > -1 && !image.slice(lastColon + 1).includes('/')) {
+	const lastColon = withoutDigest.lastIndexOf(':')
+	if (lastColon > -1 && !withoutDigest.slice(lastColon + 1).includes('/')) {
 		return {
-			repository: image.slice(0, lastColon),
-			tag: image.slice(lastColon + 1),
-			isDigest: false
+			repository: withoutDigest.slice(0, lastColon),
+			tag: withoutDigest.slice(lastColon + 1),
+			digest,
+			isDigest: !!digest
 		}
 	}
 
-	return { repository: image, tag: 'latest', isDigest: false }
+	return { repository: withoutDigest, tag: 'latest', digest, isDigest: !!digest }
 }
 
 /** Replace the tag of an image reference, keeping registry host and port. */
