@@ -8,7 +8,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger
 } from '@/components/ui/tooltip'
-import type { DockerConnectionInfo } from '@/lib/docker-connection'
+import type { DockerConnectionInfo } from '@/lib/docker'
 
 interface RemoteConnectionIndicatorProps {
 	info: DockerConnectionInfo

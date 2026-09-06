@@ -1,12 +1,11 @@
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
-import type { ContainerData } from '@/hooks/use-container-updates'
 import {
 	getDashboardSettings,
 	getHiddenContainerIds,
 	getIgnoredNotificationContainerIds
 } from '@/lib/app-state'
-import { getDockerConnectionInfo } from '@/lib/docker-connection'
+import { getDockerConnectionInfo } from '@/lib/docker'
 import { getDockerConnected } from '@/lib/docker-inventory'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
@@ -16,6 +15,7 @@ import {
 	getContainerUpdateStates
 } from '@/lib/registry-updates'
 import type { FilterStatus, SortBy, SortDir } from '@/types/app-state'
+import type { ContainerData } from '@/types/dashboard'
 
 const DEFAULT_ACTIVE_FILTERS: FilterStatus[] = [
 	'updated',

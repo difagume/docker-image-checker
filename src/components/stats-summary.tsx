@@ -12,7 +12,7 @@ import {
 	ToggleRight
 } from 'lucide-react'
 import { RemoteConnectionIndicator } from '@/components/remote-connection-indicator'
-import type { DockerConnectionInfo } from '@/lib/docker-connection'
+import type { DockerConnectionInfo } from '@/lib/docker'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
 

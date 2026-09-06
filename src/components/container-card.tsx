@@ -30,11 +30,11 @@ import {
 	TooltipTrigger
 } from '@/components/ui/tooltip'
 import { useDashboard } from '@/contexts/dashboard-context'
-import type { ContainerData } from '@/hooks/use-container-updates'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import { parseImageReference } from '@/lib/image-name'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
+import type { ContainerData } from '@/types/dashboard'
 import { ContainerLogsDialog } from './container-logs-dialog'
 import { ReferenceUrlPopover } from './reference-url-popover'
 import { RelativeTime } from './relative-time'
@@ -162,10 +162,7 @@ function StatusAvailable({
 			)}
 			<div className='absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2'>
 				{updateError && !isUpdating ? (
-					<span
-						className='text-xs text-destructive text-center'
-						role='alert'
-					>
+					<span className='text-xs text-destructive text-center' role='alert'>
 						{updateError}
 					</span>
 				) : null}
