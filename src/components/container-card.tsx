@@ -413,7 +413,6 @@ export const ContainerCard = React.memo(function ContainerCard({
 
 	return (
 		<motion.div
-			key={container.Id}
 			layout={!prefersReducedMotion}
 			variants={prefersReducedMotion ? undefined : cardVariants}
 			initial={prefersReducedMotion ? undefined : 'initial'}

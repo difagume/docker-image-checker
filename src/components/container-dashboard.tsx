@@ -222,7 +222,10 @@ export function ContainerDashboard({
 				<AnimatePresence mode='popLayout'>
 					{sortedContainers.map((item) => (
 						<ContainerCard
-							key={item.container.Id}
+							// Stable across container recreation: the daemon assigns a new
+							// Id on every image update, which would unmount the card
+							// (exit+enter flash). The name survives recreation.
+							key={item.containerName || item.container.Id}
 							item={item}
 							dict={dict}
 							locale={locale}
