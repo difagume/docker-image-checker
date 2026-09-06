@@ -127,6 +127,23 @@
 			"idle": "Inactivo"
 		}
 	},
+	"metrics": {
+		"viewMetrics": "Ver métricas",
+		"realtimeHint": "Métricas del contenedor en vivo, actualizadas cada segundo.",
+		"close": "Cerrar",
+		"cpu": "CPU",
+		"memory": "Memoria",
+		"network": "Red (I/O)",
+		"disk": "Disco (I/O)",
+		"ofLimit": "de {limit}",
+		"notRunning": "El contenedor no está en ejecución, así que no hay métricas que mostrar.",
+		"status": {
+			"live": "En vivo",
+			"connecting": "Conectando",
+			"error": "Desconectado",
+			"idle": "Inactivo"
+		}
+	},
 	"stats": {
 		"updatedImage": "Imagen actualizada",
 		"updatedImages": "Imágenes actualizadas",

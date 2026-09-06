@@ -13,6 +13,7 @@ import {
 	Eye,
 	EyeOff,
 	Fingerprint,
+	Gauge,
 	Loader2,
 	Package,
 	ScrollText,
@@ -36,6 +37,7 @@ import type { UpdatePhase } from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
 import type { ContainerData } from '@/types/dashboard'
 import { ContainerLogsDialog } from './container-logs-dialog'
+import { ContainerMetricsDialog } from './container-metrics-dialog'
 import { ReferenceUrlPopover } from './reference-url-popover'
 import { RelativeTime } from './relative-time'
 
@@ -484,6 +486,28 @@ export const ContainerCard = React.memo(function ContainerCard({
 											aria-label={dict.logs.viewLogs}
 										>
 											<ScrollText className='h-3.5 w-3.5' aria-hidden='true' />
+										</button>
+									}
+								/>
+								<ContainerMetricsDialog
+									containerId={container.Id}
+									containerName={containerName}
+									image={container.Image}
+									state={container.State.toLowerCase()}
+									stateLabel={
+										dict.container.states[
+											container.State.toLowerCase() as keyof typeof dict.container.states
+										] || container.State
+									}
+									dict={dict.metrics}
+									trigger={
+										<button
+											type='button'
+											className='transition-colors focus:outline-none focus:ring-1 focus:ring-ring rounded-sm p-0.5 shrink-0 text-muted-foreground hover:text-foreground'
+											title={dict.metrics.viewMetrics}
+											aria-label={dict.metrics.viewMetrics}
+										>
+											<Gauge className='h-3.5 w-3.5' aria-hidden='true' />
 										</button>
 									}
 								/>

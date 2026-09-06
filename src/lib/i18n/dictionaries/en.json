@@ -127,6 +127,23 @@
 			"idle": "Idle"
 		}
 	},
+	"metrics": {
+		"viewMetrics": "View metrics",
+		"realtimeHint": "Live container metrics, updated every second.",
+		"close": "Close",
+		"cpu": "CPU",
+		"memory": "Memory",
+		"network": "Network I/O",
+		"disk": "Disk I/O",
+		"ofLimit": "of {limit}",
+		"notRunning": "The container is not running, so there are no metrics to show.",
+		"status": {
+			"live": "Live",
+			"connecting": "Connecting",
+			"error": "Disconnected",
+			"idle": "Idle"
+		}
+	},
 	"stats": {
 		"updatedImage": "Updated image",
 		"updatedImages": "Updated images",
