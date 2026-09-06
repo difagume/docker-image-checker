@@ -158,7 +158,22 @@
 		"viewingHidden": "Viewing hidden",
 		"hiddenManagement": "Hidden management",
 		"remoteServer": "Remote server",
-		"remoteServerTooltip": "Viewing containers from a remote Docker server"
+		"remoteServerTooltip": "Viewing containers from a remote Docker server",
+		"hostTitle": "Docker host",
+		"hostTooltip": "Docker daemon and host details",
+		"hostName": "Host",
+		"hostOs": "Operating system",
+		"hostKernel": "Kernel",
+		"hostArchitecture": "Architecture",
+		"hostStorageDriver": "Storage driver",
+		"hostCpus": "CPUs",
+		"hostMemory": "Total memory",
+		"hostContainers": "Containers",
+		"hostRunning": "running",
+		"hostPaused": "paused",
+		"hostStopped": "stopped",
+		"hostImages": "Images",
+		"hostRootDir": "Docker root"
 	},
 	"time": {
 		"ago": "ago",

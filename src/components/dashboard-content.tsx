@@ -6,7 +6,7 @@ import {
 	getIgnoredNotificationContainerIds
 } from '@/lib/app-state'
 import { getDockerConnectionInfo } from '@/lib/docker'
-import { getDockerConnected } from '@/lib/docker-inventory'
+import { getDockerConnected, getDockerHostInfo } from '@/lib/docker-inventory'
 import type { Locale } from '@/lib/i18n/dictionaries'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getReferenceUrls } from '@/lib/reference-url-manager'
@@ -41,6 +41,7 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 	let hiddenIds: string[] = []
 	let ignoredIds: string[] = []
 	let referenceUrls: Awaited<ReturnType<typeof getReferenceUrls>> = {}
+	let hostInfo: Awaited<ReturnType<typeof getDockerHostInfo>> | null = null
 	try {
 		;[
 			updateStates,
@@ -48,14 +49,16 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 			dockerConnected,
 			hiddenIds,
 			ignoredIds,
-			referenceUrls
+			referenceUrls,
+			hostInfo
 		] = await Promise.all([
 			getContainerUpdateStates(),
 			getDashboardSettings(),
 			getDockerConnected(),
 			getHiddenContainerIds(),
 			getIgnoredNotificationContainerIds(),
-			getReferenceUrls()
+			getReferenceUrls(),
+			getDockerHostInfo()
 		])
 	} catch (error) {
 		console.error(
@@ -100,6 +103,7 @@ export async function DashboardContent({ locale }: { locale: Locale }) {
 				dict={dict}
 				locale={locale}
 				connectionInfo={getDockerConnectionInfo()}
+				hostInfo={hostInfo}
 				initialActiveFilters={
 					(settings?.activeFilters ?? DEFAULT_ACTIVE_FILTERS) as FilterStatus[]
 				}

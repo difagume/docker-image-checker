@@ -11,8 +11,10 @@ import {
 	ToggleLeft,
 	ToggleRight
 } from 'lucide-react'
+import { HostInfoIndicator } from '@/components/host-info-indicator'
 import { RemoteConnectionIndicator } from '@/components/remote-connection-indicator'
 import type { DockerConnectionInfo } from '@/lib/docker'
+import type { DockerHostInfo } from '@/lib/docker-inventory'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
 
@@ -115,6 +117,7 @@ interface StatsSummaryProps {
 	showHiddenMode: boolean
 	onToggleShowHidden: () => void
 	connectionInfo: DockerConnectionInfo
+	hostInfo?: DockerHostInfo | null
 	dict: Dictionary['stats']
 }
 
@@ -127,6 +130,7 @@ export function StatsSummary({
 	showHiddenMode,
 	onToggleShowHidden,
 	connectionInfo,
+	hostInfo,
 	dict
 }: StatsSummaryProps) {
 	const isFilterActive = (status: FilterStatus) =>
@@ -182,6 +186,7 @@ export function StatsSummary({
 			/>
 
 			<div className='md:col-span-3 flex flex-col items-start gap-2 -mt-2 sm:flex-row sm:items-center'>
+				{hostInfo && <HostInfoIndicator info={hostInfo} dict={dict} />}
 				<RemoteConnectionIndicator
 					info={connectionInfo}
 					label={dict.remoteServer}

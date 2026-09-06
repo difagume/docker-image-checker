@@ -158,7 +158,22 @@
 		"viewingHidden": "Viendo ocultos",
 		"hiddenManagement": "Gestión de ocultos",
 		"remoteServer": "Servidor remoto",
-		"remoteServerTooltip": "Viendo contenedores de un servidor Docker remoto"
+		"remoteServerTooltip": "Viendo contenedores de un servidor Docker remoto",
+		"hostTitle": "Host de Docker",
+		"hostTooltip": "Detalles del daemon y del host de Docker",
+		"hostName": "Host",
+		"hostOs": "Sistema operativo",
+		"hostKernel": "Kernel",
+		"hostArchitecture": "Arquitectura",
+		"hostStorageDriver": "Driver de almacenamiento",
+		"hostCpus": "CPUs",
+		"hostMemory": "Memoria total",
+		"hostContainers": "Contenedores",
+		"hostRunning": "en ejecución",
+		"hostPaused": "en pausa",
+		"hostStopped": "detenidos",
+		"hostImages": "Imágenes",
+		"hostRootDir": "Raíz de Docker"
 	},
 	"time": {
 		"ago": "hace",

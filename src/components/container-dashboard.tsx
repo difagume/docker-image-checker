@@ -12,6 +12,7 @@ import { useDebounce } from '@/hooks/use-debounce'
 import { useLanguageSync } from '@/hooks/use-language-sync'
 import { useSettingsSync } from '@/hooks/use-settings-sync'
 import type { DockerConnectionInfo } from '@/lib/docker'
+import type { DockerHostInfo } from '@/lib/docker-inventory'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { FilterStatus, SortBy, SortDir } from '@/types/app-state'
 import type { ContainerData } from '@/types/dashboard'
@@ -23,6 +24,7 @@ interface ContainerDashboardProps {
 	dict: Dictionary
 	locale: Locale
 	connectionInfo: DockerConnectionInfo
+	hostInfo?: DockerHostInfo | null
 	initialActiveFilters?: FilterStatus[]
 	initialShowHiddenMode?: boolean
 	initialSortBy?: SortBy
@@ -35,6 +37,7 @@ export function ContainerDashboard({
 	dict,
 	locale,
 	connectionInfo,
+	hostInfo,
 	initialActiveFilters = ['updated', 'available', 'unknown'],
 	initialShowHiddenMode = false,
 	initialSortBy = 'name',
@@ -189,6 +192,7 @@ export function ContainerDashboard({
 				showHiddenMode={showHiddenMode}
 				onToggleShowHidden={() => setShowHiddenMode(!showHiddenMode)}
 				connectionInfo={connectionInfo}
+				hostInfo={hostInfo}
 				dict={dict.stats}
 			/>
 

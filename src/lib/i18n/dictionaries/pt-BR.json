@@ -158,7 +158,22 @@
 		"viewingHidden": "Visualizando ocultos",
 		"hiddenManagement": "Gerenciamento de ocultos",
 		"remoteServer": "Servidor remoto",
-		"remoteServerTooltip": "Visualizando contêineres de um servidor Docker remoto"
+		"remoteServerTooltip": "Visualizando contêineres de um servidor Docker remoto",
+		"hostTitle": "Host Docker",
+		"hostTooltip": "Detalhes do daemon e do host Docker",
+		"hostName": "Host",
+		"hostOs": "Sistema operacional",
+		"hostKernel": "Kernel",
+		"hostArchitecture": "Arquitetura",
+		"hostStorageDriver": "Driver de armazenamento",
+		"hostCpus": "CPUs",
+		"hostMemory": "Memória total",
+		"hostContainers": "Contêineres",
+		"hostRunning": "em execução",
+		"hostPaused": "em pausa",
+		"hostStopped": "parados",
+		"hostImages": "Imagens",
+		"hostRootDir": "Raiz do Docker"
 	},
 	"time": {
 		"ago": "há",
