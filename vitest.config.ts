@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
 	resolve: {
@@ -8,6 +8,8 @@ export default defineConfig({
 		}
 	},
 	test: {
-		environment: 'node'
+		environment: 'node',
+		// Never scan build artifacts (e.g. .next/standalone copies of src).
+		exclude: [...configDefaults.exclude, '**/.next/**']
 	}
 })
