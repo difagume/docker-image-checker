@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, ArrowDown, ArrowUp, Type } from 'lucide-react'
+import { Activity, ArrowDownAZ, ArrowUpAZ, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
 	Select,
@@ -71,7 +71,7 @@ export function SortControl({
 				<ToggleGroupItem
 					value='name'
 					aria-label='Ordenar por nombre'
-					className='rounded-sm'
+					className='rounded-sm data-[state=on]:bg-primary/10 data-[state=on]:text-foreground data-[state=on]:[&_svg]:text-chart-1/80 data-[state=off]:text-muted-foreground'
 				>
 					<Type data-icon='inline-start' />
 					Nombre
@@ -79,7 +79,7 @@ export function SortControl({
 				<ToggleGroupItem
 					value='status'
 					aria-label='Ordenar por estado'
-					className='rounded-sm'
+					className='rounded-sm data-[state=on]:bg-primary/10 data-[state=on]:text-foreground data-[state=on]:[&_svg]:text-chart-1/80 data-[state=off]:text-muted-foreground'
 				>
 					<Activity data-icon='inline-start' />
 					Estado
@@ -99,9 +99,9 @@ export function SortControl({
 				title={sortDir === 'asc' ? 'Ascendente (A-Z)' : 'Descendente (Z-A)'}
 			>
 				{sortDir === 'asc' ? (
-					<ArrowUp data-icon='inline-start' />
+					<ArrowUpAZ data-icon='inline-start' className='text-chart-1/80' />
 				) : (
-					<ArrowDown data-icon='inline-start' />
+					<ArrowDownAZ data-icon='inline-start' className='text-chart-1/80' />
 				)}
 			</Button>
 		</div>
