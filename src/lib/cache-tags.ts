@@ -11,6 +11,7 @@ export const CACHE_TAGS = {
 	containers: 'docker:containers',
 	images: 'docker:images',
 	connection: 'docker:connection',
+	host: 'docker:host',
 	registry: 'registry:checks'
 } as const
 
@@ -19,6 +20,7 @@ export const REFRESH_TAGS: readonly string[] = [
 	CACHE_TAGS.containers,
 	CACHE_TAGS.images,
 	CACHE_TAGS.connection,
+	CACHE_TAGS.host,
 	CACHE_TAGS.registry
 ]
 

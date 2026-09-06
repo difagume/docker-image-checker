@@ -10,25 +10,27 @@ import {
 } from './cache-tags'
 
 describe('cache-tags', () => {
-	it('declares the 4 expected cache tags with docker:* namespacing', () => {
+	it('declares the 5 expected cache tags with docker:* namespacing', () => {
 		expect(CACHE_TAGS.containers).toBe('docker:containers')
 		expect(CACHE_TAGS.images).toBe('docker:images')
 		expect(CACHE_TAGS.connection).toBe('docker:connection')
+		expect(CACHE_TAGS.host).toBe('docker:host')
 		expect(CACHE_TAGS.registry).toBe('registry:checks')
 	})
 
-	it('exposes exactly 4 distinct refresh tags matching the declared tags', () => {
-		expect(REFRESH_TAGS).toHaveLength(4)
+	it('exposes exactly 5 distinct refresh tags matching the declared tags', () => {
+		expect(REFRESH_TAGS).toHaveLength(5)
 		const declared: Set<string> = new Set([
 			CACHE_TAGS.containers,
 			CACHE_TAGS.images,
 			CACHE_TAGS.connection,
+			CACHE_TAGS.host,
 			CACHE_TAGS.registry
 		])
 		for (const tag of REFRESH_TAGS) {
 			expect(declared.has(tag)).toBe(true)
 		}
-		expect(new Set(REFRESH_TAGS).size).toBe(4)
+		expect(new Set(REFRESH_TAGS).size).toBe(5)
 	})
 
 	it('declares the inventory and connection cache profiles', () => {
