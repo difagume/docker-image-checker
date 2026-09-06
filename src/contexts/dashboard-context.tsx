@@ -1,20 +1,13 @@
 'use client'
 
-import {
-	createContext,
-	useCallback,
-	useContext,
-	useMemo,
-	useRef,
-	useState
-} from 'react'
+import { createContext, useCallback, useContext, useRef, useState } from 'react'
 import {
 	setHiddenContainerIdsAction,
 	setIgnoredNotificationContainerIdsAction
 } from '@/actions/app-state'
 import { saveReferenceUrlAction } from '@/actions/reference-url'
 import { idsEqual } from '@/lib/container-id'
-import type { ReferenceUrlData } from '@/hooks/use-container-updates'
+import type { ReferenceUrlData } from '@/types/dashboard'
 
 interface DashboardState {
 	hiddenContainerIds: string[]
@@ -65,21 +58,6 @@ export function DashboardProvider({
 	// from what was actually persisted, not from a stale render closure.
 	const hiddenContainerIdsRef = useRef(initialHiddenIds)
 	const ignoredNotificationIdsRef = useRef(initialIgnoredIds)
-
-	const state = useMemo<DashboardState>(
-		() => ({
-			hiddenContainerIds,
-			ignoredNotificationIds,
-			referenceUrls,
-			notificationsEnabled
-		}),
-		[
-			hiddenContainerIds,
-			ignoredNotificationIds,
-			referenceUrls,
-			notificationsEnabled
-		]
-	)
 
 	const toggleHideContainer = useCallback((id: string) => {
 		const prev = hiddenContainerIdsRef.current
@@ -133,29 +111,24 @@ export function DashboardProvider({
 		[referenceUrls]
 	)
 
-	const actions = useMemo<DashboardActions>(
-		() => ({
+	// No useMemo: the provider only re-renders when its own state changes, so
+	// fresh objects here coincide with state changes consumers must see anyway.
+	const value: DashboardContextValue = {
+		state: {
+			hiddenContainerIds,
+			ignoredNotificationIds,
+			referenceUrls,
+			notificationsEnabled
+		},
+		actions: {
 			toggleHideContainer,
 			toggleIgnoreNotification,
 			saveReferenceUrl,
 			isHidden,
 			isIgnored,
 			getReferenceUrls: getReferenceUrlsCallback
-		}),
-		[
-			toggleHideContainer,
-			toggleIgnoreNotification,
-			saveReferenceUrl,
-			isHidden,
-			isIgnored,
-			getReferenceUrlsCallback
-		]
-	)
-
-	const value = useMemo<DashboardContextValue>(
-		() => ({ state, actions }),
-		[state, actions]
-	)
+		}
+	}
 
 	return (
 		<DashboardContext.Provider value={value}>

@@ -11,38 +11,16 @@ import {
 import { triggerContainerUpdate, verifyContainerUpdate } from '@/actions/docker'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import { withTag } from '@/lib/image-name'
-import type { PolicyState } from '@/lib/policies/types'
+import {
+	applyOptimisticUpdate,
+	applyVerifiedUpdate
+} from '@/lib/optimistic-update'
 import type { UpdatePhase } from '@/lib/update-progress-store'
-import type { FilterStatus } from '@/types/app-state'
-
-export interface ReferenceUrlData {
-	image: string
-	referenceUrl: string
-}
-
-export interface ContainerData {
-	container: {
-		Id: string
-		State: string
-		Image: string
-		ImageID: string
-		Status: string
-		Names: string[]
-	}
-	isRunning: boolean
-	ports: string
-	updateStatus: FilterStatus | 'local'
-	containerName: string
-	currentVersion?: string
-	displayCurrentVersion: string
-	latestVersion?: string
-	lastUpdated?: string
-	dockerHubUrl?: string
-	isUpToDate: boolean
-	policyState?: PolicyState
-	localDigest?: string
-	ghcrError?: 'invalid_token'
-}
+import {
+	connectUpdateProgress,
+	type UpdateProgressData
+} from '@/lib/update-progress-stream'
+import type { ContainerData } from '@/types/dashboard'
 
 export function useContainerUpdates(
 	processedContainers: ContainerData[],
@@ -65,6 +43,11 @@ export function useContainerUpdates(
 		)
 	}, [processedContainers])
 
+	// Sync containers state with props when they change
+	useEffect(() => {
+		setContainers(processedContainers)
+	}, [processedContainers])
+
 	const [updatingContainerId, setUpdatingContainerId] = useState<string | null>(
 		null
 	)
@@ -76,11 +59,22 @@ export function useContainerUpdates(
 		Record<string, { phase: UpdatePhase; statusText: string; error?: string }>
 	>({})
 	const activeEventSources = useRef<Record<string, EventSource>>({})
+	const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-	// Sync containers state with props when they change
-	useEffect(() => {
-		setContainers(processedContainers)
-	}, [processedContainers])
+	// Flash an error banner for the container, auto-clearing after 5s. A single
+	// shared timer keeps consecutive failures from clearing each other early.
+	const showUpdateError = (containerId: string, message: string) => {
+		if (errorTimerRef.current) {
+			clearTimeout(errorTimerRef.current)
+		}
+		setUpdateError(message)
+		setUpdateErrorContainerId(containerId)
+		errorTimerRef.current = setTimeout(() => {
+			setUpdateError(null)
+			setUpdateErrorContainerId(null)
+			errorTimerRef.current = null
+		}, 5000)
+	}
 
 	const handleUpdateClick = async (
 		containerId: string,
@@ -92,6 +86,104 @@ export function useContainerUpdates(
 		const containerName =
 			containers.find((c) => c.container.Id === containerId)?.containerName ||
 			containerId.substring(0, 12)
+
+		const finishContainer = (id: string) => {
+			activeEventSources.current[id]?.close()
+			delete activeEventSources.current[id]
+			setUpdatingContainerId((prev) => (prev === id ? null : prev))
+		}
+
+		const handlePhase = (id: string, data: UpdateProgressData) => {
+			setUpdatePhases((prev) => ({
+				...prev,
+				[id]: {
+					phase: data.phase,
+					statusText: data.statusText,
+					error: data.error
+				}
+			}))
+
+			if (data.phase === 'error') {
+				finishContainer(id)
+				showUpdateError(id, data.error || 'Update failed')
+				toast.error(
+					dict.toast.updateError.replace('{container}', containerName)
+				)
+				return
+			}
+
+			if (data.phase !== 'done') {
+				return
+			}
+
+			// Clean up updatePhase — the update is complete
+			setUpdatePhases((prev) => {
+				const next = { ...prev }
+				delete next[id]
+				return next
+			})
+
+			const newContainerId = data.result?.newContainerId || id
+			const newImageId = data.result?.newImageId
+
+			// Refresh the card IMMEDIATELY with optimistic data
+			setContainers((prev) =>
+				applyOptimisticUpdate(prev, id, {
+					imageName,
+					newVersion,
+					newContainerId,
+					newImageId
+				})
+			)
+
+			// Orphan remap: migrate hidden/ignored Ids when container was recreated
+			if (newContainerId !== id) {
+				remapHiddenIdsAction(id, newContainerId).catch((err) =>
+					console.warn('[Remap] remapHiddenIds failed:', err)
+				)
+				remapIgnoredIdsAction(id, newContainerId).catch((err) =>
+					console.warn('[Remap] remapIgnoredIds failed:', err)
+				)
+			}
+			// Verify in background (async IIFE inside non-async callback)
+			;(async () => {
+				try {
+					const updateInfo = await verifyContainerUpdate(imageName)
+
+					if (updateInfo.hasUpdate) {
+						setContainers((prev) =>
+							applyVerifiedUpdate(prev, newContainerId, updateInfo, newVersion)
+						)
+					}
+				} catch (verifyErr) {
+					console.warn(
+						'[Update] Post-update verification failed, but container was updated:',
+						verifyErr
+					)
+				}
+			})()
+
+			toast.success(
+				dict.toast.updateSuccess
+					.replace('{container}', containerName)
+					.replace('{version}', newVersion)
+			)
+		}
+
+		const handleConnectionError = (id: string) => {
+			// Connection-level error (not a phase error). Only clear the phase if
+			// done/error hasn't already been processed.
+			setUpdatePhases((prev) => {
+				if (prev[id]?.phase === 'done' || prev[id]?.phase === 'error') {
+					return prev
+				}
+				const next = { ...prev }
+				delete next[id]
+				return next
+			})
+			finishContainer(id)
+			showUpdateError(id, 'Connection lost')
+		}
 
 		try {
 			const { taskId } = await triggerContainerUpdate(containerId, imageName)
@@ -107,182 +199,22 @@ export function useContainerUpdates(
 				[containerId]: { phase: 'pulling', statusText: 'Starting...' }
 			}))
 
-			const eventSource = new EventSource(
-				`/api/update-progress?taskId=${taskId}`
-			)
-			activeEventSources.current[containerId] = eventSource
-
-			eventSource.addEventListener('phase', (event: MessageEvent) => {
-				const data = JSON.parse(event.data) as {
-					phase: UpdatePhase
-					statusText: string
-					error?: string
-					result?: { newContainerId?: string; newImageId?: string }
-				}
-
-				setUpdatePhases((prev) => ({
-					...prev,
-					[containerId]: {
-						phase: data.phase,
-						statusText: data.statusText,
-						error: data.error
-					}
-				}))
-
-				if (data.phase === 'error') {
-					eventSource.close()
-					delete activeEventSources.current[containerId]
-					setUpdatingContainerId((prev) =>
-						prev === containerId ? null : prev
-					)
-					setUpdateError(data.error || 'Update failed')
-					setUpdateErrorContainerId(containerId)
-					setTimeout(() => {
-						setUpdateError(null)
-						setUpdateErrorContainerId(null)
-					}, 5000)
-					toast.error(
-						dict.toast.updateError.replace('{container}', containerName)
-					)
-				}
-
-				if (data.phase === 'done') {
-					eventSource.close()
-					delete activeEventSources.current[containerId]
-					setUpdatingContainerId((prev) =>
-						prev === containerId ? null : prev
-					)
-
-					// Clean up updatePhase — the update is complete
-					setUpdatePhases((prev) => {
-						const next = { ...prev }
-						delete next[containerId]
-						return next
-					})
-
-					const newContainerId = data.result?.newContainerId || containerId
-					const newImageId = data.result?.newImageId
-
-					// Refresh the card IMMEDIATELY with optimistic data
-					setContainers((prev) =>
-						prev.map((c) =>
-							c.container.Id === containerId
-								? {
-										...c,
-										displayCurrentVersion: newVersion,
-										currentVersion: newVersion,
-										latestVersion: newVersion,
-										isUpToDate: true,
-										updateStatus: 'updated' as FilterStatus,
-										container: {
-											...c.container,
-											Id: newContainerId,
-											Image: imageName,
-											...(newContainerId !== containerId
-												? {
-														State: 'running' as const,
-														Status:
-															c.container.State === 'running'
-																? c.container.Status
-																: 'Up 0 seconds'
-													}
-												: {}),
-											ImageID: newImageId || c.container.ImageID
-										}
-									}
-								: c
-						)
-					)
-
-					// Orphan remap: migrate hidden/ignored Ids when container was recreated
-					if (newContainerId !== containerId) {
-						remapHiddenIdsAction(containerId, newContainerId).catch((err) =>
-							console.warn('[Remap] remapHiddenIds failed:', err)
-						)
-						remapIgnoredIdsAction(containerId, newContainerId).catch((err) =>
-							console.warn('[Remap] remapIgnoredIds failed:', err)
-						)
-					}
-					// Verify in background (async IIFE inside non-async callback)
-					;(async () => {
-						try {
-							const updateInfo = await verifyContainerUpdate(imageName)
-
-							if (updateInfo.hasUpdate) {
-								setContainers((prev) =>
-									prev.map((c) =>
-										c.container.Id === newContainerId
-											? {
-													...c,
-													latestVersion: updateInfo.latestVersion || newVersion,
-													isUpToDate: false,
-													updateStatus: 'available' as FilterStatus,
-													dockerHubUrl: updateInfo.dockerHubUrl,
-													policyState: updateInfo.policyState
-												}
-											: c
-									)
-								)
-							}
-						} catch (verifyErr) {
-							console.warn(
-								'[Update] Post-update verification failed, but container was updated:',
-								verifyErr
-							)
-						}
-					})()
-
-					toast.success(
-						dict.toast.updateSuccess
-							.replace('{container}', containerName)
-							.replace('{version}', newVersion)
-					)
-				}
-			})
-
-			eventSource.addEventListener('error', () => {
-				// Connection-level error (not a phase error)
-				eventSource.close()
-				delete activeEventSources.current[containerId]
-
-				// Only handle if we haven't already processed done/error
-				setUpdatePhases((prev) => {
-					if (
-						prev[containerId]?.phase === 'done' ||
-						prev[containerId]?.phase === 'error'
-					) {
-						return prev
-					}
-					const next = { ...prev }
-					delete next[containerId]
-					return next
-				})
-				setUpdatingContainerId((prev) =>
-					prev === containerId ? null : prev
-				)
-				setUpdateError('Connection lost')
-				setUpdateErrorContainerId(containerId)
-				setTimeout(() => {
-					setUpdateError(null)
-					setUpdateErrorContainerId(null)
-				}, 5000)
+			activeEventSources.current[containerId] = connectUpdateProgress(taskId, {
+				onPhase: (data) => handlePhase(containerId, data),
+				onConnectionError: () => handleConnectionError(containerId)
 			})
 		} catch (err) {
 			// B-18: trigger failed before task creation — ensure no ghost spinner remains
-			setUpdatingContainerId((prev) =>
-				prev === containerId ? null : prev
-			)
+			setUpdatingContainerId((prev) => (prev === containerId ? null : prev))
 			setUpdatePhases((prev) => {
 				const next = { ...prev }
 				delete next[containerId]
 				return next
 			})
-			setUpdateError(err instanceof Error ? err.message : 'Unknown error')
-			setUpdateErrorContainerId(containerId)
-			setTimeout(() => {
-				setUpdateError(null)
-				setUpdateErrorContainerId(null)
-			}, 5000)
+			showUpdateError(
+				containerId,
+				err instanceof Error ? err.message : 'Unknown error'
+			)
 			toast.error(dict.toast.updateError.replace('{container}', containerName))
 		}
 	}
@@ -294,6 +226,9 @@ export function useContainerUpdates(
 				activeEventSources.current[id]?.close()
 			}
 			activeEventSources.current = {}
+			if (errorTimerRef.current) {
+				clearTimeout(errorTimerRef.current)
+			}
 		}
 	}, [])
 
