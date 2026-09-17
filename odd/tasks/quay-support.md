@@ -91,8 +91,8 @@ sin token).
   Commits: —
 - [x] **T4** — Verificación (`bun run test` + biome lint/format) con
   resultados observados registrados aquí. Commits: —
-- [ ] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
-  Commits: —
+- [x] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
+  Commits: `45afd35` feat + docs de cierre (ver abajo).
 
 ## Estrategia de entrega
 
@@ -124,3 +124,5 @@ comentarios ni se omiten tests para ahorrar líneas.
   `noNonNullAssertion` en B-01 (líneas 20-24, no tocadas). `bunx biome format`
   ⇒ 1 diff aplicado a bloque nuevo del test; re-check limpio y suite verde.
 - T5: (pendiente identidad de commits)
+- T5: `45afd35` feat(registry) con impl + tests + doc (T1-T4). Este cierre
+  del doc viaja en commit docs separado. Push NO (policy ordinaria).
