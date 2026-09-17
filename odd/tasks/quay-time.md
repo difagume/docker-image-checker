@@ -90,8 +90,6 @@ la card muestra el tiempo sin cambiar engine ni UI.
   ⇒ undefined; + bonus fallback blob). Commits: —
 - [x] **T4** — Verificación (slice + suite + biome lint/format) con
   resultados observados registrados aquí. Commits: —
-- [ ] **T4** — Verificación (slice + suite + biome lint/format) con
-  resultados observados registrados aquí. Commits: —
 - [x] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
   Commits: `2057448` docs T1 + `754cad5` feat T2 + `12eeb89` test T3-T4
   (+ este cierre docs). Push NO (policy ordinaria).
