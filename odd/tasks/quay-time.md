@@ -93,6 +93,17 @@ la card muestra el tiempo sin cambiar engine ni UI.
 - [x] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
   Commits: `2057448` docs T1 + `754cad5` feat T2 + `12eeb89` test T3-T4
   (+ este cierre docs). Push NO (policy ordinaria).
+- [x] **T6** — Fix fecha push Quay (diagnóstico usuario 16/09 vs `06/09`
+  mostrado): v1 a
+  `GET /api/v1/repository/{ns}/{repo}/tag/?onlyActiveTags=true&limit=100`
+  (o lazy `?specificTag={targetTag}&onlyActiveTags=true`) parseando
+  `{name, manifest_digest, last_modified, start_ts}`; join por digest contra
+  el Docker-Content-Digest del targetTag (duplicados: el que iguale digest
+  o max `start_ts` activo). Sin `config-blob.created` como `lastUpdated`:
+  si v1 falla (400/401) ⇒ `lastUpdated` undefined (card oculta tiempo).
+  Sin tocar Hub/GHCR ni engine/card. Aceptación: con v1 ok la fecha cuadra
+  con History (push 16/09); con v1 400/401 no se muestra build-time.
+  Commits: `4972cd1` fix T6 (+ este cierre docs). Push NO.
 
 ## Estrategia de entrega
 
@@ -131,3 +142,11 @@ se borran espacios/comentarios ni se omiten tests para ahorrar líneas.
 - T5: doc y mirror actualizados tras cada tarea; `engine.ts` y
   `container-card.tsx` intactos (`git status` solo muestra los 3 ficheros
   del alcance). Push NO.
+- T6: v1 con `onlyActiveTags=true&limit=100` + join por digest
+  (`manifest_digest` == Docker-Content-Digest; duplicados ⇒ digest o max
+  `start_ts`); helper `resolveQuayConfigCreated` eliminado del path
+  `lastUpdated` (blob `created` es build-time, no push). Slice
+  `src/lib/registry-updates.test.ts` ⇒ 23 passed; suite ⇒ 21 files /
+  167 passed; `bunx biome check --write` ⇒ 1 format aplicado al test;
+  re-slice verde; lint solo 4 warnings preexistentes `noNonNullAssertion`
+  B-01. Commit fix `4972cd1`. Push NO.
