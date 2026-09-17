@@ -445,52 +445,6 @@ export async function checkGhcrUpdateRaw(
 	}
 }
 
-/**
- * Fallback 2 de fecha Quay (best-effort): re-fetch del manifest objetivo,
- * extrae `config.digest` (o `manifests[0].digest` → manifest hijo en los
- * índices) y lee el campo `created` del config-blob. Devuelve undefined si
- * alguna fuente falla; un fallo de fecha nunca falla el check.
- */
-async function resolveQuayConfigCreated(
-	repoPath: string,
-	targetTag: string,
-	authHeaders: Record<string, string>
-): Promise<string | undefined> {
-	const manifestAccept =
-		'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json'
-	const manifestResponse = await fetchWithTimeout(
-		`https://quay.io/v2/${repoPath}/manifests/${targetTag}`,
-		{ headers: { ...authHeaders, Accept: manifestAccept } }
-	).catch(() => undefined)
-	if (!manifestResponse?.ok) return undefined
-	const manifest = (await manifestResponse.json().catch(() => undefined)) as
-		| { config?: { digest?: string }; manifests?: Array<{ digest?: string }> }
-		| undefined
-	if (!manifest) return undefined
-	let configDigest = manifest.config?.digest
-	if (!configDigest && manifest.manifests?.[0]?.digest) {
-		const childResponse = await fetchWithTimeout(
-			`https://quay.io/v2/${repoPath}/manifests/${manifest.manifests[0].digest}`,
-			{ headers: { ...authHeaders, Accept: manifestAccept } }
-		).catch(() => undefined)
-		if (!childResponse?.ok) return undefined
-		const child = (await childResponse.json().catch(() => undefined)) as
-			| { config?: { digest?: string } }
-			| undefined
-		configDigest = child?.config?.digest
-	}
-	if (!configDigest) return undefined
-	const blobResponse = await fetchWithTimeout(
-		`https://quay.io/v2/${repoPath}/blobs/${configDigest}`,
-		{ headers: authHeaders }
-	).catch(() => undefined)
-	if (!blobResponse?.ok) return undefined
-	const blob = (await blobResponse.json().catch(() => undefined)) as
-		| { created?: string }
-		| undefined
-	return blob?.created
-}
-
 export async function checkQuayUpdateRaw(
 	fullImageName: string,
 	localDigest?: string
@@ -563,24 +517,34 @@ export async function checkQuayUpdateRaw(
 
 		if (tagNames.length === 0) return { hasUpdate: false }
 
-		// 2b. Tag dates via public Quay API v1 (best-effort, no auth).
-		// Single request with limit + map by name: `last_modified` → publishedAt.
-		const tagDates = new Map<string, string>()
+		// 2b. Tag push dates via Quay API v1 (best-effort, no auth).
+		// `onlyActiveTags=true` avoids history duplicates; the push date is
+		// joined by digest below against the V2 Docker-Content-Digest (what
+		// History shows). Never use config-blob `created` here: it is image
+		// build time, not push time.
+		interface QuayV1Tag {
+			name?: string
+			manifest_digest?: string
+			last_modified?: string
+			start_ts?: number
+		}
+		const v1Tags: QuayV1Tag[] = []
 		const v1Response = await fetchWithTimeout(
-			`https://quay.io/api/v1/repository/${repoPath}/tag/?limit=100`
+			`https://quay.io/api/v1/repository/${repoPath}/tag/?onlyActiveTags=true&limit=100`
 		).catch(() => undefined)
 		if (v1Response?.ok) {
 			const v1Data = (await v1Response.json().catch(() => undefined)) as
-				| { tags?: Array<{ name?: string; last_modified?: string }> }
+				| { tags?: QuayV1Tag[] }
 				| undefined
 			for (const t of v1Data?.tags || []) {
-				if (t.name && t.last_modified) tagDates.set(t.name, t.last_modified)
+				if (t.name) v1Tags.push(t)
 			}
 		} else if (v1Response?.status === 429) {
 			sawRateLimit = true
 		}
 
-		// 3. Resolve each tag to its manifest digest (+ date when served).
+		// 3. Resolve each tag to its manifest digest (dates join by digest
+		// below, once the target tag is known).
 		const manifestAccept =
 			'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json'
 		const remoteTags: RemoteTag[] = []
@@ -601,15 +565,7 @@ export async function checkQuayUpdateRaw(
 			const digest = manifestResponse.headers.get('Docker-Content-Digest')
 			if (!digest) continue
 
-			const lastModified =
-				manifestResponse.headers.get('Last-Modified') || undefined
-			// Priority: API v1 `last_modified` → manifest `Last-Modified`
-			// best-effort → undefined (fallback 2 config-blob resolves lazily
-			// for the target tag below).
-			const publishedAt = tagDates.get(t) ?? lastModified
-			remoteTags.push(
-				publishedAt ? { tag: t, digest, publishedAt } : { tag: t, digest }
-			)
+			remoteTags.push({ tag: t, digest })
 		}
 
 		if (remoteTags.length === 0) return { hasUpdate: false }
@@ -661,12 +617,23 @@ export async function checkQuayUpdateRaw(
 			}
 		}
 
-		// Fallback 2 (lazy, solo tag objetivo): manifest → config.digest →
-		// GET blob → campo `created`. Best-effort: sin fecha ⇒ undefined y la
-		// card oculta el tiempo como hoy.
+		// Push date from v1 joined by digest: the entry whose
+		// `manifest_digest` equals the V2 Docker-Content-Digest of the target
+		// tag wins; on duplicates without digest match, the active entry with
+		// max `start_ts` wins. v1 failure (400/401) ⇒ undefined so the card
+		// hides the time instead of showing build time.
+		const candidates = v1Tags.filter((t) => t.name === targetTag)
+		const exact = candidates.find(
+			(t) => t.manifest_digest === targetRemote.digest
+		)
+		const pool = exact ? [exact] : candidates
+		pool.sort((a, b) => (b.start_ts ?? 0) - (a.start_ts ?? 0))
+		const picked = pool[0]
 		const lastUpdated =
-			targetRemote.publishedAt ||
-			(await resolveQuayConfigCreated(repoPath, targetTag, authHeaders))
+			picked?.last_modified ||
+			(picked?.start_ts
+				? new Date(picked.start_ts * 1000).toISOString()
+				: undefined)
 
 		return {
 			hasUpdate,
