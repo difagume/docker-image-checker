@@ -135,6 +135,11 @@ export async function checkImageUpdateRaw(
 		return checkGhcrUpdateRaw(imageName, localDigest)
 	}
 
+	// 1b. Detect Quay.io images (public Registry V2, anonymous)
+	if (imageName.startsWith('quay.io/')) {
+		return checkQuayUpdateRaw(imageName, localDigest)
+	}
+
 	// 2. Handle known registries proxying Docker Hub
 	if (imageName.startsWith('lscr.io/')) {
 		imageName = imageName.replace('lscr.io/', '')
@@ -440,6 +445,180 @@ export async function checkGhcrUpdateRaw(
 	}
 }
 
+export async function checkQuayUpdateRaw(
+	fullImageName: string,
+	localDigest?: string
+): Promise<CheckImageUpdateResult> {
+	// B-04: 429 anywhere in the V2 flow is transient even though the flow
+	// does not throw on it directly; tracked here and honored in the catch.
+	let sawRateLimit = false
+	try {
+		const parsedQuay = parseImageReference(
+			fullImageName.replace('quay.io/', '')
+		)
+		const imagePath = parsedQuay.repository
+		const tag = parsedQuay.tag
+		const pinnedDigest = parsedQuay.digest
+		const parts = imagePath.split('/')
+
+		if (parts.length < 2) {
+			return { hasUpdate: false, isLocal: true }
+		}
+
+		const namespace = parts[0]
+		const repo = parts.slice(1).join('/')
+		const repoPath = `${namespace}/${repo}`
+		const viewUrl = `https://quay.io/repository/${repoPath}`
+
+		// 1. Anonymous bearer token (public repos need no credentials).
+		const authUrl = `https://quay.io/v2/auth?service=quay.io&scope=repository:${repoPath}:pull`
+		const authResponse = await fetchWithTimeout(authUrl)
+
+		if (authResponse.status === 429) sawRateLimit = true
+		if (authResponse.status === 404) {
+			return { hasUpdate: false, isLocal: false }
+		}
+		if (!authResponse.ok) {
+			throw new Error(
+				`Quay auth error: ${authResponse.statusText} (status ${authResponse.status}) for image "${fullImageName}"`
+			)
+		}
+
+		const authData = (await authResponse.json()) as {
+			token?: string
+			access_token?: string
+		}
+		const token = authData.token || authData.access_token
+
+		if (!token) {
+			return { hasUpdate: false, isLocal: false }
+		}
+
+		const authHeaders = { Authorization: `Bearer ${token}` }
+
+		// 2. List tags via Registry V2.
+		const tagsUrl = `https://quay.io/v2/${repoPath}/tags/list`
+		const tagsResponse = await fetchWithTimeout(tagsUrl, {
+			headers: authHeaders
+		})
+
+		if (tagsResponse.status === 429) sawRateLimit = true
+		if (tagsResponse.status === 404) {
+			return { hasUpdate: false, isLocal: false }
+		}
+		if (!tagsResponse.ok) {
+			throw new Error(
+				`Quay API error: ${tagsResponse.statusText} (status ${tagsResponse.status}) for image "${fullImageName}" (url: ${tagsUrl})`
+			)
+		}
+
+		const tagsData = (await tagsResponse.json()) as { tags?: string[] }
+		const tagNames = tagsData.tags || []
+
+		if (tagNames.length === 0) return { hasUpdate: false }
+
+		// 3. Resolve each tag to its manifest digest (+ date when served).
+		const manifestAccept =
+			'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json'
+		const remoteTags: RemoteTag[] = []
+
+		for (const t of tagNames) {
+			const manifestUrl = `https://quay.io/v2/${repoPath}/manifests/${t}`
+			const manifestResponse = await fetchWithTimeout(manifestUrl, {
+				headers: { ...authHeaders, Accept: manifestAccept }
+			})
+
+			if (manifestResponse.status === 429) {
+				sawRateLimit = true
+				continue
+			}
+			if (manifestResponse.status === 404) continue
+			if (!manifestResponse.ok) continue
+
+			const digest = manifestResponse.headers.get('Docker-Content-Digest')
+			if (!digest) continue
+
+			const lastModified =
+				manifestResponse.headers.get('Last-Modified') || undefined
+			remoteTags.push(
+				lastModified
+					? { tag: t, digest, publishedAt: lastModified }
+					: { tag: t, digest }
+			)
+		}
+
+		if (remoteTags.length === 0) return { hasUpdate: false }
+
+		const context: ImageContext = {
+			imageName: fullImageName,
+			currentTag: tag,
+			currentDigest: localDigest || pinnedDigest || '',
+			remoteTags
+		}
+
+		const policyResult = evaluatePolicies(context)
+
+		const hasUpdate =
+			policyResult.state === 'CONTENT_UPDATED' ||
+			policyResult.state === 'NEW_COMPATIBLE_VERSION_AVAILABLE' ||
+			policyResult.state === 'NEW_MAJOR_VERSION_AVAILABLE'
+
+		if (policyResult.state === 'UNKNOWN_TAG_STRATEGY') {
+			return {
+				hasUpdate: false,
+				latestDigest: undefined,
+				lastUpdated: undefined,
+				currentVersion: tag,
+				latestVersion: tag,
+				dockerHubUrl: viewUrl,
+				isLocal: false,
+				policyResult
+			}
+		}
+
+		const targetTag =
+			policyResult.details?.latestCompatible ||
+			policyResult.details?.majorAvailable ||
+			tag
+
+		const targetRemote = remoteTags.find((r) => r.tag === targetTag)
+
+		if (!targetRemote) {
+			return {
+				hasUpdate: false,
+				latestDigest: undefined,
+				lastUpdated: undefined,
+				currentVersion: tag,
+				latestVersion: targetTag,
+				dockerHubUrl: viewUrl,
+				isLocal: false,
+				policyResult
+			}
+		}
+
+		return {
+			hasUpdate,
+			latestDigest: targetRemote.digest,
+			lastUpdated: targetRemote.publishedAt,
+			currentVersion: tag,
+			latestVersion: targetTag,
+			dockerHubUrl: viewUrl,
+			isLocal: false,
+			policyResult
+		}
+	} catch (error) {
+		console.error(
+			`Failed to check Quay image update for ${fullImageName}:`,
+			error
+		)
+		return {
+			hasUpdate: false,
+			isLocal: false,
+			transient: sawRateLimit || classifyRegistryError(error)
+		}
+	}
+}
+
 // ── Cached checks (Cache Components — dashboard + server actions) ──────
 
 /**
@@ -475,6 +654,22 @@ export async function checkGhcrUpdate(
 	})
 	cacheTag(CACHE_TAGS.registry)
 	return checkGhcrUpdateRaw(fullImageName, localDigest)
+}
+
+/**
+ * Quay-specific check. Cached like `checkImageUpdate` under `registry:checks`.
+ */
+export async function checkQuayUpdate(
+	fullImageName: string,
+	localDigest?: string
+): Promise<CheckImageUpdateResult> {
+	'use cache'
+	cacheLife({
+		revalidate: REGISTRY_REVALIDATE_SECONDS,
+		expire: REGISTRY_EXPIRE_SECONDS
+	})
+	cacheTag(CACHE_TAGS.registry)
+	return checkQuayUpdateRaw(fullImageName, localDigest)
 }
 
 /**

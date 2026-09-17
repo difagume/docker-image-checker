@@ -248,6 +248,135 @@ describe('classifyRegistryError (B-04 / fix-provider-robustness)', () => {
 	})
 })
 
+describe('Quay.io support (Registry V2 anonymous)', () => {
+	let originalFetch: typeof fetch
+	beforeEach(() => {
+		originalFetch = global.fetch
+	})
+	afterEach(() => {
+		global.fetch = originalFetch
+		vi.restoreAllMocks()
+	})
+
+	function mockQuayV2(digests: Record<string, string>) {
+		const tagNames = Object.keys(digests)
+		const fetchedUrls: string[] = []
+		global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+			fetchedUrls.push(url)
+			if (url.includes('quay.io/v2/auth')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ token: 'quay-anon-token' })
+				} as unknown as Response
+			}
+			if (url.includes('/tags/list')) {
+				// Anonymous bearer required on V2 calls
+				const auth = (init?.headers as Record<string, string>)?.Authorization
+				if (auth !== 'Bearer quay-anon-token') {
+					return { ok: false, status: 401 } as unknown as Response
+				}
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ name: 'ns/repo', tags: tagNames })
+				} as unknown as Response
+			}
+			if (url.includes('/manifests/')) {
+				const requestedTag = url.split('/manifests/')[1]
+				const digest = digests[requestedTag]
+				if (!digest) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				return {
+					ok: true,
+					status: 200,
+					headers: {
+						get: (name: string) => {
+							if (name.toLowerCase() === 'docker-content-digest') return digest
+							if (name.toLowerCase() === 'last-modified')
+								return '2024-06-01T00:00:00Z'
+							return null
+						}
+					}
+				} as unknown as Response
+			}
+			return { ok: false, status: 404 } as unknown as Response
+		}) as unknown as typeof fetch
+		return fetchedUrls
+	}
+
+	it('routes quay.io/* through the V2 flow, never Docker Hub', async () => {
+		const fetchedUrls = mockQuayV2({ 'v1.0.0': 'sha256:quay111' })
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		expect(fetchedUrls.length).toBeGreaterThan(0)
+		expect(fetchedUrls.some((u) => u.includes('hub.docker.com'))).toBe(false)
+		expect(
+			fetchedUrls.some((u) =>
+				u.includes('quay.io/v2/auth?service=quay.io&scope=')
+			)
+		).toBe(true)
+	})
+
+	it('existing tag resolves digest + quay view URL (available/updated)', async () => {
+		mockQuayV2({ 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' })
+		const { checkImageUpdateRaw, resolveUpdateStatus } = await import(
+			'@/lib/registry-updates'
+		)
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.dockerHubUrl).toBe(
+			'https://quay.io/repository/thefrenchghosty/openchamber'
+		)
+		expect(['available', 'updated']).toContain(resolveUpdateStatus(result))
+		expect(result.transient).toBeFalsy()
+	})
+
+	it('missing tag -> UNKNOWN_TAG_STRATEGY, no digest, mapper unknown', async () => {
+		mockQuayV2({ 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' })
+		const { checkImageUpdateRaw, resolveUpdateStatus } = await import(
+			'@/lib/registry-updates'
+		)
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:tag-inventado',
+			'sha256:local'
+		)
+		expect(result.policyResult?.state).toBe('UNKNOWN_TAG_STRATEGY')
+		expect(result.latestDigest).toBeUndefined()
+		expect(resolveUpdateStatus(result)).toBe('unknown')
+		expect(result.transient).toBeFalsy()
+	})
+
+	it('missing repo (tags/list 404) -> unknown, never transient', async () => {
+		global.fetch = vi.fn(async (url: string) => {
+			if (url.includes('quay.io/v2/auth')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ token: 'quay-anon-token' })
+				} as unknown as Response
+			}
+			return { ok: false, status: 404 } as unknown as Response
+		}) as unknown as typeof fetch
+		const { checkImageUpdateRaw, resolveUpdateStatus } = await import(
+			'@/lib/registry-updates'
+		)
+		const result = await checkImageUpdateRaw(
+			'quay.io/someone/no-such-repo:latest',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBeUndefined()
+		expect(resolveUpdateStatus(result)).toBe('unknown')
+		expect(result.transient).toBeFalsy()
+	})
+})
 describe('resolveUpdateStatus (closed status vocabulary)', () => {
 	const COMBOS: Array<{
 		name: string
