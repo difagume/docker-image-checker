@@ -92,8 +92,9 @@ la card muestra el tiempo sin cambiar engine ni UI.
   resultados observados registrados aquí. Commits: —
 - [ ] **T4** — Verificación (slice + suite + biome lint/format) con
   resultados observados registrados aquí. Commits: —
-- [ ] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
-  Commits: —
+- [x] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
+  Commits: `2057448` docs T1 + `754cad5` feat T2 + `12eeb89` test T3-T4
+  (+ este cierre docs). Push NO (policy ordinaria).
 
 ## Estrategia de entrega
 
@@ -129,4 +130,6 @@ se borran espacios/comentarios ni se omiten tests para ahorrar líneas.
   preexistentes `noNonNullAssertion` en B-01 (líneas 20-24, no tocadas).
   `bunx biome format` ⇒ 1 diff aplicado a bloque nuevo del test; re-check
   limpio y slice re-verde 22/22.
-- T5: (pendiente)
+- T5: doc y mirror actualizados tras cada tarea; `engine.ts` y
+  `container-card.tsx` intactos (`git status` solo muestra los 3 ficheros
+  del alcance). Push NO.
