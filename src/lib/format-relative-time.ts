@@ -5,6 +5,38 @@ export function formatRelativeTime(
 	dict: Dictionary,
 	locale: Locale
 ) {
+	const nowInstant = Temporal.Now.instant()
+	let dateInstant: Temporal.Instant
+	if (date instanceof Temporal.PlainDate) {
+		dateInstant = date.toZonedDateTime('UTC').toInstant()
+	} else {
+		dateInstant = Temporal.Instant.from(date.toISOString())
+	}
+	const diffInSeconds = Math.floor(
+		(nowInstant.epochMilliseconds - dateInstant.epochMilliseconds) / 1000
+	)
+
+	if (diffInSeconds < 60) return dict.time.momentAgo
+
+	const minutes = Math.floor(diffInSeconds / 60)
+	if (minutes < 60) {
+		const label = `${minutes} ${minutes === 1 ? dict.time.minute : dict.time.minutes}`
+		if (locale === 'es' || locale === 'pt') {
+			return `${dict.time.ago} ${label}`
+		}
+		return `${label} ${dict.time.ago}`
+	}
+
+	// Sub-48h precision: floor hours instead of calendar-day rounding
+	if (diffInSeconds < 48 * 3600) {
+		const hours = Math.floor(minutes / 60)
+		const label = `${hours} ${hours === 1 ? dict.time.hour : dict.time.hours}`
+		if (locale === 'es' || locale === 'pt') {
+			return `${dict.time.ago} ${label}`
+		}
+		return `${label} ${dict.time.ago}`
+	}
+
 	const plainDate =
 		date instanceof Temporal.PlainDate
 			? date
@@ -41,33 +73,7 @@ export function formatRelativeTime(
 		return `${parts[0]} ${dict.time.ago}`
 	}
 
-	// Small time differences — use epoch milliseconds for precision
-	const nowInstant = Temporal.Now.instant()
-	let diffInSeconds: number
-
-	if (date instanceof Temporal.PlainDate) {
-		const dateInstant = date.toZonedDateTime('UTC').toInstant()
-		diffInSeconds = Math.floor(
-			(nowInstant.epochMilliseconds - dateInstant.epochMilliseconds) / 1000
-		)
-	} else {
-		const dateInstant = Temporal.Instant.from(date.toISOString())
-		diffInSeconds = Math.floor(
-			(nowInstant.epochMilliseconds - dateInstant.epochMilliseconds) / 1000
-		)
-	}
-
-	if (diffInSeconds < 60) return dict.time.momentAgo
-
-	const minutes = Math.floor(diffInSeconds / 60)
-	if (minutes < 60) {
-		const label = `${minutes} ${minutes === 1 ? dict.time.minute : dict.time.minutes}`
-		if (locale === 'es' || locale === 'pt') {
-			return `${dict.time.ago} ${label}`
-		}
-		return `${label} ${dict.time.ago}`
-	}
-
+	// Fallback (unreachable for >=48h with distinct calendar dates)
 	const hours = Math.floor(minutes / 60)
 	const label = `${hours} ${hours === 1 ? dict.time.hour : dict.time.hours}`
 	if (locale === 'es' || locale === 'pt') {

@@ -377,6 +377,209 @@ describe('Quay.io support (Registry V2 anonymous)', () => {
 		expect(result.transient).toBeFalsy()
 	})
 })
+describe('Quay.io card time (lastUpdated via API v1 + config-blob)', () => {
+	let originalFetch: typeof fetch
+	beforeEach(() => {
+		originalFetch = global.fetch
+	})
+	afterEach(() => {
+		global.fetch = originalFetch
+		vi.restoreAllMocks()
+	})
+
+	function mockQuayDates(opts: {
+		digests: Record<string, string>
+		v1Dates?: Record<string, string> | 'fail'
+		v1Entries?: Array<{
+			name: string
+			manifest_digest?: string
+			last_modified?: string
+			start_ts?: number
+		}>
+		v1Status?: number
+		manifestLastModified?: string | null
+		manifestBody?: unknown
+		blobCreated?: string | null
+		fetchedUrls?: string[]
+	}) {
+		global.fetch = vi.fn(async (url: string) => {
+			opts.fetchedUrls?.push(url)
+			if (url.includes('quay.io/v2/auth')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ token: 'quay-anon-token' })
+				} as unknown as Response
+			}
+			if (url.includes('/api/v1/repository/')) {
+				if (opts.v1Entries !== undefined) {
+					return {
+						ok: true,
+						status: 200,
+						json: async () => ({ tags: opts.v1Entries })
+					} as unknown as Response
+				}
+				if (opts.v1Status !== undefined) {
+					return {
+						ok: false,
+						status: opts.v1Status,
+						json: async () => ({})
+					} as unknown as Response
+				}
+				if (opts.v1Dates === 'fail' || opts.v1Dates === undefined) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				const tags = Object.entries(opts.v1Dates).map(
+					([name, last_modified]) => ({
+						name,
+						last_modified,
+						manifest_digest: opts.digests[name]
+					})
+				)
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ tags })
+				} as unknown as Response
+			}
+			if (url.includes('/tags/list')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						name: 'ns/repo',
+						tags: Object.keys(opts.digests)
+					})
+				} as unknown as Response
+			}
+			if (url.includes('/blobs/')) {
+				if (opts.blobCreated == null) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ created: opts.blobCreated })
+				} as unknown as Response
+			}
+			if (url.includes('/manifests/')) {
+				const requestedTag = url.split('/manifests/')[1]
+				const digest = opts.digests[requestedTag]
+				if (!digest) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				return {
+					ok: true,
+					status: 200,
+					headers: {
+						get: (name: string) => {
+							if (name.toLowerCase() === 'docker-content-digest') return digest
+							if (name.toLowerCase() === 'last-modified')
+								return opts.manifestLastModified ?? null
+							return null
+						}
+					},
+					json: async () => opts.manifestBody ?? {}
+				} as unknown as Response
+			}
+			return { ok: false, status: 404 } as unknown as Response
+		}) as unknown as typeof fetch
+	}
+
+	it('manifest sin Last-Modified + API v1 con last_modified => lastUpdated definido', async () => {
+		const fetchedUrls: string[] = []
+		mockQuayDates({
+			digests: { 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' },
+			v1Dates: {
+				'v1.0.0': '2024-06-15T12:00:00Z',
+				latest: '2024-07-01T00:00:00Z'
+			},
+			manifestLastModified: null,
+			manifestBody: {},
+			fetchedUrls
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.lastUpdated).toBe('2024-06-15T12:00:00Z')
+		expect(
+			fetchedUrls.some((u) =>
+				u.includes('/api/v1/repository/thefrenchghosty/openchamber/tag/')
+			)
+		).toBe(true)
+		expect(fetchedUrls.some((u) => u.includes('onlyActiveTags=true'))).toBe(
+			true
+		)
+	})
+
+	it('duplicados historicos mismo name eligen el digest activo del targetTag', async () => {
+		mockQuayDates({
+			digests: { latest: 'sha256:active222' },
+			v1Entries: [
+				{
+					name: 'latest',
+					manifest_digest: 'sha256:old111',
+					last_modified: '2024-06-01T00:00:00Z',
+					start_ts: 1717200000
+				},
+				{
+					name: 'latest',
+					manifest_digest: 'sha256:active222',
+					last_modified: '2024-09-16T10:00:00Z',
+					start_ts: 1726480800
+				}
+			],
+			manifestLastModified: null,
+			manifestBody: {}
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:latest',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBe('sha256:active222')
+		// El historico 06-01 no contamina: gana el digest activo (push 16/09).
+		expect(result.lastUpdated).toBe('2024-09-16T10:00:00Z')
+	})
+
+	it('sin fechas en ninguna fuente => lastUpdated undefined (UI oculta como hoy)', async () => {
+		mockQuayDates({
+			digests: { 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' },
+			v1Dates: 'fail',
+			manifestLastModified: null,
+			manifestBody: {},
+			blobCreated: null
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		// El check sigue resolviendo digest; solo falta la fecha.
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.lastUpdated).toBeUndefined()
+	})
+
+	it('v1 400 => lastUpdated undefined aunque exista created en blob (no build-time)', async () => {
+		mockQuayDates({
+			digests: { 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' },
+			v1Status: 400,
+			manifestLastModified: null,
+			manifestBody: { config: { digest: 'sha256:cfg123' } },
+			blobCreated: '2023-05-01T08:00:00Z'
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.lastUpdated).toBeUndefined()
+	})
+})
 describe('resolveUpdateStatus (closed status vocabulary)', () => {
 	const COMBOS: Array<{
 		name: string

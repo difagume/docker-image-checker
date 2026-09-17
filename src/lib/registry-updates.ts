@@ -517,7 +517,34 @@ export async function checkQuayUpdateRaw(
 
 		if (tagNames.length === 0) return { hasUpdate: false }
 
-		// 3. Resolve each tag to its manifest digest (+ date when served).
+		// 2b. Tag push dates via Quay API v1 (best-effort, no auth).
+		// `onlyActiveTags=true` avoids history duplicates; the push date is
+		// joined by digest below against the V2 Docker-Content-Digest (what
+		// History shows). Never use config-blob `created` here: it is image
+		// build time, not push time.
+		interface QuayV1Tag {
+			name?: string
+			manifest_digest?: string
+			last_modified?: string
+			start_ts?: number
+		}
+		const v1Tags: QuayV1Tag[] = []
+		const v1Response = await fetchWithTimeout(
+			`https://quay.io/api/v1/repository/${repoPath}/tag/?onlyActiveTags=true&limit=100`
+		).catch(() => undefined)
+		if (v1Response?.ok) {
+			const v1Data = (await v1Response.json().catch(() => undefined)) as
+				| { tags?: QuayV1Tag[] }
+				| undefined
+			for (const t of v1Data?.tags || []) {
+				if (t.name) v1Tags.push(t)
+			}
+		} else if (v1Response?.status === 429) {
+			sawRateLimit = true
+		}
+
+		// 3. Resolve each tag to its manifest digest (dates join by digest
+		// below, once the target tag is known).
 		const manifestAccept =
 			'application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json'
 		const remoteTags: RemoteTag[] = []
@@ -538,13 +565,7 @@ export async function checkQuayUpdateRaw(
 			const digest = manifestResponse.headers.get('Docker-Content-Digest')
 			if (!digest) continue
 
-			const lastModified =
-				manifestResponse.headers.get('Last-Modified') || undefined
-			remoteTags.push(
-				lastModified
-					? { tag: t, digest, publishedAt: lastModified }
-					: { tag: t, digest }
-			)
+			remoteTags.push({ tag: t, digest })
 		}
 
 		if (remoteTags.length === 0) return { hasUpdate: false }
@@ -596,10 +617,28 @@ export async function checkQuayUpdateRaw(
 			}
 		}
 
+		// Push date from v1 joined by digest: the entry whose
+		// `manifest_digest` equals the V2 Docker-Content-Digest of the target
+		// tag wins; on duplicates without digest match, the active entry with
+		// max `start_ts` wins. v1 failure (400/401) ⇒ undefined so the card
+		// hides the time instead of showing build time.
+		const candidates = v1Tags.filter((t) => t.name === targetTag)
+		const exact = candidates.find(
+			(t) => t.manifest_digest === targetRemote.digest
+		)
+		const pool = exact ? [exact] : candidates
+		pool.sort((a, b) => (b.start_ts ?? 0) - (a.start_ts ?? 0))
+		const picked = pool[0]
+		const lastUpdated =
+			picked?.last_modified ||
+			(picked?.start_ts
+				? new Date(picked.start_ts * 1000).toISOString()
+				: undefined)
+
 		return {
 			hasUpdate,
 			latestDigest: targetRemote.digest,
-			lastUpdated: targetRemote.publishedAt,
+			lastUpdated,
 			currentVersion: tag,
 			latestVersion: targetTag,
 			dockerHubUrl: viewUrl,
