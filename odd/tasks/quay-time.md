@@ -157,3 +157,6 @@ se borran espacios/comentarios ni se omiten tests para ahorrar líneas.
   minutos/horas floor (17h ⇒ "hace 17 horas"); >=48h calendario intacto.
   Slice nuevo `format-relative-time.test.ts` ⇒ 5 passed; suite ⇒ 22 files /
   172 passed; biome lint/format limpios. Registry y card intactos. Push NO.
+- Cierre: PR #33 (https://github.com/difagume/docker-image-checker/pull/33)
+  `feat/quay-time` → `master`, merge commit `3d1c0ec4fa6a9790316f60819d84178a066ed97a`
+  (merge --merge, precedente PR #32). Rama local conservada, no borrada.
