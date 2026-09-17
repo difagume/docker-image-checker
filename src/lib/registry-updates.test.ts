@@ -377,6 +377,142 @@ describe('Quay.io support (Registry V2 anonymous)', () => {
 		expect(result.transient).toBeFalsy()
 	})
 })
+describe('Quay.io card time (lastUpdated via API v1 + config-blob)', () => {
+	let originalFetch: typeof fetch
+	beforeEach(() => {
+		originalFetch = global.fetch
+	})
+	afterEach(() => {
+		global.fetch = originalFetch
+		vi.restoreAllMocks()
+	})
+
+	function mockQuayDates(opts: {
+		digests: Record<string, string>
+		v1Dates?: Record<string, string> | 'fail'
+		manifestLastModified?: string | null
+		manifestBody?: unknown
+		blobCreated?: string | null
+	}) {
+		global.fetch = vi.fn(async (url: string) => {
+			if (url.includes('quay.io/v2/auth')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ token: 'quay-anon-token' })
+				} as unknown as Response
+			}
+			if (url.includes('/api/v1/repository/')) {
+				if (opts.v1Dates === 'fail' || opts.v1Dates === undefined) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				const tags = Object.entries(opts.v1Dates).map(
+					([name, last_modified]) => ({ name, last_modified })
+				)
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ tags })
+				} as unknown as Response
+			}
+			if (url.includes('/tags/list')) {
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({
+						name: 'ns/repo',
+						tags: Object.keys(opts.digests)
+					})
+				} as unknown as Response
+			}
+			if (url.includes('/blobs/')) {
+				if (opts.blobCreated == null) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				return {
+					ok: true,
+					status: 200,
+					json: async () => ({ created: opts.blobCreated })
+				} as unknown as Response
+			}
+			if (url.includes('/manifests/')) {
+				const requestedTag = url.split('/manifests/')[1]
+				const digest = opts.digests[requestedTag]
+				if (!digest) {
+					return { ok: false, status: 404 } as unknown as Response
+				}
+				return {
+					ok: true,
+					status: 200,
+					headers: {
+						get: (name: string) => {
+							if (name.toLowerCase() === 'docker-content-digest') return digest
+							if (name.toLowerCase() === 'last-modified')
+								return opts.manifestLastModified ?? null
+							return null
+						}
+					},
+					json: async () => opts.manifestBody ?? {}
+				} as unknown as Response
+			}
+			return { ok: false, status: 404 } as unknown as Response
+		}) as unknown as typeof fetch
+	}
+
+	it('manifest sin Last-Modified + API v1 con last_modified => lastUpdated definido', async () => {
+		mockQuayDates({
+			digests: { 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' },
+			v1Dates: {
+				'v1.0.0': '2024-06-15T12:00:00Z',
+				latest: '2024-07-01T00:00:00Z'
+			},
+			manifestLastModified: null,
+			manifestBody: {}
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.lastUpdated).toBe('2024-06-15T12:00:00Z')
+	})
+
+	it('sin fechas en ninguna fuente => lastUpdated undefined (UI oculta como hoy)', async () => {
+		mockQuayDates({
+			digests: { 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' },
+			v1Dates: 'fail',
+			manifestLastModified: null,
+			manifestBody: {},
+			blobCreated: null
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		// El check sigue resolviendo digest; solo falta la fecha.
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.lastUpdated).toBeUndefined()
+	})
+
+	it('fallback config-blob: sin v1 ni Last-Modified, created del blob => definido', async () => {
+		mockQuayDates({
+			digests: { 'v1.0.0': 'sha256:quay111', latest: 'sha256:quay222' },
+			v1Dates: 'fail',
+			manifestLastModified: null,
+			manifestBody: { config: { digest: 'sha256:cfg123' } },
+			blobCreated: '2023-05-01T08:00:00Z'
+		})
+		const { checkImageUpdateRaw } = await import('@/lib/registry-updates')
+		const result = await checkImageUpdateRaw(
+			'quay.io/thefrenchghosty/openchamber:v1.0.0',
+			'sha256:local'
+		)
+		expect(result.latestDigest).toBe('sha256:quay111')
+		expect(result.lastUpdated).toBe('2023-05-01T08:00:00Z')
+	})
+})
 describe('resolveUpdateStatus (closed status vocabulary)', () => {
 	const COMBOS: Array<{
 		name: string

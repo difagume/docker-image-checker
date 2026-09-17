@@ -83,10 +83,13 @@ la card muestra el tiempo sin cambiar engine ni UI.
   topic `odd/quay-time/tasks`). Commits: `2057448` docs(odd) T1.
 - [x] **T2** — `checkQuayUpdateRaw` en `src/lib/registry-updates.ts`: fecha
   por tag vía API v1 (`last_modified` → `publishedAt`) + fallback 2
-  config-blob (`created`) + best-effort `Last-Modified`. Commits: —
-- [ ] **T3** — Tests espejo fecha Quay en `src/lib/registry-updates.test.ts`
+  config-blob (`created`) + best-effort `Last-Modified`. Commits: `754cad5`
+  feat(registry).
+- [x] **T3** — Tests espejo fecha Quay en `src/lib/registry-updates.test.ts`
   (manifest sin Last-Modified + v1 con last_modified ⇒ definido; sin ambas
-  ⇒ undefined). Commits: —
+  ⇒ undefined; + bonus fallback blob). Commits: —
+- [x] **T4** — Verificación (slice + suite + biome lint/format) con
+  resultados observados registrados aquí. Commits: —
 - [ ] **T4** — Verificación (slice + suite + biome lint/format) con
   resultados observados registrados aquí. Commits: —
 - [ ] **T5** — Commit(s) work-unit + actualización final del doc y mirror.
@@ -117,6 +120,13 @@ se borran espacios/comentarios ni se omiten tests para ahorrar líneas.
   tag objetivo. Engine sin `publishedAt` en decisiones (solo `types.ts:11`
   lo declara) ⇒ fallback lazy seguro. `engine.ts` y `container-card.tsx`
   intactos.
-- T3: (pendiente)
-- T4: (pendiente)
+- T3: 3 tests nuevos en `src/lib/registry-updates.test.ts` (+~130 líneas):
+  v1 con last_modified ⇒ definido; sin fuentes ⇒ undefined (+digest intacto);
+  bonus fallback blob ⇒ `created` definido.
+- T4: `bun run test -- src/lib/registry-updates.test.ts` ⇒ 22 passed.
+  `bun run test` ⇒ 21 files / 166 passed (sin regresión Hub/GHCR).
+  `bunx biome lint` (2 ficheros) ⇒ 0 errores en código nuevo; 4 warnings
+  preexistentes `noNonNullAssertion` en B-01 (líneas 20-24, no tocadas).
+  `bunx biome format` ⇒ 1 diff aplicado a bloque nuevo del test; re-check
+  limpio y slice re-verde 22/22.
 - T5: (pendiente)
