@@ -79,9 +79,9 @@ la card muestra el tiempo sin cambiar engine ni UI.
 
 ## Checklist
 
-- [ ] **T1** — Feature doc + mirror Engram (`odd/tasks/quay-time.md`,
-  topic `odd/quay-time/tasks`). Commits: —
-- [ ] **T2** — `checkQuayUpdateRaw` en `src/lib/registry-updates.ts`: fecha
+- [x] **T1** — Feature doc + mirror Engram (`odd/tasks/quay-time.md`,
+  topic `odd/quay-time/tasks`). Commits: `2057448` docs(odd) T1.
+- [x] **T2** — `checkQuayUpdateRaw` en `src/lib/registry-updates.ts`: fecha
   por tag vía API v1 (`last_modified` → `publishedAt`) + fallback 2
   config-blob (`created`) + best-effort `Last-Modified`. Commits: —
 - [ ] **T3** — Tests espejo fecha Quay en `src/lib/registry-updates.test.ts`
@@ -108,8 +108,15 @@ se borran espacios/comentarios ni se omiten tests para ahorrar líneas.
 
 ## Log de outcomes (solo resultados observados)
 
-- T1: (pendiente)
-- T2: (pendiente)
+- T1: doc creado con 5 tareas antes del primer write en `src/`; mirror Engram
+  `odd/quay-time/tasks` guardado (id obs 896, `judgment_required: false`);
+  rama `feat/quay-time` creada desde `master`; commit `2057448`. Runner real
+  verificado en vivo: `package.json:15` + `bun.lock` ⇒ `bun run test`.
+- T2: helper `resolveQuayConfigCreated` + paso 2b API v1 (`?limit=100`,
+  mapeo por nombre) + prioridad v1 → `Last-Modified` + fallback lazy solo
+  tag objetivo. Engine sin `publishedAt` en decisiones (solo `types.ts:11`
+  lo declara) ⇒ fallback lazy seguro. `engine.ts` y `container-card.tsx`
+  intactos.
 - T3: (pendiente)
 - T4: (pendiente)
 - T5: (pendiente)
