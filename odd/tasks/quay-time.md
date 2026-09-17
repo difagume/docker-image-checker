@@ -103,7 +103,10 @@ la card muestra el tiempo sin cambiar engine ni UI.
   si v1 falla (400/401) ⇒ `lastUpdated` undefined (card oculta tiempo).
   Sin tocar Hub/GHCR ni engine/card. Aceptación: con v1 ok la fecha cuadra
   con History (push 16/09); con v1 400/401 no se muestra build-time.
-  Commits: `4972cd1` fix T6 (+ este cierre docs). Push NO.
+   Commits: `4972cd1` fix T6 (+ este cierre docs). Push NO.
+- [x] **T7** — Precisión <48h en `src/lib/format-relative-time.ts`: <48h ⇒
+  "hace X horas" (floor; 17h ⇒ 17 horas, no 1 día); >=48h comportamiento
+  actual día/mes/año; i18n es/en/pt intacto; sin tocar registry ni card.
 
 ## Estrategia de entrega
 
@@ -148,5 +151,9 @@ se borran espacios/comentarios ni se omiten tests para ahorrar líneas.
   `lastUpdated` (blob `created` es build-time, no push). Slice
   `src/lib/registry-updates.test.ts` ⇒ 23 passed; suite ⇒ 21 files /
   167 passed; `bunx biome check --write` ⇒ 1 format aplicado al test;
-  re-slice verde; lint solo 4 warnings preexistentes `noNonNullAssertion`
-  B-01. Commit fix `4972cd1`. Push NO.
+   re-slice verde; lint solo 4 warnings preexistentes `noNonNullAssertion`
+   B-01. Commit fix `4972cd1`. Push NO.
+- T7: diff por `Instant` (epoch ms, UTC) antes del calendario; <48h ⇒
+  minutos/horas floor (17h ⇒ "hace 17 horas"); >=48h calendario intacto.
+  Slice nuevo `format-relative-time.test.ts` ⇒ 5 passed; suite ⇒ 22 files /
+  172 passed; biome lint/format limpios. Registry y card intactos. Push NO.
