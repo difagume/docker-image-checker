@@ -15,12 +15,34 @@ import { HostInfoIndicator } from '@/components/host-info-indicator'
 import { RemoteConnectionIndicator } from '@/components/remote-connection-indicator'
 import type { DockerConnectionInfo } from '@/lib/docker'
 import type { DockerHostInfo } from '@/lib/docker-inventory'
-import type { Dictionary } from '@/lib/i18n/dictionaries'
+import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import type { FilterStatus } from '@/types/app-state'
+
+/** Visible/hidden split for one stat bucket (no boolean-prop proliferation). */
+export interface StatCounts {
+	visible: number
+	hidden: number
+	total: number
+}
+
+function hiddenSubline(counts: StatCounts, locale: Locale): string {
+	if (locale === 'en') return `+${counts.hidden} hidden · ${counts.total} total`
+	if (locale === 'pt')
+		return `+${counts.hidden} ocultos · ${counts.total} total`
+	return `+${counts.hidden} ocultas · ${counts.total} total`
+}
+
+function countsBreakdown(counts: StatCounts, locale: Locale): string {
+	if (locale === 'en')
+		return `${counts.visible} visible, ${counts.hidden} hidden, ${counts.total} total`
+	if (locale === 'pt')
+		return `${counts.visible} visíveis, ${counts.hidden} ocultos, ${counts.total} no total`
+	return `${counts.visible} visibles, ${counts.hidden} ocultas, ${counts.total} en total`
+}
 
 interface StatFilterCardProps {
 	status: FilterStatus
-	count: number
+	counts: StatCounts
 	isActive: boolean
 	onToggle: () => void
 	icon: LucideIcon
@@ -39,10 +61,17 @@ interface StatFilterCardProps {
 	filterRemoveLabel: string
 	/** Show gradient overlay when active */
 	gradient?: boolean
+	/** When true the big number shows the total instead of the visible count */
+	showHiddenMode: boolean
+	/** Activates the hidden-containers view without touching the status filter */
+	onToggleShowHidden: () => void
+	/** Tooltip/accessible name for the hidden-counts subline */
+	viewHiddenTitle: string
+	locale: Locale
 }
 
 function StatFilterCard({
-	count,
+	counts,
 	isActive,
 	onToggle,
 	icon: Icon,
@@ -53,17 +82,18 @@ function StatFilterCard({
 	activeIndicatorClass = 'text-muted-foreground',
 	filterApplyLabel,
 	filterRemoveLabel,
-	gradient
+	gradient,
+	showHiddenMode,
+	onToggleShowHidden,
+	viewHiddenTitle,
+	locale
 }: StatFilterCardProps) {
+	const displayCount = showHiddenMode ? counts.total : counts.visible
+	const breakdown = countsBreakdown(counts, locale)
 	const actionLabel = `${isActive ? filterRemoveLabel : filterApplyLabel} ${label}`
 	return (
-		<button
-			type='button'
-			onClick={onToggle}
-			aria-pressed={isActive}
-			title={actionLabel}
-			aria-label={actionLabel}
-			className={`relative overflow-hidden flex items-center justify-between p-3 rounded-sm border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] cursor-pointer text-left group
+		<div
+			className={`relative overflow-hidden p-3 rounded-sm border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] group
 				${
 					isActive
 						? activeCardClass
@@ -73,45 +103,66 @@ function StatFilterCard({
 			{gradient && isActive && (
 				<div className='absolute inset-0 bg-linear-to-tr from-amber-500/10 via-amber-500/5 to-transparent opacity-80 pointer-events-none' />
 			)}
-			<div className='flex items-center gap-3 relative z-10'>
-				<div
-					className={`p-2 rounded-sm border shrink-0 ${
-						isActive
-							? activeIconClass
-							: 'bg-muted text-muted-foreground border-border/50'
-					}`}
-				>
-					<Icon className='h-4 w-4' strokeWidth={3} aria-hidden='true' />
-				</div>
-				<span
-					className={`font-semibold text-sm ${
-						isActive ? activeTextClass : 'text-muted-foreground'
-					}`}
-				>
-					<NumberFlow value={count} /> {label}
-				</span>
-			</div>
-			<div
-				className={`relative z-10 transition-colors duration-300 ${
-					isActive
-						? activeIndicatorClass
-						: 'text-muted-foreground group-hover:text-foreground'
-				}`}
+			<button
+				type='button'
+				onClick={onToggle}
+				aria-pressed={isActive}
+				title={actionLabel}
+				aria-label={`${actionLabel}: ${breakdown}`}
+				className='relative z-10 flex w-full items-center justify-between gap-3 cursor-pointer text-left'
 			>
-				{isActive ? (
-					<ToggleRight className='h-4 w-4' aria-hidden='true' />
-				) : (
-					<ToggleLeft className='h-4 w-4' aria-hidden='true' />
-				)}
-			</div>
-		</button>
+				<span className='flex items-center gap-3'>
+					<span
+						className={`p-2 rounded-sm border shrink-0 ${
+							isActive
+								? activeIconClass
+								: 'bg-muted text-muted-foreground border-border/50'
+						}`}
+					>
+						<Icon className='h-4 w-4' strokeWidth={3} aria-hidden='true' />
+					</span>
+					<span
+						className={`font-semibold text-sm ${
+							isActive ? activeTextClass : 'text-muted-foreground'
+						}`}
+					>
+						<NumberFlow value={displayCount} /> {label}
+					</span>
+				</span>
+				<span
+					className={`transition-colors duration-300 ${
+						isActive
+							? activeIndicatorClass
+							: 'text-muted-foreground group-hover:text-foreground'
+					}`}
+				>
+					{isActive ? (
+						<ToggleRight className='h-4 w-4' aria-hidden='true' />
+					) : (
+						<ToggleLeft className='h-4 w-4' aria-hidden='true' />
+					)}
+				</span>
+			</button>
+			{counts.hidden > 0 && (
+				<button
+					type='button'
+					onClick={onToggleShowHidden}
+					title={viewHiddenTitle}
+					aria-label={`${viewHiddenTitle}: ${breakdown}`}
+					className='relative z-10 mt-1 flex items-center gap-1 pl-11 text-xs text-muted-foreground cursor-pointer text-left'
+				>
+					<EyeOff className='h-3 w-3' aria-hidden='true' />
+					{hiddenSubline(counts, locale)}
+				</button>
+			)}
+		</div>
 	)
 }
 
 interface StatsSummaryProps {
-	updatedCount: number
-	availableCount: number
-	unknownCount: number
+	updated: StatCounts
+	available: StatCounts
+	unknown: StatCounts
 	activeFilters: FilterStatus[]
 	onToggleFilter: (status: FilterStatus) => void
 	showHiddenMode: boolean
@@ -119,70 +170,91 @@ interface StatsSummaryProps {
 	connectionInfo: DockerConnectionInfo
 	hostInfo?: DockerHostInfo | null
 	dict: Dictionary['stats']
+	locale: Locale
 }
 
 export function StatsSummary({
-	updatedCount,
-	availableCount,
-	unknownCount,
+	updated,
+	available,
+	unknown,
 	activeFilters,
 	onToggleFilter,
 	showHiddenMode,
 	onToggleShowHidden,
 	connectionInfo,
 	hostInfo,
-	dict
+	dict,
+	locale
 }: StatsSummaryProps) {
 	const isFilterActive = (status: FilterStatus) =>
 		activeFilters.includes(status)
+	const displayed = (counts: StatCounts) =>
+		showHiddenMode ? counts.total : counts.visible
+
+	const updatedLabel =
+		displayed(updated) === 1 ? dict.updatedImage : dict.updatedImages
+	const availableLabel =
+		displayed(available) === 1 ? dict.updateAvailable : dict.updatesAvailable
+	const unknownLabel =
+		displayed(unknown) === 1 ? dict.unknownImage : dict.unknownImages
 
 	return (
 		<div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-8'>
 			<StatFilterCard
 				status='updated'
-				count={updatedCount}
+				counts={updated}
 				isActive={isFilterActive('updated')}
 				onToggle={() => onToggleFilter('updated')}
 				icon={Check}
-				label={updatedCount === 1 ? dict.updatedImage : dict.updatedImages}
+				label={updatedLabel}
 				activeCardClass='bg-muted border-green-500/50 ring-1 ring-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]'
 				activeIconClass='bg-green-950/30 text-green-500 border-green-500/20'
 				activeTextClass='text-foreground'
 				activeIndicatorClass='text-green-500'
 				filterApplyLabel={dict.filterApply}
 				filterRemoveLabel={dict.filterRemove}
+				showHiddenMode={showHiddenMode}
+				onToggleShowHidden={onToggleShowHidden}
+				viewHiddenTitle={dict.viewHiddenContainers}
+				locale={locale}
 			/>
 
 			<StatFilterCard
 				status='available'
-				count={availableCount}
+				counts={available}
 				isActive={isFilterActive('available')}
 				onToggle={() => onToggleFilter('available')}
 				icon={ArrowUp}
-				label={
-					availableCount === 1 ? dict.updateAvailable : dict.updatesAvailable
-				}
+				label={availableLabel}
 				activeCardClass='bg-muted border-amber-500/50 ring-1 ring-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
 				activeIconClass='bg-amber-950/40 text-amber-500 border-amber-500/20'
 				activeIndicatorClass='text-amber-500'
 				filterApplyLabel={dict.filterApply}
 				filterRemoveLabel={dict.filterRemove}
 				gradient
+				showHiddenMode={showHiddenMode}
+				onToggleShowHidden={onToggleShowHidden}
+				viewHiddenTitle={dict.viewHiddenContainers}
+				locale={locale}
 			/>
 
 			<StatFilterCard
 				status='unknown'
-				count={unknownCount}
+				counts={unknown}
 				isActive={isFilterActive('unknown')}
 				onToggle={() => onToggleFilter('unknown')}
 				icon={HelpCircle}
-				label={unknownCount === 1 ? dict.unknownImage : dict.unknownImages}
+				label={unknownLabel}
 				activeCardClass='bg-muted border-muted-foreground/50 ring-1 ring-muted-foreground/20 shadow-[0_0_15px_rgba(115,115,115,0.1)]'
 				activeIconClass='bg-muted text-muted-foreground border-border/50'
 				activeTextClass='text-foreground'
 				activeIndicatorClass='text-muted-foreground'
 				filterApplyLabel={dict.filterApply}
 				filterRemoveLabel={dict.filterRemove}
+				showHiddenMode={showHiddenMode}
+				onToggleShowHidden={onToggleShowHidden}
+				viewHiddenTitle={dict.viewHiddenContainers}
+				locale={locale}
 			/>
 
 			<div className='md:col-span-3 flex flex-col items-start gap-2 -mt-2 sm:flex-row sm:items-center'>

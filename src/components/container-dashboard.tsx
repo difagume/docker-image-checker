@@ -89,20 +89,29 @@ export function ContainerDashboard({
 	useSettingsSync(activeFilters, showHiddenMode, sortBy, sortDir)
 	useLanguageSync(locale, notificationsEnabled)
 
-	// Derive stats dynamically from containers state
+	// Derive stats dynamically from containers state, split by visibility.
+	// `hidden` uses the same `hiddenContainerIds.includes(Id)` check as
+	// `filteredContainers` so counts match what the list actually shows.
+	// `local`/`transient` ride the `unknown` bucket, mirroring the filter.
 	const dynamicStats = useMemo(() => {
-		return {
-			updated: containers.filter((c) => c.updateStatus === 'updated').length,
-			available: containers.filter((c) => c.updateStatus === 'available')
-				.length,
-			unknown: containers.filter(
-				(c) =>
-					c.updateStatus === 'unknown' ||
-					c.updateStatus === 'local' ||
-					c.updateStatus === 'transient'
-			).length
+		const empty = () => ({ visible: 0, hidden: 0, total: 0 })
+		const stats = { updated: empty(), available: empty(), unknown: empty() }
+		for (const c of containers) {
+			const bucket =
+				c.updateStatus === 'updated'
+					? stats.updated
+					: c.updateStatus === 'available'
+						? stats.available
+						: stats.unknown
+			bucket.total += 1
+			if (hiddenContainerIds.includes(c.container.Id)) {
+				bucket.hidden += 1
+			} else {
+				bucket.visible += 1
+			}
 		}
-	}, [containers])
+		return stats
+	}, [containers, hiddenContainerIds])
 
 	const toggleFilter = (status: FilterStatus) => {
 		setActiveFilters((prev) =>
@@ -184,9 +193,9 @@ export function ContainerDashboard({
 		<>
 			<GhcrTokenToast imageNames={invalidTokenImages} dict={dict} />
 			<StatsSummary
-				updatedCount={dynamicStats.updated}
-				availableCount={dynamicStats.available}
-				unknownCount={dynamicStats.unknown}
+				updated={dynamicStats.updated}
+				available={dynamicStats.available}
+				unknown={dynamicStats.unknown}
 				activeFilters={activeFilters}
 				onToggleFilter={toggleFilter}
 				showHiddenMode={showHiddenMode}
@@ -194,6 +203,7 @@ export function ContainerDashboard({
 				connectionInfo={connectionInfo}
 				hostInfo={hostInfo}
 				dict={dict.stats}
+				locale={locale}
 			/>
 
 			<SearchBar
