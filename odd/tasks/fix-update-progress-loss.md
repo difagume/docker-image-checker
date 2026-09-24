@@ -106,9 +106,14 @@ OUT:
       stale-phase path now shows a calm `toast.info`
       ("No update is running for this container right now.") instead of
       returning silently.
-- [ ] T5 — Fix the wall-clock-dependent format-relative-time test
-      (pre-existing, out of scope for this delivery; tracked per review
-      finding R4-001).
+- [x] T5 — Fix the wall-clock-dependent format-relative-time test
+      (2026-09-24): `format-relative-time.ts` derived the sample's
+      calendar date in UTC (`toISOString`) while `now` came from the local
+      zone, so a 49h age collapsed to "hace 1 día" in negative-offset zones
+      (e.g. America/Guayaquil, UTC-5) after 20:00 while daytime showed the
+      correct "hace 2 días". Both sides now use the local frame; the suite
+      was verified under `TZ=UTC`, `America/Guayaquil` and `Asia/Tokyo`.
+      Tracked per review finding R4-001.
 
 ## Acceptance criteria
 
@@ -123,9 +128,10 @@ OUT:
 
 - TDD: off (no evidence of strict_tdd for this project in the session; the
   existing tests are the safety net).
-- Runner: `TZ=UTC bun run test` (vitest) — the runner MUST be executed with
-  `TZ=UTC` because of the pre-existing wall-clock-dependent
-  `src/lib/format-relative-time.test.ts` (see T4 and the open T5 below).
+- Runner: `bun run test` (vitest) — timezone-independent since T5 was
+  fixed (2026-09-24); `TZ=UTC` is no longer required. Historical note:
+  before T5 the suite had to run under `TZ=UTC` because of the
+  wall-clock-dependent `src/lib/format-relative-time.test.ts` (see T4).
   Lint/format: `bunx biome check .`.
 
 ## Delivery strategy
@@ -148,8 +154,11 @@ OUT:
   3. **`pr/3-hook-ui`** — `560715c` — hook rewrite + components (434
      lines).
   4. **`pr/4-docs`** — `01b9713` — this record (182 lines).
-  5. **`pr/5-review-fixes`** — this changeset (SHA to be recorded by the
-     orchestrator after commit) — advisory-finding fixes A–D.
+  5. **`pr/5-review-fixes`** — `2dd23c9` — advisory-finding fixes A–D.
+- Additional debt (advisory R3-001, open): no automated non-UTC test run
+  pins the timezone-independent relative-time behaviour; under fixed-UTC
+  the suite stays green even if frame-mixing regresses. Track a TZ-matrix
+  script or CI entry as a separate `chore`.
 
 ## Review record
 
@@ -164,6 +173,19 @@ Zero blocking findings, no corrections required. The 4 WARNINGs (review
 ids A–D — lookup-failure vs confirmed-no-task, hard-coded toast strings,
 stale delivery-strategy record, and the TZ=UTC test flake) are what the
 `pr/5-review-fixes` changeset fixes.
+
+### Post-delivery fix (T5)
+
+- `61a3c0c` — timezone-independent calendar frame in relative time
+  (branch `fix/relative-time-calendar-frame`, base `b9ea6b4`).
+  Reviewed inline per session rule (no review-* sub-agents): lineage
+  `review-2a87d3b6e47595b5`, 4 lenses admitted, approved, authority
+  burned (2026-09-24). Advisory findings, all informational: R1-001
+  (SUGGESTION, `~19:00` threshold — corrected to 20:00), R2-001
+  (WARNING, `(T5)` marker in the source comment — removed) and
+  R4-001 (SUGGESTION, PlainDate branch contract — documented) resolved
+  in this follow-up commit; R3-001 (WARNING, no automated non-UTC
+  test/CI matrix) recorded as open debt under Delivery strategy.
 
 ## Accepted review findings
 
@@ -200,6 +222,9 @@ stale delivery-strategy record, and the TZ=UTC test flake) are what the
       2 accepted (R1-004, R1-005).
 - [x] Advisory-finding fixes A–D completed (2026-09-23), pending RDD
       review of this changeset.
+- [x] T5 completed (2026-09-24): calendar frame unified (local on both
+      sides of the comparison); suite green under `TZ=UTC`,
+      `America/Guayaquil` and `Asia/Tokyo`.
 
 Next step: create the 5 stacked PRs (PR1 → master, PR2 → PR1, PR3 →
 PR2, PR4 → PR3, PR5 → PR4), pending (a) a size decision for PR3 (434

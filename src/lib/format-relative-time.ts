@@ -37,10 +37,18 @@ export function formatRelativeTime(
 		return `${label} ${dict.time.ago}`
 	}
 
+	// Both sides of the calendar comparison must share one frame: for Date
+	// inputs the sample is converted to a calendar date in the *local*
+	// zone, the same zone `now` is read in; PlainDate inputs are already
+	// calendar dates and are used as-is (caller-local by contract).
+	// Deriving the Date sample via toISOString() mixed a UTC calendar date
+	// with a local `now`, so in negative-offset zones (e.g.
+	// America/Guayaquil, UTC-5) an age just over 48h collapsed to "1 day"
+	// during the evening while daytime showed the correct "2 days".
 	const plainDate =
 		date instanceof Temporal.PlainDate
 			? date
-			: Temporal.PlainDate.from(date.toISOString().split('T')[0])
+			: dateInstant.toZonedDateTimeISO(Temporal.Now.timeZoneId()).toPlainDate()
 	const now = Temporal.Now.plainDateISO()
 	const duration = now.since(plainDate, { largestUnit: 'year' })
 
