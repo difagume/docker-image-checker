@@ -106,9 +106,14 @@ OUT:
       stale-phase path now shows a calm `toast.info`
       ("No update is running for this container right now.") instead of
       returning silently.
-- [ ] T5 — Fix the wall-clock-dependent format-relative-time test
-      (pre-existing, out of scope for this delivery; tracked per review
-      finding R4-001).
+- [x] T5 — Fix the wall-clock-dependent format-relative-time test
+      (2026-09-24): `format-relative-time.ts` derived the sample's
+      calendar date in UTC (`toISOString`) while `now` came from the local
+      zone, so a 49h age collapsed to "hace 1 día" in negative-offset zones
+      (e.g. America/Guayaquil, UTC-5) after ~19:00 while daytime showed the
+      correct "hace 2 días". Both sides now use the local frame; the suite
+      was verified under `TZ=UTC`, `America/Guayaquil` and `Asia/Tokyo`.
+      Tracked per review finding R4-001.
 
 ## Acceptance criteria
 
@@ -123,9 +128,10 @@ OUT:
 
 - TDD: off (no evidence of strict_tdd for this project in the session; the
   existing tests are the safety net).
-- Runner: `TZ=UTC bun run test` (vitest) — the runner MUST be executed with
-  `TZ=UTC` because of the pre-existing wall-clock-dependent
-  `src/lib/format-relative-time.test.ts` (see T4 and the open T5 below).
+- Runner: `bun run test` (vitest) — timezone-independent since T5 was
+  fixed (2026-09-24); `TZ=UTC` is no longer required. Historical note:
+  before T5 the suite had to run under `TZ=UTC` because of the
+  wall-clock-dependent `src/lib/format-relative-time.test.ts` (see T4).
   Lint/format: `bunx biome check .`.
 
 ## Delivery strategy
@@ -200,6 +206,9 @@ stale delivery-strategy record, and the TZ=UTC test flake) are what the
       2 accepted (R1-004, R1-005).
 - [x] Advisory-finding fixes A–D completed (2026-09-23), pending RDD
       review of this changeset.
+- [x] T5 completed (2026-09-24): calendar frame unified (local on both
+      sides of the comparison); suite green under `TZ=UTC`,
+      `America/Guayaquil` and `Asia/Tokyo`.
 
 Next step: create the 5 stacked PRs (PR1 → master, PR2 → PR1, PR3 →
 PR2, PR4 → PR3, PR5 → PR4), pending (a) a size decision for PR3 (434
