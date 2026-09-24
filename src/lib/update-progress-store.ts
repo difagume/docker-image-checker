@@ -7,6 +7,15 @@ export type UpdatePhase =
 	| 'done'
 	| 'error'
 
+/**
+ * Single source of truth for "a task in this phase is finished": `done` and
+ * `error` end a task, every other phase keeps it live. Used by the store's
+ * read models, the dashboard cards, and the reconnection logic in the hook.
+ */
+export function isTerminalUpdatePhase(phase: UpdatePhase): boolean {
+	return phase === 'done' || phase === 'error'
+}
+
 export interface ProgressState {
 	phase: UpdatePhase
 	statusText: string
@@ -18,6 +27,13 @@ export interface ProgressState {
 		newImageId?: string
 	}
 	updatedAt: number
+}
+
+/** Non-terminal task snapshot keyed by container id (see `listActive`). */
+export interface ActiveUpdateTask {
+	taskId: string
+	phase: UpdatePhase
+	statusText: string
 }
 
 class ProgressStoreImpl {
@@ -58,6 +74,27 @@ class ProgressStoreImpl {
 
 	registerContainer(containerId: string, taskId: string): void {
 		this.containerTasks.set(containerId, taskId)
+	}
+
+	/**
+	 * Non-terminal tasks keyed by container id — the read model behind
+	 * `GET /api/update-progress/active`, used by clients to re-attach
+	 * progress streams after a reload. Mirrors the terminal-phase exclusion
+	 * of `isContainerUpdating`; mappings to already-swept tasks are skipped.
+	 */
+	listActive(): Record<string, ActiveUpdateTask> {
+		const active: Record<string, ActiveUpdateTask> = {}
+		for (const [containerId, taskId] of this.containerTasks) {
+			const state = this.tasks.get(taskId)
+			if (!state) continue
+			if (isTerminalUpdatePhase(state.phase)) continue
+			active[containerId] = {
+				taskId,
+				phase: state.phase,
+				statusText: state.statusText
+			}
+		}
+		return active
 	}
 
 	unregisterContainer(containerId: string): void {
