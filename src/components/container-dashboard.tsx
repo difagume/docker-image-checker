@@ -69,7 +69,6 @@ export function ContainerDashboard({
 
 	const {
 		containers,
-		updatingContainerId,
 		updateError,
 		updateErrorContainerId,
 		updatePhases,
@@ -243,7 +242,6 @@ export function ContainerDashboard({
 							item={item}
 							dict={dict}
 							locale={locale}
-							updatingContainerId={updatingContainerId}
 							updateError={
 								updateErrorContainerId === item.container.Id
 									? updateError

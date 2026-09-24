@@ -33,7 +33,10 @@ import {
 import { useDashboard } from '@/contexts/dashboard-context'
 import type { Dictionary, Locale } from '@/lib/i18n/dictionaries'
 import { parseImageReference } from '@/lib/image-name'
-import type { UpdatePhase } from '@/lib/update-progress-store'
+import {
+	isTerminalUpdatePhase,
+	type UpdatePhase
+} from '@/lib/update-progress-store'
 import { cn } from '@/lib/utils'
 import type { ContainerData } from '@/types/dashboard'
 import { ContainerLogsDialog } from './container-logs-dialog'
@@ -315,7 +318,6 @@ interface ContainerCardProps {
 	item: ContainerData
 	dict: Dictionary
 	locale: Locale
-	updatingContainerId: string | null
 	updateError: string | null
 	updatePhase?: {
 		phase: UpdatePhase
@@ -331,7 +333,6 @@ export const ContainerCard = React.memo(function ContainerCard({
 	item,
 	dict,
 	locale,
-	updatingContainerId,
 	updateError,
 	updatePhase,
 	onSetConfirmUpdate,
@@ -389,7 +390,9 @@ export const ContainerCard = React.memo(function ContainerCard({
 								isRunning
 							})
 						}}
-						isUpdating={updatingContainerId === container.Id}
+						isUpdating={
+							updatePhase != null && !isTerminalUpdatePhase(updatePhase.phase)
+						}
 						updateError={updateError}
 						updatePhase={updatePhase}
 						updatingLabel={
