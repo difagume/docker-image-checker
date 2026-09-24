@@ -35,29 +35,61 @@ function makeContainer(overrides: {
 }
 
 describe('resolveTriggerFailureOutcome (failed-trigger decision table)', () => {
+	const containerId = 'cont-1'
 	const task = {
 		taskId: 'task-1',
 		phase: 'pulling' as const,
 		statusText: 'Pulling image...'
 	}
 
-	it('attaches when an active task exists, regardless of the marker', () => {
-		expect(resolveTriggerFailureOutcome(true, task)).toBe('attach')
-		expect(resolveTriggerFailureOutcome(false, task)).toBe('attach')
+	it('attaches when the answered lookup holds a task for this container, regardless of the marker', () => {
+		const lookup = { [containerId]: task }
+		expect(resolveTriggerFailureOutcome(true, lookup, containerId)).toBe(
+			'attach'
+		)
+		expect(resolveTriggerFailureOutcome(false, lookup, containerId)).toBe(
+			'attach'
+		)
 	})
 
-	it('surfaces a calm no-task notice when the marker matched but the server has nothing running', () => {
-		expect(resolveTriggerFailureOutcome(true, null)).toBe('surface-no-task')
-		expect(resolveTriggerFailureOutcome(true, undefined)).toBe(
+	it("does not attach on another container's task", () => {
+		const lookup = { 'other-cont': task }
+		expect(resolveTriggerFailureOutcome(true, lookup, containerId)).toBe(
 			'surface-no-task'
 		)
-	})
-
-	it('surfaces a genuine failure when neither marker nor task corroborate', () => {
-		expect(resolveTriggerFailureOutcome(false, null)).toBe('surface-failure')
-		expect(resolveTriggerFailureOutcome(false, undefined)).toBe(
+		expect(resolveTriggerFailureOutcome(false, lookup, containerId)).toBe(
 			'surface-failure'
 		)
+	})
+
+	it('reports the failed lookup when the marker matched but the endpoint was unreachable', () => {
+		expect(resolveTriggerFailureOutcome(true, null, containerId)).toBe(
+			'surface-lookup-failed'
+		)
+	})
+
+	it('surfaces a genuine failure when the lookup failed and the marker did not match', () => {
+		expect(resolveTriggerFailureOutcome(false, null, containerId)).toBe(
+			'surface-failure'
+		)
+	})
+
+	it('surfaces a calm no-task notice only when the server answered with nothing running for this container', () => {
+		expect(resolveTriggerFailureOutcome(true, {}, containerId)).toBe(
+			'surface-no-task'
+		)
+		expect(
+			resolveTriggerFailureOutcome(true, { 'other-cont': task }, containerId)
+		).toBe('surface-no-task')
+	})
+
+	it('surfaces a genuine failure when the server answered but neither marker nor task corroborate', () => {
+		expect(resolveTriggerFailureOutcome(false, {}, containerId)).toBe(
+			'surface-failure'
+		)
+		expect(
+			resolveTriggerFailureOutcome(false, { 'other-cont': task }, containerId)
+		).toBe('surface-failure')
 	})
 })
 

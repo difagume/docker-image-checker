@@ -226,6 +226,8 @@
 	},
 	"toast": {
 		"updateSuccess": "{container} actualizado a {version}",
-		"updateError": "Error al actualizar {container}"
+		"updateError": "Error al actualizar {container}",
+		"updateNoTask": "No hay ninguna actualización en curso para este contenedor en este momento.",
+		"updateCheckUnavailable": "No se pudo contactar con el servidor para comprobar si hay una actualización en curso. Inténtelo de nuevo en unos segundos."
 	}
 }

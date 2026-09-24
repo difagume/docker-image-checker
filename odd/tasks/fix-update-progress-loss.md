@@ -106,6 +106,9 @@ OUT:
       stale-phase path now shows a calm `toast.info`
       ("No update is running for this container right now.") instead of
       returning silently.
+- [ ] T5 — Fix the wall-clock-dependent format-relative-time test
+      (pre-existing, out of scope for this delivery; tracked per review
+      finding R4-001).
 
 ## Acceptance criteria
 
@@ -120,13 +123,16 @@ OUT:
 
 - TDD: off (no evidence of strict_tdd for this project in the session; the
   existing tests are the safety net).
-- Runner: `bun run test` (vitest). Lint/format: `bunx biome check .`.
+- Runner: `TZ=UTC bun run test` (vitest) — the runner MUST be executed with
+  `TZ=UTC` because of the pre-existing wall-clock-dependent
+  `src/lib/format-relative-time.test.ts` (see T4 and the open T5 below).
+  Lint/format: `bunx biome check .`.
 
 ## Delivery strategy
 
 - Originally recorded as `delivery_strategy: ask-on-risk` (forecast
   ~250-350 authorized lines, below the 400 threshold).
-- Real authored changed-line count for the whole delivery: **1213 changed
+- Real authored changed-line count for slices 1–4: **1213 changed
   lines across 14 files (1091 insertions, 122 deletions)** — measured as
   `git diff --shortstat master` (737 insertions, 122 deletions over 12
   tracked files: feature commit plus review fixes) plus the two new files
@@ -134,14 +140,30 @@ OUT:
   `src/lib/update-progress-client.test.ts` (209 lines).
 - The real count exceeds the ask-on-risk forecast, so the strategy was
   updated: `delivery_strategy: ask-on-risk` →
-  `chain_strategy: stacked-to-main`, with these planned slice boundaries:
-  1. **Slice 1 — feature core** (commit `6b917d7`): per-container phases,
-     duplicate-trigger handling, active-task endpoint, mount-time
-     reconnection.
-  2. **Slice 2 — review fixes** (working tree vs `6b917d7`): the extracted
-     `update-progress-client` module + tests and the hook/store/matcher
-     hardening from the finding fixes.
-  3. **Slice 3 — docs**: this task file (English rewrite + review record).
+  `chain_strategy: stacked-to-main`. ACTUAL delivery — 5 stacked slices:
+  1. **`pr/1-foundation`** — `7ca9330` — store + error marker +
+     active-tasks endpoint (243 lines).
+  2. **`pr/2-client-helpers`** — `8bac0b2` — pure client helpers + tests
+     (354 lines).
+  3. **`pr/3-hook-ui`** — `560715c` — hook rewrite + components (434
+     lines).
+  4. **`pr/4-docs`** — `01b9713` — this record (182 lines).
+  5. **`pr/5-review-fixes`** — this changeset (SHA to be recorded by the
+     orchestrator after commit) — advisory-finding fixes A–D.
+
+## Review record
+
+Slices 1–4 each passed native RDD review inline with burned authority:
+
+- Slice 1 (`7ca9330`): 4 lenses, 11 SUGGESTION.
+- Slice 2 (`8bac0b2`): 4 lenses, 1 WARNING + 10 SUGGESTION.
+- Slice 3 (`560715c`): 1 lens, 1 WARNING + 3 SUGGESTION.
+- Slice 4 (`01b9713`): 4 lenses, 3 WARNING + 7 SUGGESTION.
+
+Zero blocking findings, no corrections required. The 4 WARNINGs (review
+ids A–D — lookup-failure vs confirmed-no-task, hard-coded toast strings,
+stale delivery-strategy record, and the TZ=UTC test flake) are what the
+`pr/5-review-fixes` changeset fixes.
 
 ## Accepted review findings
 
@@ -176,7 +198,11 @@ OUT:
 - [x] T4 completed: results recorded in the checklist above.
 - [x] Review-finding fixes completed (2026-09-23): 16 findings fixed,
       2 accepted (R1-004, R1-005).
+- [x] Advisory-finding fixes A–D completed (2026-09-23), pending RDD
+      review of this changeset.
 
-Next step: commit the slices per the delivery strategy above and open a
-separate `chore` for the `biome check .` debt (1067 in `diagrams/`, 8 in
-`src/`).
+Next step: create the 5 stacked PRs (PR1 → master, PR2 → PR1, PR3 →
+PR2, PR4 → PR3, PR5 → PR4), pending (a) a size decision for PR3 (434
+lines > the 400-line review budget) and (b) explicit remote
+authorization. The biome-debt `chore` (1067 in `diagrams/`, 8 in
+`src/`) is still NOT filed yet.

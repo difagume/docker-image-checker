@@ -226,6 +226,8 @@
 	},
 	"toast": {
 		"updateSuccess": "{container} atualizado para {version}",
-		"updateError": "Falha ao atualizar {container}"
+		"updateError": "Falha ao atualizar {container}",
+		"updateNoTask": "Nenhuma atualização em andamento neste contêiner neste momento.",
+		"updateCheckUnavailable": "Não foi possível contactar o servidor para verificar se há uma atualização em andamento. Tente novamente em instantes."
 	}
 }
