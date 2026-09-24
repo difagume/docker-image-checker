@@ -226,6 +226,8 @@
 	},
 	"toast": {
 		"updateSuccess": "{container} updated to {version}",
-		"updateError": "Failed to update {container}"
+		"updateError": "Failed to update {container}",
+		"updateNoTask": "No update is running for this container right now.",
+		"updateCheckUnavailable": "Could not reach the server to check whether an update is running. Try again in a moment."
 	}
 }

@@ -346,28 +346,41 @@ export function useContainerUpdates(
 			// The combined outcome decides what the user sees; nothing returns
 			// silently.
 			const markerMatched = isContainerUpdateInProgressError(err)
-			const tasks = await lookupActiveUpdateTasks()
-			const task = tasks?.[containerId]
-			const outcome = resolveTriggerFailureOutcome(markerMatched, task)
+			const lookup = await lookupActiveUpdateTasks()
+			const outcome = resolveTriggerFailureOutcome(
+				markerMatched,
+				lookup,
+				containerId
+			)
+			const task = lookup?.[containerId]
 
 			if (outcome === 'attach' && task) {
 				attachToActiveTask(containerId, task)
 				return
 			}
 
-			// The server has nothing running for this container, so any local
-			// phase is stale — clear it either way (B-18: no ghost spinner
-			// survives a failed trigger).
+			// The trigger rejected before creating a task, so any local phase
+			// is stale — clear it either way (B-18: no ghost spinner survives
+			// a failed trigger).
 			setUpdatePhases((prev) => {
 				const next = { ...prev }
 				delete next[containerId]
 				return next
 			})
 
+			if (outcome === 'surface-lookup-failed') {
+				// The marker matched but the active-task endpoint could not be
+				// reached: nothing is confirmed, so report the failed check
+				// calmly — never claim that no update is running.
+				toast.info(dict.toast.updateCheckUnavailable)
+				return
+			}
+
 			if (outcome === 'surface-no-task') {
-				// The marker matched but no task backs it: not a failed
-				// update, so report it calmly — never the red failure banner.
-				toast.info('No update is running for this container right now.')
+				// The marker matched and the server confirmed no task backs
+				// it: not a failed update, so report it calmly — never the
+				// red failure banner.
+				toast.info(dict.toast.updateNoTask)
 				return
 			}
 

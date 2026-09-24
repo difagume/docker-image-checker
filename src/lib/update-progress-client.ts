@@ -38,27 +38,40 @@ export const ACTIVE_TASK_LOOKUP_TIMEOUT_MS = 1500
  * What to do after `triggerContainerUpdate` rejected:
  * - `attach`: a live server task exists for this container — seed the phase
  *   and re-attach the stream; the existing progress UI stays untouched.
- * - `surface-no-task`: the in-progress marker matched but the server has
- *   nothing running — the local phase is stale, clear it and tell the user
- *   calmly (not a failure).
+ * - `surface-lookup-failed`: the in-progress marker matched but the
+ *   active-task endpoint could not be reached, so nothing is confirmed —
+ *   tell the user calmly that the check itself failed; never claim that no
+ *   update is running.
+ * - `surface-no-task`: the in-progress marker matched AND the server
+ *   answered the lookup without a task for this container — it confirmed
+ *   nothing is running, so the local phase is stale; clear it and tell the
+ *   user calmly (not a failure).
  * - `surface-failure`: a genuine trigger failure — show the error banner and
  *   the failure toast.
  */
 export type TriggerFailureOutcome =
 	| 'attach'
+	| 'surface-lookup-failed'
 	| 'surface-no-task'
 	| 'surface-failure'
 
 /**
  * Decision table for a failed update trigger. `markerMatched` is the result
- * of `isContainerUpdateInProgressError(err)`; `task` is the corroborating
- * lookup for this container (or a `null` result when the lookup failed).
+ * of `isContainerUpdateInProgressError(err)`; `lookup` is the FULL result of
+ * `lookupActiveUpdateTasks`: an object when the server answered (it may be
+ * empty or simply lack `containerId`) or `null` when the lookup itself
+ * failed. Only an answered lookup may justify `surface-no-task`; a `null`
+ * lookup with a matched marker reports the failed check instead.
  */
 export function resolveTriggerFailureOutcome(
 	markerMatched: boolean,
-	task: ActiveUpdateTask | null | undefined
+	lookup: ActiveUpdateTasks | null,
+	containerId: string
 ): TriggerFailureOutcome {
-	if (task) return 'attach'
+	if (lookup === null) {
+		return markerMatched ? 'surface-lookup-failed' : 'surface-failure'
+	}
+	if (lookup[containerId]) return 'attach'
 	return markerMatched ? 'surface-no-task' : 'surface-failure'
 }
 
