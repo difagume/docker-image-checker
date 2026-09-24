@@ -110,7 +110,7 @@ OUT:
       (2026-09-24): `format-relative-time.ts` derived the sample's
       calendar date in UTC (`toISOString`) while `now` came from the local
       zone, so a 49h age collapsed to "hace 1 día" in negative-offset zones
-      (e.g. America/Guayaquil, UTC-5) after ~19:00 while daytime showed the
+      (e.g. America/Guayaquil, UTC-5) after 20:00 while daytime showed the
       correct "hace 2 días". Both sides now use the local frame; the suite
       was verified under `TZ=UTC`, `America/Guayaquil` and `Asia/Tokyo`.
       Tracked per review finding R4-001.
@@ -154,8 +154,11 @@ OUT:
   3. **`pr/3-hook-ui`** — `560715c` — hook rewrite + components (434
      lines).
   4. **`pr/4-docs`** — `01b9713` — this record (182 lines).
-  5. **`pr/5-review-fixes`** — this changeset (SHA to be recorded by the
-     orchestrator after commit) — advisory-finding fixes A–D.
+  5. **`pr/5-review-fixes`** — `2dd23c9` — advisory-finding fixes A–D.
+- Additional debt (advisory R3-001, open): no automated non-UTC test run
+  pins the timezone-independent relative-time behaviour; under fixed-UTC
+  the suite stays green even if frame-mixing regresses. Track a TZ-matrix
+  script or CI entry as a separate `chore`.
 
 ## Review record
 
@@ -170,6 +173,19 @@ Zero blocking findings, no corrections required. The 4 WARNINGs (review
 ids A–D — lookup-failure vs confirmed-no-task, hard-coded toast strings,
 stale delivery-strategy record, and the TZ=UTC test flake) are what the
 `pr/5-review-fixes` changeset fixes.
+
+### Post-delivery fix (T5)
+
+- `61a3c0c` — timezone-independent calendar frame in relative time
+  (branch `fix/relative-time-calendar-frame`, base `b9ea6b4`).
+  Reviewed inline per session rule (no review-* sub-agents): lineage
+  `review-2a87d3b6e47595b5`, 4 lenses admitted, approved, authority
+  burned (2026-09-24). Advisory findings, all informational: R1-001
+  (SUGGESTION, `~19:00` threshold — corrected to 20:00), R2-001
+  (WARNING, `(T5)` marker in the source comment — removed) and
+  R4-001 (SUGGESTION, PlainDate branch contract — documented) resolved
+  in this follow-up commit; R3-001 (WARNING, no automated non-UTC
+  test/CI matrix) recorded as open debt under Delivery strategy.
 
 ## Accepted review findings
 
