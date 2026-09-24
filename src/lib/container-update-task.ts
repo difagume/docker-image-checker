@@ -6,6 +6,11 @@ import type {
 import { REFRESH_TAGS } from '@/lib/cache-tags'
 import docker from '@/lib/docker'
 import { clearContainerCallbacks } from '@/lib/notifications/notification-callbacks'
+import {
+	UPDATE_IN_PROGRESS_DIGEST,
+	UPDATE_IN_PROGRESS_ERROR_NAME,
+	UPDATE_IN_PROGRESS_MESSAGE
+} from '@/lib/update-in-progress'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { progressStore } from '@/lib/update-progress-store'
 
@@ -19,9 +24,16 @@ export type UpdateRevalidator = (
  * instanceof instead of matching the message string.
  */
 export class ContainerUpdateInProgressError extends Error {
+	/**
+	 * Stable digest carried through the production server-action flight
+	 * payload (which redacts `name`/`message` and keeps only `{ digest }`),
+	 * so `use-container-updates` can identify this expected error on the
+	 * client without an extra round trip.
+	 */
+	readonly digest: string = UPDATE_IN_PROGRESS_DIGEST
 	constructor() {
-		super('Container update already in progress')
-		this.name = 'ContainerUpdateInProgressError'
+		super(UPDATE_IN_PROGRESS_MESSAGE)
+		this.name = UPDATE_IN_PROGRESS_ERROR_NAME
 	}
 }
 

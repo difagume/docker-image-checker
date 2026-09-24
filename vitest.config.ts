@@ -9,7 +9,10 @@ export default defineConfig({
 	},
 	test: {
 		environment: 'node',
-		// Never scan build artifacts (e.g. .next/standalone copies of src).
-		exclude: [...configDefaults.exclude, '**/.next/**']
+		// Never scan build artifacts (e.g. .next/standalone copies of src) or
+		// nested git worktree checkouts (.kilo/worktrees/*): those duplicate
+		// copies of src/ tests run concurrently against the same state file
+		// and race each other into spurious failures.
+		exclude: [...configDefaults.exclude, '**/.next/**', '**/.kilo/worktrees/**']
 	}
 })

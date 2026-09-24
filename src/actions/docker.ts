@@ -21,7 +21,11 @@ export { updateContainerImage }
  * and keeps the fire-and-forget + `{ taskId }` contract unchanged for
  * `use-container-updates.ts`. Progress keeps flowing through `progressStore`
  * (wired inside the core) so the `/api/update-progress` SSE route works as
- * before.
+ * before. A duplicate trigger still rejects with
+ * `ContainerUpdateInProgressError`; the client identifies it by its stable
+ * `digest`/`name`/`message` markers (see `src/lib/update-in-progress.ts`),
+ * which is why this action deliberately keeps propagating the rejection
+ * instead of converting it into a result value.
  */
 export async function triggerContainerUpdate(
 	containerId: string,
