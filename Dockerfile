@@ -5,7 +5,7 @@
 # builds the app AND serves the standalone
 # output. No Node.js involved.
 # ============================================
-ARG BUN_VERSION=1
+ARG BUN_VERSION=1.4.2
 
 FROM oven/bun:${BUN_VERSION} AS base
 
@@ -16,7 +16,7 @@ FROM base AS deps
 WORKDIR /app
 
 # Install dependencies with frozen lockfile for reproducible builds
-COPY package.json bun.lock ./
+COPY --link package.json bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache \
   bun install --frozen-lockfile
 
@@ -27,8 +27,8 @@ FROM base AS builder
 WORKDIR /app
 
 # Copy project dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --link --from=deps /app/node_modules ./node_modules
+COPY --link . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -44,17 +44,21 @@ RUN --mount=type=cache,target=/app/.next/cache \
 FROM base AS runner
 WORKDIR /app
 
+LABEL org.opencontainers.image.source=https://github.com/difagume/docker-image-checker
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Non-root user for security (oven/bun ships no adduser; write entries directly)
+# NOTE: COPY --link layers cannot resolve named users, so --chown below uses
+# the numeric 1001:1001 assigned here.
 RUN echo "nodejs:x:1001:" >> /etc/group \
   && echo "nextjs:x:1001:1001::/app:/bin/false" >> /etc/passwd
 
 # Copy production assets
-COPY --from=builder /app/public ./public
+COPY --link --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next && chown nextjs:nodejs .next
@@ -62,12 +66,9 @@ RUN mkdir .next && chown nextjs:nodejs .next
 # Create data directory for notification state persistence
 RUN mkdir -p data && chown nextjs:nodejs data
 
-# Define volume for persistent data
-VOLUME /app/data
-
 # Automatically leverage output traces to reduce image size
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --link --from=builder --chown=1001:1001 /app/.next/standalone ./
+COPY --link --from=builder --chown=1001:1001 /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE 3000
