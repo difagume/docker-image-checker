@@ -1,6 +1,6 @@
 services:
   image-checker:
-    image: difagume/image-checker:0.2.0
+    image: difagume/image-checker:latest
     container_name: image-checker
     user: "1001:988" # UID 1001 (nextjs) y GID 988 (grupo docker en tu host)
     restart: always
