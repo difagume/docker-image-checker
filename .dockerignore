@@ -1,4 +1,4 @@
-node_modules
+**/node_modules
 .next
 .git
 .gitignore
@@ -7,7 +7,7 @@ Dockerfile
 docker-compose*.yml
 compose*.yaml
 biome.json
-README.md
+*.md
 .env*
 data
 *.pem
@@ -23,3 +23,13 @@ out
 .opencode
 .vercel
 notifications-data
+.codegraph/
+.agents/
+.claude/
+.qoder/
+.kiro/
+diagrams/
+docs/
+odd/
+opencode.json
+skills-lock.json
