@@ -28,6 +28,9 @@ export interface NotificationMessage {
 	fullImageName: string
 	currentVersion: string
 	latestVersion: string
+	/** Remote digest the update points at; lets the Telegram button decide
+	 * "already up to date" by content instead of by image string. */
+	latestDigest?: string
 	dockerHubUrl?: string
 	referenceUrl?: string
 	lastUpdated?: string

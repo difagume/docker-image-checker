@@ -7,6 +7,7 @@ import {
 } from '@/lib/container-update-task'
 import docker from '@/lib/docker'
 import { getDictionary, type Locale } from '@/lib/i18n/dictionaries'
+import { resolveLocalDigest } from '@/lib/image-name'
 import type { UpdatePhase } from '@/lib/update-progress-store'
 import { progressStore } from '@/lib/update-progress-store'
 import type { NotificationMessage } from '@/types/app-state'
@@ -293,8 +294,24 @@ export async function handleCallbackQuery(
 		return
 	}
 
-	// R8: already up to date — no pull
-	if (containerInfo.Config.Image === callback.fullImageName) {
+	// R8: already up to date — compare content digests, not image strings.
+	// `Config.Image === fullImageName` always holds for floating tags
+	// (`latest`, `stable`): the update is detected by digest, so the strings
+	// match even though the content differs. When the notified digest is
+	// unavailable (legacy callbacks) or unreadable, fail open and let the
+	// pull decide.
+	let localDigest: string | undefined
+	try {
+		const imageInspect = await docker.getImage(containerInfo.Image).inspect()
+		localDigest = resolveLocalDigest(imageInspect)
+	} catch (error) {
+		console.error(
+			`[telegram-polling] failed to resolve the local digest for ${callback.containerId}:`,
+			error
+		)
+	}
+
+	if (callback.latestDigest && localDigest === callback.latestDigest) {
 		await safeEditMessage(
 			bot,
 			chatId,

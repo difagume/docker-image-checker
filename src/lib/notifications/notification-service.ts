@@ -141,6 +141,7 @@ export async function checkAndNotify(
 			fullImageName: update.fullImageName,
 			currentVersion: update.currentVersion, // Already resolved
 			latestVersion: update.latestVersion,
+			latestDigest: update.latestDigest,
 			dockerHubUrl: update.dockerHubUrl,
 			referenceUrl: referenceUrls[update.imageName]?.referenceUrl,
 			lastUpdated: update.lastUpdated,

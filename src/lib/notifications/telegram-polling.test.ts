@@ -7,7 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
 	docker: {
-		getContainer: vi.fn()
+		getContainer: vi.fn(),
+		getImage: vi.fn()
 	},
 	core: {
 		runContainerUpdateTask: vi.fn()
@@ -122,9 +123,15 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 	const MESSAGE_ID = 7
 	const SHORT_ID = 'abc12345'
 
-	function inspectReturns(image: string) {
+	function inspectReturns(
+		image: string,
+		repoDigests: string[] = ['nginx@sha256:running']
+	) {
 		mocks.docker.getContainer.mockReturnValue({
 			inspect: vi.fn().mockResolvedValue({ Config: { Image: image } })
+		})
+		mocks.docker.getImage.mockReturnValue({
+			inspect: vi.fn().mockResolvedValue({ RepoDigests: repoDigests })
 		})
 	}
 
@@ -138,6 +145,7 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 			imageName: 'nginx',
 			currentVersion: '1.0.0',
 			latestVersion: '1.2.3',
+			latestDigest: 'sha256:new',
 			dockerHubUrl: 'https://hub.docker.com/r/nginx',
 			lastUpdated: '2026-01-01T10:00:00Z',
 			chatId: CHAT_ID,
@@ -277,8 +285,8 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 		expect(mocks.callbacks.removeCallbackData).toHaveBeenCalledWith(SHORT_ID)
 	})
 
-	it('shows "already up to date" without pulling and purges the callback (R8.1)', async () => {
-		inspectReturns('nginx:1.2.3')
+	it('shows "already up to date" when the local digest matches the notified digest (R8.1)', async () => {
+		inspectReturns('nginx:1.2.3', ['nginx@sha256:new'])
 
 		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
 
@@ -289,6 +297,41 @@ describe('handleCallbackQuery with a mock bot (R5, R8, R9, R13)', () => {
 		expect(lastText).toContain('Already up to date')
 		expect(mocks.core.runContainerUpdateTask).not.toHaveBeenCalled()
 		expect(mocks.callbacks.removeCallbackData).toHaveBeenCalledWith(SHORT_ID)
+	})
+
+	it('pulls when the image string matches but the digest differs (floating tag, R8.2)', async () => {
+		// The notification fired for a digest change under the same tag, so the
+		// container's image string equals the target one. The old string-based
+		// R8 check answered "already up to date" here without ever pulling.
+		inspectReturns('nginx:latest', ['nginx@sha256:running'])
+		mocks.callbacks.getCallbackData.mockResolvedValue(
+			baseCallback({
+				fullImageName: 'nginx:latest',
+				latestVersion: 'latest',
+				currentVersion: 'latest',
+				latestDigest: 'sha256:new'
+			})
+		)
+
+		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
+
+		expect(mocks.core.runContainerUpdateTask).toHaveBeenCalledWith(
+			'deadbeefcafe',
+			'nginx:latest',
+			expect.objectContaining({ revalidate: expect.any(Function) })
+		)
+		expect(mocks.callbacks.removeCallbackData).toHaveBeenCalledWith(SHORT_ID)
+	})
+
+	it('fails open and pulls when the callback carries no digest (legacy callback)', async () => {
+		inspectReturns('nginx:latest', ['nginx@sha256:running'])
+		mocks.callbacks.getCallbackData.mockResolvedValue(
+			baseCallback({ fullImageName: 'nginx:latest', latestDigest: undefined })
+		)
+
+		await handleCallbackQuery(bot as unknown as CallbackBot, makeQuery())
+
+		expect(mocks.core.runContainerUpdateTask).toHaveBeenCalled()
 	})
 
 	it('ignores callbacks from chats outside TELEGRAM_CHAT_ID (R13.2)', async () => {

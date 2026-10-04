@@ -20,6 +20,10 @@ export interface CallbackData {
 	imageName?: string
 	currentVersion?: string
 	latestVersion?: string
+	/** Remote digest the notification pointed at. The poller compares it with
+	 * the container's local digest to decide "already up to date"; callbacks
+	 * persisted before this field existed leave it undefined. */
+	latestDigest?: string
 	dockerHubUrl?: string
 	referenceUrl?: string
 	lastUpdated?: string
@@ -33,6 +37,7 @@ export interface StoreCallbackOptions {
 	imageName?: string
 	currentVersion?: string
 	latestVersion?: string
+	latestDigest?: string
 	dockerHubUrl?: string
 	referenceUrl?: string
 	lastUpdated?: string
@@ -117,6 +122,7 @@ export function storeCallbackData(
 			imageName: options.imageName,
 			currentVersion: options.currentVersion,
 			latestVersion: options.latestVersion,
+			latestDigest: options.latestDigest,
 			dockerHubUrl: options.dockerHubUrl,
 			referenceUrl: options.referenceUrl,
 			lastUpdated: options.lastUpdated

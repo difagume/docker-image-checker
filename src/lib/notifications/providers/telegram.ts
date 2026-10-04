@@ -129,6 +129,7 @@ export class TelegramNotificationProvider extends BaseNotificationProvider {
 							imageName: message.imageName,
 							currentVersion: message.currentVersion,
 							latestVersion: message.latestVersion,
+							latestDigest: message.latestDigest,
 							dockerHubUrl: message.dockerHubUrl,
 							referenceUrl: message.referenceUrl,
 							lastUpdated: message.lastUpdated

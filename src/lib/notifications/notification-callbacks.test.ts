@@ -92,6 +92,7 @@ describe('notification-callbacks', () => {
 			imageName: 'nginx',
 			currentVersion: '1.0.0',
 			latestVersion: '1.2.3',
+			latestDigest: 'sha256:new',
 			dockerHubUrl: 'https://hub.docker.com/r/nginx',
 			referenceUrl: 'https://example.com/changelog',
 			lastUpdated: '2026-01-01T00:00:00Z'
@@ -106,6 +107,7 @@ describe('notification-callbacks', () => {
 			imageName: 'nginx',
 			currentVersion: '1.0.0',
 			latestVersion: '1.2.3',
+			latestDigest: 'sha256:new',
 			dockerHubUrl: 'https://hub.docker.com/r/nginx',
 			referenceUrl: 'https://example.com/changelog',
 			lastUpdated: '2026-01-01T00:00:00Z'
