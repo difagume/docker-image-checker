@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ContainerData } from '@/types/dashboard'
 import {
+	ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS,
+	ACTIVE_TASK_LOOKUP_TIMEOUT_MS,
 	ACTIVE_UPDATE_TASKS_URL,
 	lookupActiveUpdateTasks,
 	resolveTriggerFailureOutcome,
@@ -237,5 +239,80 @@ describe('lookupActiveUpdateTasks (bounded active-task lookup)', () => {
 			expect.stringContaining('failed'),
 			expect.any(Error)
 		)
+	})
+
+	it('scopes the abort timer to the fetch phase: slow res.json still resolves', async () => {
+		let jsonDone = false
+		let clearedBeforeJsonDone = false
+		const realClearTimeout = globalThis.clearTimeout.bind(globalThis)
+		const clearSpy = vi.spyOn(globalThis, 'clearTimeout').mockImplementation(((
+			...args: [unknown]
+		) => {
+			if (!jsonDone) clearedBeforeJsonDone = true
+			return realClearTimeout(args[0] as never)
+		}) as typeof clearTimeout)
+		try {
+			const fetchImpl = vi.fn(async () => {
+				const res = new Response(JSON.stringify({ tasks: {} }), {
+					status: 200
+				})
+				const origJson = res.json.bind(res)
+				vi.spyOn(res, 'json').mockImplementation(async () => {
+					await new Promise((r) => setTimeout(r, 50))
+					jsonDone = true
+					return origJson()
+				})
+				return res
+			})
+
+			await expect(lookupActiveUpdateTasks(fetchImpl, 5)).resolves.toEqual({})
+			expect(console.warn).not.toHaveBeenCalled()
+			expect(clearedBeforeJsonDone).toBe(true)
+		} finally {
+			clearSpy.mockRestore()
+		}
+	})
+
+	it('keeps the 1500ms default for the corroboration path and a larger mount budget', () => {
+		expect(ACTIVE_TASK_LOOKUP_TIMEOUT_MS).toBe(1500)
+		expect(ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS).toBeGreaterThan(
+			ACTIVE_TASK_LOOKUP_TIMEOUT_MS
+		)
+	})
+
+	it('honors a per-caller timeout override', async () => {
+		const fetchImpl = (_input: string, init?: RequestInit): Promise<Response> =>
+			new Promise<Response>((resolve, reject) => {
+				init?.signal?.addEventListener('abort', () => {
+					reject(new Error('The operation was aborted'))
+				})
+				setTimeout(
+					() => resolve(new Response('{"tasks":{}}', { status: 200 })),
+					30
+				)
+			})
+
+		await expect(lookupActiveUpdateTasks(fetchImpl, 5)).resolves.toBeNull()
+		await expect(
+			lookupActiveUpdateTasks(fetchImpl, ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS)
+		).resolves.toEqual({})
+	})
+
+	it('never throws: rejections and parse errors resolve null', async () => {
+		const throwing = async (): Promise<Response> => {
+			throw new Error('connection refused')
+		}
+		await expect(lookupActiveUpdateTasks(throwing)).resolves.toBeNull()
+
+		const badJson = async () => new Response('not-json{{{', { status: 200 })
+		await expect(lookupActiveUpdateTasks(badJson)).resolves.toBeNull()
+
+		const aborting = (_input: string, init?: RequestInit): Promise<Response> =>
+			new Promise<Response>((_resolve, reject) => {
+				init?.signal?.addEventListener('abort', () => {
+					reject(new Error('The operation was aborted'))
+				})
+			})
+		await expect(lookupActiveUpdateTasks(aborting, 5)).resolves.toBeNull()
 	})
 })
