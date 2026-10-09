@@ -17,6 +17,7 @@ import {
 } from '@/lib/optimistic-update'
 import { isContainerUpdateInProgressError } from '@/lib/update-in-progress'
 import {
+	ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS,
 	lookupActiveUpdateTasks,
 	type ResolvedUpdateContext,
 	resolveTriggerFailureOutcome,
@@ -396,18 +397,25 @@ export function useContainerUpdates(
 
 	// Reconnect to update tasks still running on the server (page reload,
 	// new tab): re-attach the SSE stream for every non-terminal task this
-	// client is not streaming yet. The lookup is bounded (1.5 s) and retried
-	// at most 3 times with a 2 s / 4 s / 8 s backoff when it returns null,
-	// so a briefly unavailable API cannot silently drop reconnection. The
-	// cancelled flag stops retries, further attachments, and any EventSource
-	// opened after unmount; cleanup also clears pending timers and streams.
+	// client is not streaming yet. The mount lookup uses the larger
+	// `ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS` budget (hydration can delay fetch
+	// start past the tight corroboration bound) and is retried at most 3
+	// times with a 2 s / 4 s / 8 s backoff when it returns null, so a briefly
+	// unavailable API cannot silently drop reconnection. The cancelled flag
+	// stops retries, further attachments, and any EventSource opened after
+	// unmount; cleanup also clears pending timers and streams.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reconnect once per mount; the handlers it routes through are read from refs
 	useEffect(() => {
 		let cancelled = false
 		let retryTimer: ReturnType<typeof setTimeout> | null = null
 
 		const attemptLookup = async (attempt: number): Promise<void> => {
-			const tasks = await lookupActiveUpdateTasks()
+			const tasks = await lookupActiveUpdateTasks(
+				fetch,
+				ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS
+			)
+			// Stale in-flight resolution after unmount: drop it silently —
+			// no state updates, no extra warn (the lookup already warned).
 			if (cancelled) return
 			if (tasks === null) {
 				if (attempt + 1 < MAX_LOOKUP_ATTEMPTS) {

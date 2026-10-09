@@ -35,6 +35,14 @@ export const ACTIVE_UPDATE_TASKS_URL = '/api/update-progress/active'
 export const ACTIVE_TASK_LOOKUP_TIMEOUT_MS = 1500
 
 /**
+ * Larger per-caller budget for the mount-time reconnection lookup in
+ * `use-container-updates` ( hydration queue can delay fetch start well past
+ * the corroboration bound). The trigger-failure corroboration path keeps the
+ * tighter `ACTIVE_TASK_LOOKUP_TIMEOUT_MS` default on purpose.
+ */
+export const ACTIVE_TASK_LOOKUP_MOUNT_TIMEOUT_MS = 8000
+
+/**
  * What to do after `triggerContainerUpdate` rejected:
  * - `attach`: a live server task exists for this container — seed the phase
  *   and re-attach the stream; the existing progress UI stays untouched.
@@ -133,6 +141,9 @@ export async function lookupActiveUpdateTasks(
 		const res = await fetchImpl(ACTIVE_UPDATE_TASKS_URL, {
 			signal: controller.signal
 		})
+		// Fetch phase done: disarm the abort timer BEFORE parsing the body
+		// so a slow `res.json()` can never trip the fetch budget.
+		clearTimeout(timer)
 		if (!res.ok) {
 			console.warn(
 				'[Update] active-task lookup returned non-OK status:',
