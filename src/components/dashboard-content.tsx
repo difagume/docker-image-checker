@@ -1,3 +1,4 @@
+import { connection } from 'next/server'
 import { ContainerDashboard } from '@/components/container-dashboard'
 import { DashboardProvider } from '@/contexts/dashboard-context'
 import {
@@ -24,6 +25,7 @@ const DEFAULT_ACTIVE_FILTERS: FilterStatus[] = [
 ]
 
 export async function DashboardContent({ locale }: { locale: Locale }) {
+	await connection()
 	console.log('[Dashboard] Starting to load container data...')
 	// performance.now() is a monotonic telemetry timer; Date.now() would block
 	// prerendering (blocking-prerender-current-time) and only logs here.
