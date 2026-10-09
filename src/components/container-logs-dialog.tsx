@@ -2,7 +2,6 @@
 
 import { MaximizeIcon, MinimizeIcon } from 'lucide-react'
 import * as React from 'react'
-import { ContainerLogsViewer } from '@/components/container-logs-viewer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +14,16 @@ import {
 } from '@/components/ui/dialog'
 import type { Dictionary } from '@/lib/i18n/dictionaries'
 import { cn } from '@/lib/utils'
+
+/**
+ * El visor (y con él `@/lib/docker-logs`, los menús de Radix y el `Select`)
+ * se carga solo cuando el diálogo se abre, no en el bundle inicial del dashboard.
+ */
+const ContainerLogsViewer = React.lazy(() =>
+	import('@/components/container-logs-viewer').then((module) => ({
+		default: module.ContainerLogsViewer
+	}))
+)
 
 export type ContainerLogsDialogProps = {
 	containerId: string
@@ -32,6 +41,42 @@ export type ContainerLogsDialogProps = {
 	onOpenChange?: (open: boolean) => void
 	/** Elemento que abre el diálogo (por ejemplo, el botón de la card). */
 	trigger?: React.ReactNode
+}
+
+/** Anchos decrecientes del placeholder, para simular filas de log. */
+const VIEWER_FALLBACK_WIDTHS = [
+	'88%',
+	'81%',
+	'74%',
+	'67%',
+	'60%',
+	'53%',
+	'46%',
+	'39%'
+]
+
+/**
+ * Ocupa el mismo espacio que el visor mientras llega su chunk, para que el
+ * diálogo no salte al abrirse.
+ */
+function ViewerFallback() {
+	return (
+		<div className='flex min-h-0 flex-1 flex-col gap-3' aria-busy='true'>
+			<div className='flex h-9 shrink-0 items-center gap-2 border-b border-border'>
+				<div className='h-4 w-24 animate-pulse rounded-md bg-muted' />
+				<div className='h-4 w-16 animate-pulse rounded-md bg-muted' />
+			</div>
+			<div className='relative flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden rounded-lg border bg-muted/30 p-2'>
+				{VIEWER_FALLBACK_WIDTHS.map((width) => (
+					<div
+						key={width}
+						className='h-3 animate-pulse rounded bg-muted'
+						style={{ width }}
+					/>
+				))}
+			</div>
+		</div>
+	)
 }
 
 /**
@@ -130,12 +175,14 @@ export function ContainerLogsDialog({
 
 				{/* El visor solo se monta (y por tanto solo abre el stream) con el diálogo abierto. */}
 				{isOpen ? (
-					<ContainerLogsViewer
-						containerId={containerId}
-						containerName={containerName}
-						active={isOpen}
-						dict={dict}
-					/>
+					<React.Suspense fallback={<ViewerFallback />}>
+						<ContainerLogsViewer
+							containerId={containerId}
+							containerName={containerName}
+							active={isOpen}
+							dict={dict}
+						/>
+					</React.Suspense>
 				) : null}
 			</DialogContent>
 		</Dialog>
