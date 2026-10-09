@@ -77,7 +77,10 @@ export async function loadState(): Promise<NotificationState> {
 		await fs.mkdir(dataDir, { recursive: true })
 
 		// Try to read existing state
-		const data = await fs.readFile(getStateFilePath(), 'utf-8')
+		const data = await fs.readFile(
+			/* turbopackIgnore: true */ getStateFilePath(),
+			'utf-8'
+		)
 		if (!data || data.trim() === '') {
 			return { notifiedUpdates: {} }
 		}

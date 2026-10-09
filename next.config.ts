@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
 	cacheComponents: true,
+	partialPrefetching: true,
 	output: 'standalone',
 	poweredByHeader: false,
 	reactCompiler: true,
@@ -12,7 +13,9 @@ const nextConfig: NextConfig = {
 	experimental: {
 		optimizePackageImports: ['lucide-react'],
 		// Native Rust port of the React Compiler running inside Turbopack (Next.js 16.3+)
-		turbopackRustReactCompiler: true
+		turbopackRustReactCompiler: true,
+		turbopackGc: true,
+		agentUpgrade: 'latest'
 	},
 	serverExternalPackages: ['dockerode', 'ssh2', 'cpu-features'],
 	async headers() {
