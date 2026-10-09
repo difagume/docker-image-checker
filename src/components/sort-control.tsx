@@ -99,10 +99,7 @@ export function SortControl({
 				title={sortDir === 'asc' ? 'Ascendente (A-Z)' : 'Descendente (Z-A)'}
 			>
 				{sortDir === 'asc' ? (
-					<ArrowUpAZ
-						data-icon='inline-start'
-						className='md:text-chart-1/80'
-					/>
+					<ArrowUpAZ data-icon='inline-start' className='md:text-chart-1/80' />
 				) : (
 					<ArrowDownAZ
 						data-icon='inline-start'
