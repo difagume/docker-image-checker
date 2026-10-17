@@ -18,7 +18,10 @@ export const instant = false
 const ibmPlexMono = IBM_Plex_Mono({
 	variable: '--font-ibm-plex-mono',
 	subsets: ['latin'],
-	weight: ['100', '200', '300', '400', '500', '600', '700']
+	// Solo los pesos realmente usados: 400 (normal por defecto), 500
+	// (font-medium), 600 (font-semibold) y 700 (font-bold). Declarar pesos
+	// extra genera woff2 y @font-face que ningún CSS consume.
+	weight: ['400', '500', '600', '700']
 })
 
 export const metadata: Metadata = {
