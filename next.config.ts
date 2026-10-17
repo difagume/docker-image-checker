@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
 		// Native Rust port of the React Compiler running inside Turbopack (Next.js 16.3+)
 		turbopackRustReactCompiler: true,
 		turbopackGc: true,
+		// Compile client-side dynamic import() targets only when the browser
+		// requests them (dev only; Next.js 16.4+). Benefits the React.lazy
+		// logs viewer in container-logs-dialog.tsx.
+		turbopackLazyDynamicImports: true,
 		agentUpgrade: 'latest'
 	},
 	serverExternalPackages: ['dockerode', 'ssh2', 'cpu-features'],
