@@ -23,6 +23,7 @@
 	],
 	"dependencies": {
 		"@bprogress/next": "^3.2.12",
+		"@bprogress/react": "^1.2.7",
 		"@number-flow/react": "^0.6.2",
 		"bcryptjs": "^3.0.3",
 		"class-variance-authority": "^0.7.1",

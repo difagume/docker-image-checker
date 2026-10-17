@@ -1,12 +1,18 @@
 'use client'
 
-import { useProgress } from '@bprogress/next'
+import { useProgress } from '@bprogress/react'
 import { useEffect, useRef } from 'react'
 import { subscribeRefreshState } from './loading-events'
 
 /**
- * Drives the top progress bar (`@bprogress/next`) while the refresh
- * server-action is pending.
+ * Drives the top progress bar (provided by `@bprogress/next/app` in
+ * `progress-providers.tsx`) while the refresh server-action is pending.
+ *
+ * The imperative hook comes from `@bprogress/react` instead of the
+ * `@bprogress/next` barrel: the barrel also bundles the pages-router
+ * provider, which statically imports `next/router` and drags the whole
+ * pages-router client machinery into the shared chunks even though this
+ * app is App Router only.
  *
  * The refresh is not a route navigation, so the bar is controlled
  * programmatically: `start()` while the action is pending and `stop()`
