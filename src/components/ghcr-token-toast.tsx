@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
 interface GhcrTokenToastProps {
@@ -24,13 +24,16 @@ export function GhcrTokenToast({ imageNames, dict }: GhcrTokenToastProps) {
 	// the set of invalid-token images actually changes.
 	const imagesKey = imageNames.join(', ')
 
+	// Read the toast texts through a ref so the effect depends only on
+	// `imagesKey` and exhaustive-deps is satisfied without suppressions.
+	const dictRef = useRef(dict)
+	dictRef.current = dict
+
 	useEffect(() => {
-		if (imageNames.length === 0 || shownToastKeys.has(imagesKey)) return
+		if (imagesKey === '' || shownToastKeys.has(imagesKey)) return
 		shownToastKeys.add(imagesKey)
-		toast.warning(dict.alerts.ghcrTokenInvalid.title, {
-			description: `${dict.alerts.ghcrTokenInvalid.description} ${imagesKey}`
-		})
-		// biome-ignore lint/correctness/useExhaustiveDependencies: re-toast only when the image list itself changes
+		const { title, description } = dictRef.current.alerts.ghcrTokenInvalid
+		toast.warning(title, { description: `${description} ${imagesKey}` })
 	}, [imagesKey])
 
 	return null
