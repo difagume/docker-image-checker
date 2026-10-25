@@ -93,7 +93,7 @@ function StatFilterCard({
 	const actionLabel = `${isActive ? filterRemoveLabel : filterApplyLabel} ${label}`
 	return (
 		<div
-			className={`relative overflow-hidden p-3 rounded-sm border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color] group
+			className={`group relative flex flex-col overflow-hidden rounded-sm border transition-[opacity,filter,background-color,border-color,box-shadow,ring-color]
 				${
 					isActive
 						? activeCardClass
@@ -109,7 +109,9 @@ function StatFilterCard({
 				aria-pressed={isActive}
 				title={actionLabel}
 				aria-label={`${actionLabel}: ${breakdown}`}
-				className='relative z-10 flex w-full items-center justify-between gap-3 cursor-pointer text-left'
+				className={`relative z-10 flex w-full flex-1 cursor-pointer items-center justify-between gap-3 text-left ${
+					counts.hidden > 0 ? 'pt-3 pr-3 pl-3 pb-1.5' : 'p-3'
+				}`}
 			>
 				<span className='flex items-center gap-3'>
 					<span
@@ -149,7 +151,7 @@ function StatFilterCard({
 					onClick={onToggleShowHidden}
 					title={viewHiddenTitle}
 					aria-label={`${viewHiddenTitle}: ${breakdown}`}
-					className='relative z-10 mt-1 flex items-center gap-1 pl-11 text-xs text-muted-foreground cursor-pointer text-left'
+					className='relative z-10 flex cursor-pointer items-center gap-1 pr-3 pb-3 pl-14 text-left text-xs text-muted-foreground'
 				>
 					<EyeOff className='h-3 w-3' aria-hidden='true' />
 					{hiddenSubline(counts, locale)}
