@@ -19,6 +19,8 @@ describe('useSettingsSync first-run guard (B-14)', () => {
 		const content = await fs.readFile(HOOK_PATH, 'utf-8')
 		// After the guard, the debounced persist (setTimeout 300) remains wired.
 		expect(content).toMatch(/setTimeout[\s\S]{0,200}setDashboardSettingsAction/)
-		expect(content).toMatch(/\[activeFilters,\s*showHiddenMode,\s*sortBy,\s*sortDir\]/)
+		expect(content).toMatch(
+			/\[activeFilters,\s*showHiddenMode,\s*sortBy,\s*sortDir\]/
+		)
 	})
 })

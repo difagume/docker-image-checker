@@ -34,7 +34,12 @@ export function parseImageReference(image: string): ImageReference {
 		}
 	}
 
-	return { repository: withoutDigest, tag: 'latest', digest, isDigest: !!digest }
+	return {
+		repository: withoutDigest,
+		tag: 'latest',
+		digest,
+		isDigest: !!digest
+	}
 }
 
 /** Replace the tag of an image reference, keeping registry host and port. */

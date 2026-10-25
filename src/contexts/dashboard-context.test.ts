@@ -14,7 +14,9 @@ describe('DashboardProvider seeded HB-02/HB-03', () => {
 		// Seeded via useState(initial*)
 		expect(content).toMatch(/useState<string\[]>\s*\(\s*initialHiddenIds/)
 		expect(content).toMatch(/useState<string\[]>\s*\(\s*initialIgnoredIds/)
-		expect(content).toMatch(/useState<Record<string, ReferenceUrlData>>\s*\(\s*initialReferenceUrls/)
+		expect(content).toMatch(
+			/useState<Record<string, ReferenceUrlData>>\s*\(\s*initialReferenceUrls/
+		)
 
 		// useEffect mount fetch for hidden/ignored must be deleted — only toggle paths call set*Action
 		// Count occurrences of getHiddenContainerIdsAction
@@ -24,7 +26,9 @@ describe('DashboardProvider seeded HB-02/HB-03', () => {
 		// However keep toggle path uses setHiddenContainerIdsAction, not get. So expect 0 get calls.
 		expect(hits).toBe(0)
 
-		const ignoredHits = (content.match(/getIgnoredNotificationContainerIdsAction/g) || []).length
+		const ignoredHits = (
+			content.match(/getIgnoredNotificationContainerIdsAction/g) || []
+		).length
 		expect(ignoredHits).toBe(0)
 
 		// Also ensure getReferenceUrlsAction not called on mount via useEffect (seeded)

@@ -236,7 +236,7 @@ describe('gcIgnoredIds', () => {
 	})
 })
 
-	describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
+describe('alreadyNotifiedFresh (B-07 / fix-notify-race)', () => {
 	const update = {
 		containerName: 'fresh-test',
 		imageName: 'nginx',

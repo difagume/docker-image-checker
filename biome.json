@@ -54,7 +54,7 @@
 				".dockerignore",
 				".env*",
 				".npmrc",
-				"*.md",
+				"**/*.md",
 				"NOTIFICATIONS.md"
 			],
 			"formatter": {
