@@ -1,6 +1,15 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { unauthorizedResponseIfEnabled } from '@/lib/auth-guard'
+import { createRateLimiter } from '@/lib/rate-limit'
+import { clientIpFromHeaders } from '@/lib/request-ip'
+
+const hashLimiter = createRateLimiter('htpasswd-hash', {
+	limit: 10,
+	windowMs: 60_000
+})
+const MAX_IN_FLIGHT = 2
+let inFlight = 0
 
 // Función para generar hash MD5 APR1 (Apache)
 function generateApr1Md5(password: string, salt?: string): string {
@@ -101,7 +110,7 @@ function to64(bytes: Buffer): string {
 // Función para generar hash Bcrypt
 async function generateBcrypt(
 	password: string,
-	rounds: number = 10
+	rounds: number = 12
 ): Promise<string> {
 	try {
 		const bcrypt = await import('bcryptjs')
@@ -122,11 +131,30 @@ export async function POST(request: NextRequest) {
 	const unauthorized = await unauthorizedResponseIfEnabled()
 	if (unauthorized) return unauthorized
 
+	const decision = hashLimiter.consume(clientIpFromHeaders(request.headers))
+	if (!decision.allowed) {
+		return Response.json(
+			{ error: 'Demasiadas peticiones, intenta de nuevo más tarde' },
+			{
+				status: 429,
+				headers: { 'Retry-After': String(decision.retryAfterSeconds) }
+			}
+		)
+	}
+
+	if (inFlight >= MAX_IN_FLIGHT) {
+		return Response.json(
+			{ error: 'Servidor ocupado, intenta de nuevo' },
+			{ status: 429 }
+		)
+	}
+
+	inFlight += 1
 	try {
 		const {
 			username,
 			password,
-			format = 'apr1',
+			format = 'bcrypt',
 			salt,
 			rounds
 		} = await request.json()
@@ -161,7 +189,7 @@ export async function POST(request: NextRequest) {
 				hash = generateApr1Md5(password, salt)
 				break
 			case 'bcrypt': {
-				const resolvedRounds = rounds ?? 10
+				const resolvedRounds = rounds ?? 12
 				if (
 					!Number.isInteger(resolvedRounds) ||
 					resolvedRounds < 4 ||
@@ -203,6 +231,8 @@ export async function POST(request: NextRequest) {
 			{ error: 'Error interno del servidor' },
 			{ status: 500 }
 		)
+	} finally {
+		inFlight -= 1
 	}
 }
 
@@ -216,12 +246,12 @@ export async function GET() {
 					username: 'string (requerido)',
 					password: 'string (requerido)',
 					format:
-						'string (opcional, por defecto: apr1, opciones: apr1/md5, bcrypt, sha/sha1)',
+						'string (opcional, por defecto: bcrypt, opciones: bcrypt, apr1/md5, sha/sha1)',
 					salt: 'string (opcional, solo para apr1)',
-					rounds: 'number (opcional, solo para bcrypt, por defecto: 10)'
+					rounds: 'number (opcional, solo para bcrypt, por defecto: 12)'
 				},
 				example: {
-					curl: 'curl -X POST http://localhost:3000/api/htpasswd-hash -H "Content-Type: application/json" -d \'{"username": "admin", "password": "mipassword", "format": "apr1"}\''
+					curl: 'curl -X POST http://localhost:3000/api/htpasswd-hash -H "Content-Type: application/json" -d \'{"username": "admin", "password": "mipassword", "format": "bcrypt"}\''
 				}
 			}
 		}

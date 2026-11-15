@@ -10,6 +10,13 @@ export async function register() {
 	// Los efectos secundarios deben vivir dentro de register(): se ejecuta una
 	// sola vez al iniciar el servidor, no al importar el módulo.
 	if (process.env.NEXT_RUNTIME === 'nodejs') {
+		const htpasswd = process.env.AUTH_HTPASSWD
+		if (htpasswd && /(?:\$apr1\$|\{SHA\})/.test(htpasswd)) {
+			console.warn(
+				'[auth] AUTH_HTPASSWD contiene hashes APR1 o SHA1 sin sal. Usa bcrypt (formato por defecto de /api/htpasswd-hash) y migra las credenciales.'
+			)
+		}
+
 		const { initScheduler, stopScheduler } = await import(
 			'./lib/notifications/scheduler'
 		)
