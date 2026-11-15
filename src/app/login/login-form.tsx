@@ -42,10 +42,14 @@ export default function LoginForm({ dict }: LoginFormProps) {
 				router.refresh()
 			} else {
 				// Si el error es una clave de diccionario, usamos el valor del diccionario, de lo contrario mostramos el mensaje directamente
+				const knownErrors: Record<string, string> = {
+					invalidCredentials: dict.invalidCredentials,
+					tooManyAttempts: dict.tooManyAttempts
+				}
 				const errorMessage =
-					result.error === 'invalidCredentials'
-						? dict.invalidCredentials
-						: result.error || dict.errorOccurred
+					(result.error ? knownErrors[result.error] : undefined) ??
+					result.error ??
+					dict.errorOccurred
 				setError(errorMessage)
 			}
 		} catch (err) {

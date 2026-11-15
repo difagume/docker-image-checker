@@ -1,7 +1,14 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { validateHtpasswd } from '@/lib/htpasswd'
+import {
+	clearLoginFailures,
+	loginRetryAfterSeconds,
+	recordLoginFailure
+} from '@/lib/login-throttle'
+import { clientIpFromHeaders } from '@/lib/request-ip'
 import { getSession } from '@/lib/session'
 
 export async function login(username: string, password: string) {
@@ -11,12 +18,21 @@ export async function login(username: string, password: string) {
 		return { success: false, error: 'Autenticación no configurada' }
 	}
 
+	const attemptKey = `${username}:${clientIpFromHeaders(await headers())}`
+	const retryAfterSeconds = loginRetryAfterSeconds(attemptKey)
+	if (retryAfterSeconds !== null) {
+		return { success: false, error: 'tooManyAttempts', retryAfterSeconds }
+	}
+
 	// Validar credenciales contra htpasswd
 	const isValid = await validateHtpasswd(username, password, htpasswd)
 
 	if (!isValid) {
+		recordLoginFailure(attemptKey)
 		return { success: false, error: 'invalidCredentials' }
 	}
+
+	clearLoginFailures(attemptKey)
 
 	// Crear sesión con iron-session
 	const session = await getSession()

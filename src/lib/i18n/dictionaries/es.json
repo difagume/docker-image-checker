@@ -199,6 +199,7 @@
 		"signIn": "Iniciar sesión",
 		"signingIn": "Iniciando sesión...",
 		"invalidCredentials": "Usuario o contraseña incorrectos",
+		"tooManyAttempts": "Demasiados intentos. Intenta de nuevo en unos minutos.",
 		"errorOccurred": "Ocurrió un error. Por favor intenta de nuevo.",
 		"logout": "Cerrar sesión"
 	},
