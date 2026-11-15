@@ -60,3 +60,4 @@ notifications-data/
 
 # diagramas archify: sidecars de verificación visual (regenerables)
 diagrams/*.visual-check.*
+.analyze-tmp/
