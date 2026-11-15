@@ -121,13 +121,13 @@ services:
 
 ## 🔐 Autenticación
 
-El panel incluye soporte para autenticación con sesión usando htpasswd y iron-session. La autenticación se configura mediante las variables de entorno `AUTH_HTPASSWD` y opcionalmente `AUTH_SESSION_PASSWORD`.
+El panel incluye soporte para autenticación con sesión usando htpasswd y iron-session. La autenticación se configura mediante las variables de entorno `AUTH_HTPASSWD` y `AUTH_SESSION_PASSWORD`.
 
 ### Configuración de Autenticación
 
 1. Genera una entrada htpasswd usando una herramienta como [htpasswd generator](https://www.htaccesstools.com/htpasswd-generator/) o la [API incluida en esta aplicación](#api-para-generar-hashes-htpasswd)
 2. Establece la variable de entorno `AUTH_HTPASSWD` con el contenido generado
-3. Opcionalmente, define `AUTH_SESSION_PASSWORD` para encriptar las cookies de sesión. Si no se define, se usará `AUTH_HTPASSWD` como secreto de sesión
+3. Define `AUTH_SESSION_PASSWORD` (mínimo 32 caracteres) para encriptar las cookies de sesión. Es obligatoria en producción cuando `AUTH_HTPASSWD` está definida; en desarrollo se usa `AUTH_HTPASSWD` como fallback con un aviso
 4. Si no se establece la variable `AUTH_HTPASSWD`, el acceso será automático (sin autenticación)
 
 > [!IMPORTANT]
@@ -143,7 +143,7 @@ El panel incluye soporte para autenticación con sesión usando htpasswd y iron-
 > Nota: `docker run --env-file` **no** aplica interpolación de variables, así que tampoco necesita escape.
 
 > [!IMPORTANT]
-> Si usas autenticación (`AUTH_HTPASSWD`), define explícitamente `AUTH_SESSION_PASSWORD` para separar credenciales de login y secreto de sesión. Puedes generar una contraseña segura con [1Password](https://1password.com/password-generator/) o con el siguiente comando:
+> Si usas autenticación (`AUTH_HTPASSWD`), define explícitamente `AUTH_SESSION_PASSWORD`: en producción el arranque falla sin ella para no mezclar credenciales de login y secreto de sesión. Puedes generar una contraseña segura con [1Password](https://1password.com/password-generator/) o con el siguiente comando:
 > ```bash
 > openssl rand -base64 32
 > ```
@@ -169,7 +169,7 @@ Para obtener información precisa sobre imágenes alojadas en `ghcr.io` (como el
 
 ### API para Generar Hashes htpasswd
 
-La aplicación incluye una API para generar hashes htpasswd directamente. La API soporta los siguientes formatos: APR1 (MD5), Bcrypt y SHA1. Para cuentas nuevas se recomienda **Bcrypt** (`format: bcrypt`); APR1 queda como compatibilidad.
+La aplicación incluye una API para generar hashes htpasswd directamente. La API soporta los siguientes formatos: Bcrypt (por defecto), APR1 (MD5) y SHA1. Para cuentas nuevas usa **Bcrypt**; APR1 y SHA1 quedan como compatibilidad. La API limita a 10 peticiones por minuto y 2 generaciones simultáneas por proceso.
 
 #### Endpoint
 
@@ -179,17 +179,17 @@ La aplicación incluye una API para generar hashes htpasswd directamente. La API
 #### Ejemplo de uso con curl:
 
 ```bash
-# Generar hash en formato APR1 (por defecto)
+# Generar hash en formato Bcrypt (por defecto)
+curl -X POST http://localhost:3000/api/htpasswd-hash \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "mipassword"}'
+
+# Generar hash en formato APR1 (compatibilidad)
 curl -X POST http://localhost:3000/api/htpasswd-hash \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "mipassword", "format": "apr1"}'
 
-# Generar hash en formato Bcrypt
-curl -X POST http://localhost:3000/api/htpasswd-hash \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "mipassword", "format": "bcrypt"}'
-
-# Generar hash en formato SHA1
+# Generar hash en formato SHA1 (compatibilidad)
 curl -X POST http://localhost:3000/api/htpasswd-hash \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "mipassword", "format": "sha1"}'
@@ -215,9 +215,9 @@ El campo `htpasswd` ya tiene el formato `usuario:hash` listo para usar en la var
 
 - `username` (requerido): Nombre de usuario
 - `password` (requerido): Contraseña
-- `format` (opcional): Formato de hash (apr1/md5, bcrypt, sha/sha1) - por defecto apr1
+- `format` (opcional): Formato de hash (bcrypt, apr1/md5, sha/sha1) - por defecto bcrypt
 - `salt` (opcional): Salt personalizado para APR1 (generado automáticamente si no se proporciona)
-- `rounds` (opcional): Número de rondas para Bcrypt - por defecto 10
+- `rounds` (opcional): Número de rondas para Bcrypt - por defecto 12
 
 ### Características de la autenticación
 

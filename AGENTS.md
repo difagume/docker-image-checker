@@ -64,7 +64,7 @@ This is a Next.js dashboard application for monitoring Docker containers and che
 
 5. **Authentication API** (`src/app/api/htpasswd-hash/route.ts`):
    - Provides API endpoint to generate htpasswd hashes
-   - Supports APR1 (MD5), Bcrypt, and SHA1 formats
+   - Supports Bcrypt (default), APR1 (MD5), and SHA1 formats
    - POST endpoint to generate hashes, GET for documentation
    - Supports custom salt for APR1 and custom rounds for Bcrypt
 
@@ -169,7 +169,7 @@ Browser console warnings/errors are also forwarded to the dev server terminal au
 
 ### Core Variables
 - `AUTH_HTPASSWD`: Optional htpasswd string for authentication (if not set, authentication is disabled)
-- `AUTH_SESSION_PASSWORD`: Optional password for encrypting sessions (if not set, uses AUTH_HTPASSWD, must be at least 32 characters)
+- `AUTH_SESSION_PASSWORD`: Password for encrypting sessions (at least 32 characters). Required in production when `AUTH_HTPASSWD` is set; development falls back to `AUTH_HTPASSWD` with a warning
 - `DOCKER_HOST`: Optional Docker daemon endpoint (uses local socket by default). Supports `tcp://host:2375` (plain), `tcp://host:2376`/`https://` (TLS), `ssh://user@host` (SSH), and `unix://`/`npipe://`
 - `NODE_ENV`: Environment mode (development/production)
 - `TZ`: Timezone for scheduler (e.g., America/Guayaquil)
@@ -211,7 +211,7 @@ The application supports optional authentication using htpasswd format:
 
 1. Generate htpasswd entry using the API (`/api/htpasswd-hash`) or external tools
 2. Set the `AUTH_HTPASSWD` environment variable with the htpasswd entry
-3. Optionally set `AUTH_SESSION_PASSWORD` with a secure password of at least 32 characters
+3. Set `AUTH_SESSION_PASSWORD` with a secure password of at least 32 characters (required in production when auth is enabled)
 4. When enabled, users will be redirected to `/login` page for authentication
 
 ### Authentication API Usage
