@@ -9,6 +9,26 @@
 
 const NONCE_GLOBAL_KEY = '__docker_revalidate_nonce__'
 const TUNNEL_TIMEOUT_MS = 10_000
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+
+function assertSafeOverride(override: string): void {
+	let url: URL
+	try {
+		url = new URL(override)
+	} catch {
+		throw new Error('INTERNAL_REVALIDATE_URL must be a valid absolute URL')
+	}
+	if (url.protocol === 'https:') return
+	if (
+		url.protocol === 'http:' &&
+		LOOPBACK_HOSTS.has(url.hostname.toLowerCase())
+	) {
+		return
+	}
+	throw new Error(
+		'INTERNAL_REVALIDATE_URL must use https:// or http:// only on a loopback host'
+	)
+}
 
 /**
  * In-process nonce shared between the polling path and the internal route.
@@ -30,11 +50,14 @@ export function getRevalidateNonce(): string {
  * Loopback URL for the internal revalidation route. Overridable via
  * `INTERNAL_REVALIDATE_URL` (full route URL) for setups where the app does
  * not listen on 127.0.0.1 (e.g. a remote/in-container host that resolves
- * itself differently). Defaults to `http://127.0.0.1:${PORT|3000}/api/internal/revalidate`.
+ * itself differently). The override must use HTTPS, or plain HTTP only for a
+ * loopback host, so the nonce is never sent in clear text. Defaults to
+ * `http://127.0.0.1:${PORT|3000}/api/internal/revalidate`.
  */
 export function getInternalRevalidateUrl(): string {
 	const override = process.env.INTERNAL_REVALIDATE_URL?.trim()
 	if (override) {
+		assertSafeOverride(override)
 		return override.replace(/\/+$/, '')
 	}
 	const port = process.env.PORT || '3000'

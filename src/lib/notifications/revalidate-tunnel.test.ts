@@ -31,6 +31,29 @@ describe('revalidate-tunnel (R12)', () => {
 		expect(getInternalRevalidateUrl()).toBe('http://127.0.0.1:9090/x')
 	})
 
+	it('accepts an HTTPS override on a remote host', () => {
+		vi.stubEnv(
+			'INTERNAL_REVALIDATE_URL',
+			'https://dashboard.internal/api/internal/revalidate'
+		)
+		expect(getInternalRevalidateUrl()).toBe(
+			'https://dashboard.internal/api/internal/revalidate'
+		)
+	})
+
+	it('rejects a plaintext HTTP override on a remote host', () => {
+		vi.stubEnv(
+			'INTERNAL_REVALIDATE_URL',
+			'http://dashboard.internal/api/internal/revalidate'
+		)
+		expect(() => getInternalRevalidateUrl()).toThrow(/https:\/\//)
+	})
+
+	it('rejects a relative or malformed override', () => {
+		vi.stubEnv('INTERNAL_REVALIDATE_URL', '/api/internal/revalidate')
+		expect(() => getInternalRevalidateUrl()).toThrow(/absolute URL/)
+	})
+
 	it('returns a stable in-process nonce', () => {
 		const a = getRevalidateNonce()
 		const b = getRevalidateNonce()
